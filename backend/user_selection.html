@@ -1,0 +1,60 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L.S Management - Seleção de Usuário</title>
+    <link rel="stylesheet" href="{% static 'main.css' %}">
+</head>
+<body class="selection-body">
+<div class="selection-wrapper">
+    <div id="adm-sec" class="select-section adm-side" onclick="selectUser('adm')">
+        <div class="bg-photo adm-photo"></div>
+        <div class="color-overlay"></div>
+        <div class="section-content">
+            <div class="user-avatar">
+                <img src="{% static 'Adm_icon.jpg' %}" alt="ADM" class="avatar-img">
+            </div>
+            <h2>ADM</h2>
+            <div class="reveal-text">
+                <p>NESTA OPÇÃO VOCÊ TERÁ ACESSO A UM DASHBOARD MAIS COMPLETO E CONTROLE TOTAL DAS FUNCIONALIDADES DA PLATAFORMA.</p>
+                <button class="confirm-btn" onclick="goToLogin('adm')">Confirmar Acesso</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="op-sec" class="select-section op-side" onclick="selectUser('operador')">
+        <div class="bg-photo op-photo"></div>
+        <div class="color-overlay"></div>
+        <div class="section-content">
+            <div class="user-avatar">
+                <img src="{% static 'Op_icon.jpg' %}" alt="Operador" class="avatar-img">
+            </div>
+            <h2>OPERADOR</h2>
+            <div class="reveal-text">
+                <p>NESTA OPÇÃO VOCÊ TERÁ ACESSO A UM DASHBOARD MAIS SIMPLIFICADO E CONTROLE TOTAL DAS FUNCIONALIDADES DA PLATAFORMA.</p>
+                <button class="confirm-btn" onclick="goToLogin('operador')">Confirmar Acesso</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function selectUser(type) {
+        // Remove 'active' de ambos
+        document.getElementById('adm-sec').classList.remove('active');
+        document.getElementById('op-sec').classList.remove('active');
+        
+        // Adiciona apenas no selecionado
+        const target = type === 'adm' ? 'adm-sec' : 'op-sec';
+        document.getElementById(target).classList.add('active');
+    }
+
+    function goToLogin(type) {
+        // Redireciona para a página de login passando o tipo na URL
+        window.location.href = "{% url 'login' %}?user_type=" + type;
+    }
+</script>
+</body>
+</html>
