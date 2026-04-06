@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'corsheaders',
 
     # Apps
-    
+    'species',
 ]
 
 CORS_ALLOWED_ORIGINS = [
