@@ -44,6 +44,8 @@ INSTALLED_APPS = [
 
     # Apps
     'species',
+    'quadrants',
+    'purpose_types',
 ]
 
 CORS_ALLOWED_ORIGINS = [
