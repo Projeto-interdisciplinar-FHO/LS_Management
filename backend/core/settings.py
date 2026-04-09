@@ -47,6 +47,11 @@ INSTALLED_APPS = [
     'quadrants',
     'purpose_types',
     'animals',
+    'weight_history',
+    'vaccines',
+    'vaccinations',
+    'animal_health',
+    
     'api_pecuaria',
     'gestao',
 ]
