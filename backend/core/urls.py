@@ -8,6 +8,7 @@ from purpose_types.views import PurposeTypeCreateListView, PurposeTypeRetrieveUp
 from animals.views import AnimalCreateListView, AnimalRetrieveUpdateDestroy
 from weight_history.views import WeightHistoryCreateListView, WeightHistoryRetrieveUpdateDestroy
 from vaccines.views import VaccineCreateListView, VaccineRetrieveUpdateDestroy
+from vaccinations.views import VaccinationCreateListView, VaccinationRetrieveUpdateDestroy
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -23,5 +24,7 @@ urlpatterns = [
     path('weight_history/<int:pk>', WeightHistoryRetrieveUpdateDestroy.as_view(), name="weight-history-detail-view"),
     path('vaccines/', VaccineCreateListView.as_view(), name="vaccines-create-list"),
     path('vaccines/<int:pk>', VaccineRetrieveUpdateDestroy.as_view(), name="vaccines-detail-view"),
+    path('vaccinations/', VaccinationCreateListView.as_view(), name="vaccinations-create-list"),
+    path('vaccinations/<int:pk>', VaccinationRetrieveUpdateDestroy.as_view(), name="vaccinations-detail-view"),
     
 ]

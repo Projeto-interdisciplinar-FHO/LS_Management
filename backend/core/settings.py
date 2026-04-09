@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'animals',
     'weight_history',
     'vaccines',
+    'vaccinations',
     'api_pecuaria',
     'gestao',
 ]
