@@ -21,6 +21,9 @@ urlpatterns = [
     path('purpose_types/<int:pk>', PurposeTypeRetrieveUpdateDestroy.as_view(), name="purpose-types-detail-view"),
     path('animals/', AnimalCreateListView.as_view(), name="animals-create-list"),
     path('animals/<int:pk>', AnimalRetrieveUpdateDestroy.as_view(), name="animals-detail-view"),
+
+    path('api/', include('api_pecuaria.urls')),
+
     path('weight_history/', WeightHistoryCreateListView.as_view(), name="weight-history-create-list"),
     path('weight_history/<int:pk>', WeightHistoryRetrieveUpdateDestroy.as_view(), name="weight-history-detail-view"),
     path('vaccines/', VaccineCreateListView.as_view(), name="vaccines-create-list"),
@@ -29,5 +32,4 @@ urlpatterns = [
     path('vaccinations/<int:pk>', VaccinationRetrieveUpdateDestroy.as_view(), name="vaccinations-detail-view"),
     path('animal_health/', AnimalHealthCreateListView.as_view(), name="animal-health-create-list"),
     path('animal_health/<int:pk>', AnimalHealthRetrieveUpdateDestroy.as_view(), name="animal-health-detail-view"),
-    
 ]
