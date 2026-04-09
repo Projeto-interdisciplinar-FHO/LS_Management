@@ -17,4 +17,5 @@ urlpatterns = [
     path('purpose_types/<int:pk>', PurposeTypeRetrieveUpdateDestroy.as_view(), name="purpose-types-detail-view"),
     path('animals/', AnimalCreateListView.as_view(), name="animals-create-list"),
     path('animals/<int:pk>', AnimalRetrieveUpdateDestroy.as_view(), name="animals-detail-view"),
+    path('api/', include('api_pecuaria.urls')),   
 ]
