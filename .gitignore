@@ -206,10 +206,23 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-
 venv/
-*.pyc
+.venv/
+env/
+
+# Python - Arquivos de cache (Compilação)
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Banco de Dados Local
 db.sqlite3
-.env
+db.sqlite3-journal
+
+# Configurações do VS Code ou outros editores
 .vscode/
+.idea/
+
+# Arquivos de Sistema
+.DS_Store
+Thumbs.db
