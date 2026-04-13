@@ -21,7 +21,7 @@ DELETE /api/bovinos/<rfid>/ Exclui um bovino do sistema.
 
 Criar Registro POST /api/historicos/ Adiciona um novo evento ao histórico de um animal.
 
-Corpo da requisição bovinos (POST):
+Corpo da requisição bovinos para testes (POST):
 
 {
     "rfid_tag": "1",
@@ -30,12 +30,12 @@ Corpo da requisição bovinos (POST):
     "status": "Ativo"
 }
 
-Corpo da requisição historicos (POST):
+Corpo da requisição historicos para testes (POST):
 
 {
-    "animal": 10, - Usar ID do boi e não o RFID_Tag.
-    "tipo": "PESO",
-    "valor": 450.0,
-    "sintomas": "Animal saudável e em engorda",
+    "animal": Usar ID do boi e não o RFID_Tag,
+    "tipo": "Tipo do historico Ex: PESO",
+    "valor": Valor que vai ser salvo,
+    "sintomas": "Se houver sintomas",
     "data": "2026-04-13T20:30:00Z"
 }
