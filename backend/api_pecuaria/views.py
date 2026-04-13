@@ -9,7 +9,7 @@ class BovinoListCreateView(generics.ListCreateAPIView):
 class DetalheBovinoView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Bovino.objects.all()
     serializer_class = BovinoSerializer
-    lookup_field = 'rfid_tag' 
+    lookup_field = 'rfid_tag' # Usamos rfid_tag em vez de ID
 
 class RegistrarEventoView(generics.ListCreateAPIView):
     queryset = Historico.objects.all()

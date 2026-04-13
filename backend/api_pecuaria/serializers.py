@@ -4,7 +4,7 @@ from gestao.models import Bovino, Historico
 class HistoricoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Historico
-        fields = ['tipo', 'valor','data']
+        fields = ['animal', 'tipo', 'valor', 'data', 'sintomas']
 
 class BovinoSerializer(serializers.ModelSerializer):
     historicos = HistoricoSerializer(many=True, read_only=True)
