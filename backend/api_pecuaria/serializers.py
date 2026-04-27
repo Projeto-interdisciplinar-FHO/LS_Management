@@ -1,14 +1,31 @@
 from rest_framework import serializers
-from gestao.models import Bovino, Historico
+from animals.models import Animal
+from animal_health.models import AnimalHealth
+from vaccinations.models import Vaccination
+from weight_history.models import WeightHistory
 
-class HistoricoSerializer(serializers.ModelSerializer):
+
+class AnimalSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Historico
-        fields = ['animal', 'tipo', 'valor', 'data', 'sintomas']
+        model = Animal
+        fields = ['id', 'name', 'register_number', 'birth_date', 'sex', 'active']
 
-class BovinoSerializer(serializers.ModelSerializer):
-    historicos = HistoricoSerializer(many=True, read_only=True)
 
+class AnimalHealthSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Bovino
-        fields = ['id', 'rfid_tag', 'nome', 'raca', 'status', 'historicos']
+        model = AnimalHealth
+        fields = ['id', 'animal', 'weight', 'temperature',
+                  'sleep_quality', 'disease_prediction', 'consultation_date']
+
+
+class VaccinationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vaccination
+        fields = ['id', 'animal', 'vaccine', 'vaccination_date',
+                  'doses_taken', 'total_doses', 'vaccination_status']
+
+
+class WeightHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WeightHistory
+        fields = '__all__'
