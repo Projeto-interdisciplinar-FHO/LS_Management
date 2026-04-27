@@ -61,6 +61,12 @@ CORS_ALLOWED_ORIGINS = [
     "http://124.0.0.1:5173",
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
 MIDDLEWARE = [
     #"corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
