@@ -10,6 +10,8 @@ from weight_history.views import WeightHistoryCreateListView, WeightHistoryRetri
 from vaccines.views import VaccineCreateListView, VaccineRetrieveUpdateDestroy
 from vaccinations.views import VaccinationCreateListView, VaccinationRetrieveUpdateDestroy
 from animal_health.views import AnimalHealthCreateListView, AnimalHealthRetrieveUpdateDestroy
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -32,4 +34,7 @@ urlpatterns = [
     path('vaccinations/<int:pk>', VaccinationRetrieveUpdateDestroy.as_view(), name="vaccinations-detail-view"),
     path('animal_health/', AnimalHealthCreateListView.as_view(), name="animal-health-create-list"),
     path('animal_health/<int:pk>', AnimalHealthRetrieveUpdateDestroy.as_view(), name="animal-health-detail-view"),
+
+    path('api/token/', TokenObtainPairView.as_view(), name='token-obtain'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
 ]
