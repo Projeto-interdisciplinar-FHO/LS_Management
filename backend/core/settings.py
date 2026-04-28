@@ -37,12 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     
     'rest_framework',
-    #'corsheaders',
+    'corsheaders',
 
     # Apps
+    'authentication',
     'species',
     'quadrants',
     'purpose_types',
@@ -51,9 +51,6 @@ INSTALLED_APPS = [
     'vaccines',
     'vaccinations',
     'animal_health',
-    
-    'api_pecuaria',
-    'authentication',
 ]
 
 CORS_ALLOWED_ORIGINS = [
