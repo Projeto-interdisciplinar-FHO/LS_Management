@@ -186,6 +186,10 @@ As rotas abaixo estão definidas em [backend/core/urls.py](backend/core/urls.py)
 | GET, POST | `/animal_health/` |
 | GET, PUT, PATCH, DELETE | `/animal_health/<int:pk>` |
 
+## Documentação da API
+
+A documentação completa das rotas, autenticação e exemplos de respostas está em [docs/api.md](docs/api.md).
+
 ## Frontend
 
 Os arquivos de interface ficam em [frontend/](frontend). Atualmente existem as telas:
@@ -199,36 +203,3 @@ Os arquivos de interface ficam em [frontend/](frontend). Atualmente existem as t
 - [backend/core/](backend/core) contém configurações globais e URLs principais.
 - Os apps de domínio ficam separados por responsabilidade, como animals, vaccines, feedings e outros.
 - A autenticação JWT está concentrada no fluxo de `authentication/token/`.
-
-## Sugestão de Organização das Rotas
-
-Para manter o README limpo quando a API crescer, o ideal é:
-
-1. Manter aqui uma visão geral das rotas mais importantes.
-2. Criar um arquivo dedicado em `docs/api.md` para a documentação completa da API.
-3. Se quiser algo ainda melhor no futuro, gerar documentação automática com schema OpenAPI/Swagger.
-
-## Exemplo de Payload
-
-### Animal
-
-```json
-{
-    "rfid_tag": "1",
-    "nome": "Mimosa 1",
-    "raca": "Holandesa",
-    "status": "Ativo"
-}
-```
-
-### Histórico
-
-```json
-{
-    "animal": 1,
-    "tipo": "PESO",
-    "valor": 420.5,
-    "sintomas": "Nenhum",
-    "data": "2026-04-13T20:30:00Z"
-}
-```
