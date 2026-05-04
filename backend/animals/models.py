@@ -11,6 +11,7 @@ class Animal(models.Model):
     active = models.BooleanField()
     sex = models.CharField(max_length=1)
     specie = models.ForeignKey(Specie, on_delete=models.CASCADE)
+    breed = models.ForeignKey('breeds.Breed', on_delete=models.SET_NULL, null=True, blank=True, related_name='animals')
     quadrant = models.ForeignKey(Quadrant, on_delete=models.CASCADE)
     purpose = models.ForeignKey(PurposeType, on_delete=models.CASCADE)
     
