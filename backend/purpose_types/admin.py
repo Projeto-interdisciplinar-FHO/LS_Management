@@ -1,3 +1,5 @@
 from django.contrib import admin
+from purpose_types.models import PurposeType
 
-# Register your models here.
+
+admin.site.register(PurposeType)

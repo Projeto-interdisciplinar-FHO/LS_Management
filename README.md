@@ -1,56 +1,205 @@
-# LS_Management
-Plataforma digital para gestão de rebanho bovino: controle de produção de leite, vacinas, evolução de peso e relatórios estratégicos para o produtor rural.
+# LS Management
 
-Como Executar:
+Plataforma web para gestão de rebanho bovino, com foco em controle sanitário, movimentações, alimentação, produção, peso e autenticação via JWT.
 
-Crie um ambiente virtual: python -m venv venv.
+## Visão Geral
 
-Ative o venv: venv\Scripts\activate (Windows).
+O projeto está organizado em apps Django/DRF por domínio de negócio, o que facilita manter cada recurso isolado e evoluir a API sem perder clareza.
 
-Instale o Django e o DRF: pip install django djangorestframework.
+### Tecnologias
 
-Rode as migrações: python manage.py migrate.
+- Django
+- Django REST Framework
+- Simple JWT
+- SQLite
+- CORS Headers
 
-Inicie o servidor: python manage.py runserver.
+## Como Executar
 
-Rotas da API:
+### 1. Entrar no backend
 
-GET /api/bovinos/ Lista todos os bovinos cadastrados.
+```powershell
+cd backend
+```
 
-POST /api/bovinos/ Cria um novo registro de bovino.
+### 2. Ativar o ambiente virtual
 
-GET /api/bovinos/rfid/ Detalha um bovino específico pelo RFID.
+```powershell
+.\venv\Scripts\Activate.ps1
+```
 
-PUT /api/bovinos/rfid/ Atualiza todos os dados de um bovino.
+Se preferir usar o executável diretamente, também funciona:
 
-PATCH /api/bovinos/rfid/ Atualiza parcialmente os dados.
+```powershell
+.\venv\Scripts\python.exe --version
+```
 
-DELETE /api/bovinos/rfid/ Exclui um bovino do sistema.
+### 3. Instalar dependências
 
-Criar Registro POST /api/historicos/ Adiciona um novo evento ao histórico de um animal.
+```powershell
+pip install -r requirements.txt
+```
 
-Corpo da requisição bovinos para testes (POST):
+### 4. Aplicar migrações
 
-{
-    "rfid_tag": "1",
+```powershell
+python manage.py migrate
+```
 
-    "nome": "Mimosa 1",
+### 5. Subir o servidor
 
-    "raca": "Holandesa",
+```powershell
+python manage.py runserver
+```
 
-    "status": "Ativo"
-}
+## Autenticação
 
-Corpo da requisição historicos para testes (POST):
+O backend usa JWT. As rotas de autenticação ficam em `authentication/token/`.
 
-{
-    "animal": Usar ID do boi e não o RFID_Tag,
+### Rotas de autenticação
 
-    "tipo": "Tipo do historico Ex: PESO",
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| POST | `/authentication/token/` | Gera access e refresh token |
+| POST | `/authentication/token/refresh/` | Renova o access token |
+| POST | `/authentication/token/verify/` | Valida um token |
 
-    "valor": Valor que vai ser salvo,
+## Rotas da API
 
-    "sintomas": "Se houver sintomas",
-    
-    "data": "2026-04-13T20:30:00Z"
-}
+As rotas abaixo estão definidas em [backend/core/urls.py](backend/core/urls.py).
+
+### Admin
+
+| Método | Rota |
+| --- | --- |
+| GET | `/admin/` |
+
+### Especies
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/species/` |
+| GET, PUT, PATCH, DELETE | `/species/<int:pk>` |
+
+### Quadrants
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/quadrants/` |
+| GET, PUT, PATCH, DELETE | `/quadrants/<int:pk>` |
+
+### Purpose Types
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/purpose_types/` |
+| GET, PUT, PATCH, DELETE | `/purpose_types/<int:pk>` |
+
+### Animals
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/animals/` |
+| GET, PUT, PATCH, DELETE | `/animals/<int:pk>` |
+
+### Breeds
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/breeds/` |
+| GET, PUT, PATCH, DELETE | `/breeds/<int:pk>` |
+
+### Weight History
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/weight_history/` |
+| GET, PUT, PATCH, DELETE | `/weight_history/<int:pk>` |
+
+### Milk Production History
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/milk_production_history/` |
+| GET, PUT, PATCH, DELETE | `/milk_production_history/<int:pk>` |
+
+### Vaccines
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/vaccines/` |
+| GET, PUT, PATCH, DELETE | `/vaccines/<int:pk>` |
+
+### Vaccination Plans
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/vaccination_plans/` |
+| GET, PUT, PATCH, DELETE | `/vaccination_plans/<int:pk>` |
+
+### Vaccinations
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/vaccinations/` |
+| GET, PUT, PATCH, DELETE | `/vaccinations/<int:pk>` |
+
+### Foods
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/foods/` |
+| GET, PUT, PATCH, DELETE | `/foods/<int:pk>` |
+
+### Feedings
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/feedings/` |
+| GET, PUT, PATCH, DELETE | `/feedings/<int:pk>` |
+
+### Feeding Plans
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/feeding_plans/` |
+| GET, PUT, PATCH, DELETE | `/feeding_plans/<int:pk>` |
+
+### Movement Types
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/movement_types/` |
+| GET, PUT, PATCH, DELETE | `/movement_types/<int:pk>` |
+
+### Animal Movements
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/animal_movements/` |
+| GET, PUT, PATCH, DELETE | `/animal_movements/<int:pk>` |
+
+### Animal Health
+
+| Método | Rota |
+| --- | --- |
+| GET, POST | `/animal_health/` |
+| GET, PUT, PATCH, DELETE | `/animal_health/<int:pk>` |
+
+## Documentação da API
+
+A documentação completa das rotas, autenticação e exemplos de respostas está em [docs/api.md](docs/api.md).
+
+## Frontend
+
+Os arquivos de interface ficam em [frontend/](frontend). Atualmente existem as telas:
+
+- [frontend/index.html](frontend/index.html)
+- [frontend/login.html](frontend/login.html)
+- [frontend/user_selection.html](frontend/user_selection.html)
+
+## Estrutura do Projeto
+
+- [backend/core/](backend/core) contém configurações globais e URLs principais.
+- Os apps de domínio ficam separados por responsabilidade, como animals, vaccines, feedings e outros.
+- A autenticação JWT está concentrada no fluxo de `authentication/token/`.

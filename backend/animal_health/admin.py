@@ -1,3 +1,5 @@
 from django.contrib import admin
+from animal_health.models import AnimalHealth
 
-# Register your models here.
+
+admin.site.register(AnimalHealth)
