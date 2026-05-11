@@ -515,8 +515,9 @@ const vClickOutside = {
   position: relative;
   overflow: hidden;
   cursor: pointer;
-  border: 1px solid var(--border-accent);
+  border: 1.5px solid #2da44e;
   transition: border-color 0.3s;
+  backdrop-filter: blur(10px);
 }
 
 .card-hero:hover { border-color: var(--op-accent); }
@@ -611,11 +612,12 @@ const vClickOutside = {
 
 /* ============ STAT CARDS ============ */
 .stat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: rgba(22, 27, 34, 0.8);
+  border: 1.5px solid #2da44e;
   border-radius: 12px;
   padding: 20px;
   transition: all 0.2s;
+  backdrop-filter: blur(10px);
 }
 
 .stat-card:hover {
@@ -713,11 +715,12 @@ const vClickOutside = {
 
 /* ============ DATA CARDS ============ */
 .data-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: rgba(22, 27, 34, 0.8);
+  border: 1.5px solid #2da44e;
   border-radius: 12px;
   padding: 20px;
   transition: all 0.2s;
+  backdrop-filter: blur(10px);
 }
 
 .data-card:hover {
