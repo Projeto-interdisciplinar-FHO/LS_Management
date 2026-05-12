@@ -22,6 +22,7 @@ from movement_types.views import MovementTypeCreateListView, MovementTypeRetriev
 from animal_movements.views import AnimalMovementCreateListView, AnimalMovementRetrieveUpdateDestroy
 from animal_health.views import AnimalHealthCreateListView, AnimalHealthRetrieveUpdateDestroy
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
+from statistics_api.views import ApiStatsView
 
 
 urlpatterns = [
@@ -65,4 +66,6 @@ urlpatterns = [
     path('authentication/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('authentication/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('authentication/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+
+    path('statistics/', ApiStatsView.as_view(), name='stats-view'),
 ]
