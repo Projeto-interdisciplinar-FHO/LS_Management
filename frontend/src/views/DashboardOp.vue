@@ -21,6 +21,9 @@
             <router-link to="/vacinacao" class="nav-link">
               <span class="nav-icon">✛</span> Aplicar Vacinas
             </router-link>
+            <button @click="openReportSickModal" class="nav-link nav-button" style="text-align: left; width: 100%; background: rgba(210, 153, 34, 0.1); margin-top: 10px;">
+              <span class="nav-icon">⚠</span> Reportar Doente
+            </button>
           </nav>
           <button @click="logout" class="btn-logout">⏻ Sair</button>
         </div>
@@ -56,6 +59,11 @@
 
       <!-- DASHBOARD GRID -->
       <div class="dashboard-grid">
+
+        <!-- ALERTA CRÍTICO: REQUISITO 7.3 -->
+        <section class="alert-banner-section">
+          <AlertBanner :refresh-interval="30000" />
+        </section>
 
         <!-- HERO CARD: TAREFAS DO DIA -->
         <section class="card-hero" @click="goToTasks">
@@ -113,7 +121,7 @@
               <span class="sector-count">28</span>
             </div>
           </div>
-          <span class="sub-link">Ver mapa de pastos →</span>
+          <!-- Link de mapa de pastos removido conforme solicitado -->
         </div>
 
         <!-- ÚLTIMOS REGISTROS -->
@@ -215,20 +223,89 @@
 
       </div>
     </main>
+
+    <!-- MODAL: REPORTAR ANIMAL DOENTE -->
+    <div v-if="showReportSickModal" class="modal-overlay" @click.self="closeReportSickModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>⚠️ Reportar Animal Doente</h2>
+          <button class="btn-close" @click="closeReportSickModal">✕</button>
+        </div>
+
+        <form @submit.prevent="submitReportSick" class="form-report">
+          <div class="form-group">
+            <label>ID do Animal (Brinco)</label>
+            <input 
+              v-model.number="animalIdToReport" 
+              type="number" 
+              placeholder="Ex: 142" 
+              required
+              autofocus
+            >
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" @click="closeReportSickModal">Cancelar</button>
+            <button type="submit" class="btn-submit" :disabled="reportingLoading">
+              {{ reportingLoading ? 'Reportando...' : 'Reportar Doente' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import api from '@/services/api';
+import AlertBanner from '@/components/AlertBanner.vue';
 
 const router = useRouter();
 const isMenuOpen = ref(false);
+const showReportSickModal = ref(false);
+const animalIdToReport = ref('');
+const reportingLoading = ref(false);
 
 const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; };
 const closeMenu = () => { isMenuOpen.value = false; };
 const goToTasks = () => { router.push('/tarefas'); };
 const logout = () => { localStorage.clear(); router.push('/'); };
+
+const openReportSickModal = () => {
+  closeMenu();
+  showReportSickModal.value = true;
+};
+
+const closeReportSickModal = () => {
+  showReportSickModal.value = false;
+  animalIdToReport.value = '';
+};
+
+const submitReportSick = async () => {
+  if (!animalIdToReport.value) {
+    alert("Por favor, insira o ID (Brinco) do animal");
+    return;
+  }
+
+  reportingLoading.value = true;
+  try {
+    // Buscar animal e atualizar status
+    const animal = await api.getAnimalById(parseInt(animalIdToReport.value));
+    if (animal.data) {
+      const updatedAnimal = { ...animal.data, status: 'doente' };
+      await api.updateAnimal(animal.data.id, updatedAnimal);
+      alert(`✓ Animal #${animalIdToReport.value} reportado como DOENTE!`);
+      closeReportSickModal();
+    }
+  } catch (error) {
+    console.error("Erro ao reportar animal como doente:", error);
+    alert("Erro: Animal não encontrado ou erro ao atualizar status.");
+  } finally {
+    reportingLoading.value = false;
+  }
+};
 
 const vClickOutside = {
   mounted(el, binding) {
@@ -489,8 +566,8 @@ const vClickOutside = {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
   grid-template-rows: auto auto;
-  gap: 20px;
-  padding: 30px;
+  gap: 10px;
+  padding: 16px;
   max-width: 1200px; 
   margin: 0 auto;
   width: 100%;
@@ -507,7 +584,7 @@ const vClickOutside = {
 .card-hero {
   grid-column: 1 / -1;
   grid-row: 1 / 2;
-  height: 260px;
+  height: 200px;
   border-radius: 12px;
   background-image: url('@/assets/op_background.jpg');
   background-size: cover;
@@ -543,7 +620,7 @@ const vClickOutside = {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: 12px 16px;
   z-index: 2;
 }
 
@@ -561,7 +638,7 @@ const vClickOutside = {
 }
 
 .hero-text h2 {
-  font-size: 1.9rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: var(--text-primary);
   text-shadow: 0 2px 8px rgba(0,0,0,0.6);
@@ -615,7 +692,7 @@ const vClickOutside = {
   background: rgba(22, 27, 34, 0.8);
   border: 1.5px solid #2da44e;
   border-radius: 12px;
-  padding: 20px;
+  padding: 12px;
   transition: all 0.2s;
   backdrop-filter: blur(10px);
 }
@@ -718,7 +795,7 @@ const vClickOutside = {
   background: rgba(22, 27, 34, 0.8);
   border: 1.5px solid #2da44e;
   border-radius: 12px;
-  padding: 20px;
+  padding: 12px;
   transition: all 0.2s;
   backdrop-filter: blur(10px);
 }
@@ -764,13 +841,13 @@ const vClickOutside = {
 /* Activity card */
 .activity-card { grid-column: 1 / 2; grid-row: 2 / 3; }
 
-.activity-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+.activity-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 
 .activity-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding-bottom: 12px;
+  gap: 8px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -900,4 +977,153 @@ const vClickOutside = {
 /* ============ TRANSITIONS ============ */
 .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
 .slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
+/* ============ MODAL ============ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #30363d;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #d29922;
+  font-size: 1.2rem;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  color: #8b949e;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.btn-close:hover {
+  color: #e6edf3;
+}
+
+.form-report {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #8b949e;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.form-group input {
+  padding: 10px 12px;
+  background-color: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #e6edf3;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #d29922;
+  box-shadow: 0 0 0 3px rgba(210, 153, 34, 0.1);
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.btn-cancel {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  border-color: #58a6ff;
+  color: #58a6ff;
+}
+
+.btn-submit {
+  padding: 10px 24px;
+  background: #d29922;
+  color: #0d1117;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: #e0a83e;
+  box-shadow: 0 4px 12px rgba(210, 153, 34, 0.3);
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.nav-button {
+  border: none;
+  cursor: pointer;
+}
+
+.nav-button:hover {
+  color: #d29922 !important;
+}
+
 </style>

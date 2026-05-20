@@ -11,9 +11,9 @@
             <router-link to="/dashboard-adm" class="nav-link active">
               <span class="nav-icon">⊞</span> Dashboard
             </router-link>
-            <router-link to="/animals" class="nav-link">
-  <span class="nav-icon">◈</span> Animais
-</router-link>
+            <router-link to="/animais" class="nav-link">
+              <span class="nav-icon">◈</span> Animais
+            </router-link>
             <router-link to="/saude" class="nav-link">
               <span class="nav-icon">♥</span> Saúde Animal
             </router-link>
@@ -28,16 +28,9 @@
 
     <main class="main-layout" :class="{ 'blur-bg': isMenuOpen }">
       <header class="top-bar">
-        <div class="logo-trigger" @click.stop="toggleMenu">
-          <img src="@/assets/logo-vaca-ls.png" alt="Logo" class="mini-logo">
+        <div class="logo-trigger">
+          <img src="@/assets/logo-vaca-ls.png" alt="Logo" class="mini-logo" @click.stop="toggleMenu">
           <span class="logo-text">L.S Management</span>
-          <span class="menu-hint">≡</span>
-        </div>
-        <div class="top-center">
-          <div class="search-bar">
-            <span class="search-icon">⌕</span>
-            <input type="text" placeholder="Buscar animais, lotes, alertas..." />
-          </div>
         </div>
         <div class="user-profile">
           <div class="notification-bell">
@@ -52,6 +45,11 @@
       </header>
 
       <div class="dashboard-grid">
+
+        <!-- ALERTA CRÍTICO: REQUISITO 7.3 -->
+        <section class="alert-banner-section">
+          <AlertBanner :refresh-interval="30000" />
+        </section>
 
         <section class="card-hero" @click="goToMap">
           <div class="hero-scanline"></div>
@@ -71,7 +69,7 @@
           </div>
         </section>
 
-<div class="stat-card clickable-card" @click="$router.push('/animals')">
+<div class="stat-card clickable-card" @click="$router.push('/animais')">
   <div class="stat-header">
     <span class="stat-icon">◈</span>
     <span class="stat-label">Animais</span>
@@ -83,22 +81,7 @@
   <p class="click-hint">Gerenciar Rebanho →</p>
 </div>
 
-        <div class="stat-card clickable-card" @click="$router.push('/')">
-          <div class="stat-header">
-            <span class="stat-icon">◉</span>
-            <span class="stat-label">Pastagem</span>
-          </div>
-          <div class="stat-row">
-            <span class="row-label">Capacidade:</span>
-            <span class="row-value">100</span>
-          </div>
-          <div class="stat-row warning">
-            <span class="row-label">Uso atual:</span>
-            <span class="row-value danger">120</span>
-            <span class="warn-icon">⚠</span>
-          </div>
-          <p class="click-hint">Visualizar Mapa →</p>
-        </div>
+        <!-- Pastagem card removido -->
 
         <div class="stat-card clickable-card alert-critical" @click="$router.push('/rebanho')">
           <div class="stat-header">
@@ -111,6 +94,19 @@
           </div>
           <p class="stat-desc">Venda bloqueada (RN04)</p>
           <p class="click-hint">Ver Animais Bloqueados →</p>
+        </div>
+
+        <div class="stat-card clickable-card alert-sick" @click="$router.push('/animais')">
+          <div class="stat-header">
+            <span class="stat-icon sick-icon">⚠</span>
+            <span class="stat-label">Animais Doentes</span>
+          </div>
+          <div class="stat-main">
+            <span class="stat-number sick-text">{{ countSick }}</span>
+            <span class="stat-unit">animais</span>
+          </div>
+          <p class="stat-desc">Atenção Veterinária Necessária</p>
+          <p class="click-hint" style="margin-top: 8px;">Verificar Diagnósticos →</p>
         </div>
 
         <section class="data-card health-card clickable-card" @click="$router.push('/saude')">
@@ -158,8 +154,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import api from '@/services/api';
+import AlertBanner from '@/components/AlertBanner.vue';
 
 const router = useRouter();
 const isMenuOpen = ref(false);
@@ -167,12 +165,30 @@ const isMenuOpen = ref(false);
 // Variáveis declaradas para evitar o erro "Property is not defined"
 const carênciaAtiva = ref(true);
 const countCarencia = ref(12);
+const countSick = ref(0);
 const totalLeite = ref(320);
 
 const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; };
 const closeMenu = () => { isMenuOpen.value = false; };
 const goToMap = () => { router.push({ name: 'mapa' }); };
 const logout = () => { localStorage.clear(); router.push('/'); };
+
+// Carregar contagem de animais doentes
+const loadSickAnimalsCount = async () => {
+  try {
+    const response = await api.getAnimals();
+    const animals = Array.isArray(response.data) ? response.data : response.data.results || [];
+    const sickCount = animals.filter(a => a.status === 'doente').length;
+    countSick.value = sickCount;
+  } catch (error) {
+    console.error("Erro ao buscar animais doentes:", error);
+    countSick.value = 0;
+  }
+};
+
+onMounted(() => {
+  loadSickAnimalsCount();
+});
 
 const vClickOutside = {
   mounted(el, binding) {
@@ -272,11 +288,11 @@ const vClickOutside = {
 /* ============ GRID ============ */
 .main-layout { flex: 1; display: flex; flex-direction: column; transition: all 0.3s ease; padding-left: 0; }
 .main-layout.blur-bg { filter: blur(3px); padding-left: 280px; pointer-events: none; }
-.dashboard-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px; padding: 30px; max-width: 1200px; margin: 0 auto; width: 100%; }
+.dashboard-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 30px; max-width: 1200px; margin: 0 auto; width: 100%; }
 @media (max-width: 1100px) { .dashboard-grid { grid-template-columns: 1fr 1fr; max-width: 900px; } .card-hero { grid-column: 1 / -1; } }
 
 /* ============ HERO CARD ============ */
-.card-hero { grid-column: 1 / 2; grid-row: 1 / 2; height: 260px; border-radius: 12px; background-image: url('@/assets/adm_background.jpg'); background-size: cover; background-position: center; position: relative; overflow: hidden; cursor: pointer; border: 1.5px solid #58d368; transition: border-color 0.3s; backdrop-filter: blur(10px); }
+.card-hero { grid-column: 1 / 3; grid-row: 1 / 2; height: 260px; border-radius: 12px; background-image: url('@/assets/adm_background.jpg'); background-size: cover; background-position: center; position: relative; overflow: hidden; cursor: pointer; border: 1.5px solid #58d368; transition: border-color 0.3s; backdrop-filter: blur(10px); }
 .card-hero:hover { border-color: var(--green-neon); }
 .hero-scanline { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px); pointer-events: none; z-index: 1; }
 .hero-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(13,17,23,0.3) 0%, rgba(13,17,23,0.75) 100%); display: flex; flex-direction: column; justify-content: space-between; padding: 20px 24px; z-index: 2; }
@@ -340,6 +356,18 @@ const vClickOutside = {
 
 .danger-icon, .danger-text { color: var(--red) !important; }
 .alert-critical { border-color: rgba(248, 81, 73, 0.5) !important; }
+
+.sick-icon { color: var(--yellow) !important; }
+.sick-text { color: var(--yellow) !important; }
+.alert-sick { 
+  border-color: rgba(210, 153, 34, 0.5) !important;
+  animation: pulse-alert 2s infinite;
+}
+
+@keyframes pulse-alert {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(210, 153, 34, 0.3); }
+  50% { box-shadow: 0 0 12px rgba(210, 153, 34, 0.3); }
+}
 
 /* ============ TRANSITIONS ============ */
 .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }

@@ -5,24 +5,25 @@ from django.urls import path, include
 from species.views import SpecieCreateListView, SpecieRetrieveUpdateDestroy
 from quadrants.views import QuadrantCreateListView, QuadrantRetrieveUpdateDestroy
 from purpose_types.views import PurposeTypeCreateListView, PurposeTypeRetrieveUpdateDestroy
-from animals.views import AnimalCreateListView, AnimalRetrieveUpdateDestroy
+from animals.views import AnimalListView, AnimalRetrieveUpdateDestroy
 from breeds.views import BreedCreateListView, BreedRetrieveUpdateDestroy
-from weight_history.views import WeightHistoryCreateListView, WeightHistoryRetrieveUpdateDestroy
+from weight_history.views import WeightHistoryCreateListView, WeightHistoryRetrieveUpdateDestroy, WeightHistoryByAnimalView
 from milk_production_history.views import (
     MilkProductionHistoryCreateListView,
     MilkProductionHistoryRetrieveUpdateDestroy,
+    MilkProductionHistoryByAnimalView,
 )
 from vaccines.views import VaccineCreateListView, VaccineRetrieveUpdateDestroy
 from vaccination_plans.views import VaccinationPlanCreateListView, VaccinationPlanRetrieveUpdateDestroy
-from vaccinations.views import VaccinationCreateListView, VaccinationRetrieveUpdateDestroy
+from vaccinations.views import VaccinationCreateListView, VaccinationRetrieveUpdateDestroy, vaccinations_by_animal, upcoming_vaccinations
 from foods.views import FoodCreateListView, FoodRetrieveUpdateDestroy
 from feedings.views import FeedingCreateListView, FeedingRetrieveUpdateDestroy
 from feeding_plans.views import FeedingPlanCreateListView, FeedingPlanRetrieveUpdateDestroy
 from movement_types.views import MovementTypeCreateListView, MovementTypeRetrieveUpdateDestroy
 from animal_movements.views import AnimalMovementCreateListView, AnimalMovementRetrieveUpdateDestroy
 from animal_health.views import AnimalHealthCreateListView, AnimalHealthRetrieveUpdateDestroy
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
-from statistics_api.views import ApiStatsView
+from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
+from authentication.views import CustomTokenObtainPairView
 
 
 urlpatterns = [
@@ -33,20 +34,24 @@ urlpatterns = [
     path('quadrants/<int:pk>', QuadrantRetrieveUpdateDestroy.as_view(), name="quadrants-detail-view"),
     path('purpose_types/', PurposeTypeCreateListView.as_view(), name="purpose-types-create-list"),
     path('purpose_types/<int:pk>', PurposeTypeRetrieveUpdateDestroy.as_view(), name="purpose-types-detail-view"),
-    path('animals/', AnimalCreateListView.as_view(), name="animals-create-list"),
-    path('animals/<int:pk>', AnimalRetrieveUpdateDestroy.as_view(), name="animals-detail-view"),
+    path('animals/', AnimalListView.as_view(), name="animals-list"),
+    path('animals/<int:pk>/', AnimalRetrieveUpdateDestroy.as_view(), name="animals-detail-view"),
     path('breeds/', BreedCreateListView.as_view(), name="breeds-create-list"),
     path('breeds/<int:pk>', BreedRetrieveUpdateDestroy.as_view(), name="breeds-detail-view"),
     path('weight_history/', WeightHistoryCreateListView.as_view(), name="weight-history-create-list"),
     path('weight_history/<int:pk>', WeightHistoryRetrieveUpdateDestroy.as_view(), name="weight-history-detail-view"),
+    path('weight_history/animal/<int:animal_id>/', WeightHistoryByAnimalView.as_view(), name="weight-history-by-animal"),
     path('milk_production_history/', MilkProductionHistoryCreateListView.as_view(), name="milk-production-history-create-list"),
     path('milk_production_history/<int:pk>', MilkProductionHistoryRetrieveUpdateDestroy.as_view(), name="milk-production-history-detail-view"),
+    path('milk_production_history/animal/<int:animal_id>/', MilkProductionHistoryByAnimalView.as_view(), name="milk-production-history-by-animal"),
     path('vaccines/', VaccineCreateListView.as_view(), name="vaccines-create-list"),
     path('vaccines/<int:pk>', VaccineRetrieveUpdateDestroy.as_view(), name="vaccines-detail-view"),
     path('vaccination_plans/', VaccinationPlanCreateListView.as_view(), name="vaccination-plans-create-list"),
     path('vaccination_plans/<int:pk>', VaccinationPlanRetrieveUpdateDestroy.as_view(), name="vaccination-plans-detail-view"),
     path('vaccinations/', VaccinationCreateListView.as_view(), name="vaccinations-create-list"),
     path('vaccinations/<int:pk>', VaccinationRetrieveUpdateDestroy.as_view(), name="vaccinations-detail-view"),
+    path('vaccinations/animal/<int:animal_id>/', vaccinations_by_animal, name="vaccinations-by-animal"),
+    path('vaccinations/upcoming/', upcoming_vaccinations, name="vaccinations-upcoming"),
     path('foods/', FoodCreateListView.as_view(), name="foods-create-list"),
     path('foods/<int:pk>', FoodRetrieveUpdateDestroy.as_view(), name="foods-detail-view"),
     path('feedings/', FeedingCreateListView.as_view(), name="feedings-create-list"),
@@ -60,10 +65,13 @@ urlpatterns = [
     path('animal_health/', AnimalHealthCreateListView.as_view(), name="animal-health-create-list"),
     path('animal_health/<int:pk>', AnimalHealthRetrieveUpdateDestroy.as_view(), name="animal-health-detail-view"),
 
-    path('api/token/', TokenObtainPairView.as_view(), name='token-obtain'),
+    # Biometria e Alertas (Requisito 7)
+    path('biometrics/', include('animal_biometrics.urls')),
+
+    path('api/token/', CustomTokenObtainPairView.as_view(), name='token-obtain'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token-verify'),
-    path('authentication/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('authentication/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('authentication/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('authentication/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 

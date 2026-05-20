@@ -7,10 +7,6 @@ const apiClient = axios.create({
   }
 });
 
-// =========================================================
-// INTERCEPTOR DE SEGURANÇA
-// Pega o token do localStorage e injeta em todas as chamadas
-// =========================================================
 apiClient.interceptors.request.use(config => {
   const token = localStorage.getItem('access_token');
   if (token) {
@@ -22,51 +18,41 @@ apiClient.interceptors.request.use(config => {
 });
 
 export default {
-  // -------------------------------------------------------
-  // FUNÇÕES GENÉRICAS (Garante que api.get e api.post funcionem nas Views)
-  // -------------------------------------------------------
-  get(url, config) {
-    return apiClient.get(url, config);
-  },
-  post(url, data, config) {
-    return apiClient.post(url, data, config);
-  },
+  // Funções genéricas expandidas para o CRUD completo
+  get(url, config) { return apiClient.get(url, config); },
+  post(url, data, config) { return apiClient.post(url, data, config); },
+  put(url, data, config) { return apiClient.put(url, data, config); },
+  delete(url, config) { return apiClient.delete(url, config); },
 
-  // -------------------------------------------------------
-  // AUTENTICAÇÃO
-  // -------------------------------------------------------
   login(credentials) {
-    // Rota padrão do SimpleJWT ou Knox do Django (Ajuste se sua URL for diferente)
     return apiClient.post('api/token/', credentials); 
   },
-
-  // -------------------------------------------------------
-  // FUNCIONALIDADES EXISTENTES (NÃO ALTERADAS)
-  // -------------------------------------------------------
-  
-  // Quadrantes (Mapa)
-  getQuadrants() {
-    return apiClient.get('quadrants/');
-  },
-  
-  // Animais
-  getAnimals() {
-    return apiClient.get('animals/');
-  },
-  
-  getAnimalById(id) {
-    const url = `animals/${id}/`;
-    console.log("Requisitando URL:", url);
-    return apiClient.get(url);
-  },
-  
-  createAnimal(animalData) {
-    console.log("Criando animal com dados:", animalData);
-    return apiClient.post('animals/', animalData);
-  },
+  getQuadrants() { return apiClient.get('quadrants/'); },
+  getAnimals() { return apiClient.get('animals/'); },
+  getAnimalById(id) { return apiClient.get(`animals/${id}/`); },
+  createAnimal(animalData) { return apiClient.post('animals/', animalData); },
+  updateAnimal(id, animalData) { return apiClient.put(`animals/${id}/`, animalData); },
+  deleteAnimal(id) { return apiClient.delete(`animals/${id}/`); },
   
   // Produção de Leite
-  registrarProducaoLeite(data) {
-    return apiClient.post('historico-prod-leite/', data);
-  }
+  getMilkProductionByAnimal(animalId) { return apiClient.get(`milk_production_history/animal/${animalId}/`); },
+  registrarProducaoLeite(data) { return apiClient.post('milk_production_history/', data); },
+  
+  // Histórico de Peso
+  getWeightHistoryByAnimal(animalId) { return apiClient.get(`weight_history/animal/${animalId}/`); },
+  registrarPeso(data) { return apiClient.post('weight_history/', data); },
+
+  // Vacinação (Requisito 6)
+  getVaccines() { return apiClient.get('vaccines/'); },
+  getVaccinationsByAnimal(animalId) { 
+    if (animalId === 0) {
+      // Trazer todas as vacinações
+      return apiClient.get('vaccinations/');
+    }
+    return apiClient.get(`vaccinations/animal/${animalId}/`);
+  },
+  createVaccination(data) { return apiClient.post('vaccinations/', data); },
+  updateVaccination(id, data) { return apiClient.put(`vaccinations/${id}/`, data); },
+  getVaccinationPlans() { return apiClient.get('vaccination_plans/'); },
+  getUpcomingVaccinations() { return apiClient.get('vaccinations/upcoming/'); }
 };

@@ -1,14 +1,15 @@
 from rest_framework import generics
 from animals.models import Animal
 from animals.serializers import AnimalSerializer
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 
-class AnimalCreateListView(generics.ListCreateAPIView):
-    permission_classes = (IsAuthenticated,)
+class AnimalListView(generics.ListCreateAPIView):
+    """Listagem e criação de animais"""
+    permission_classes = (AllowAny,)
     queryset = Animal.objects.all()
     serializer_class = AnimalSerializer
 
 class AnimalRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (AllowAny,)
     queryset = Animal.objects.all()
     serializer_class = AnimalSerializer

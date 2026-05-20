@@ -4,7 +4,7 @@
       <div class="login-card">
         <h2 class="welcome-text">Bem-vindo de volta!</h2>
         <p class="subtitle">
-          Entre com suas credenciais para acessar o painel.
+          Entre com as suas credenciais para aceder ao painel.
         </p>
 
         <form @submit.prevent="handleLogin">
@@ -13,7 +13,7 @@
             <input 
               v-model="username" 
               type="text" 
-              placeholder="Digite seu usuário..." 
+              placeholder="Digite o seu usuário..." 
               required
             >
           </div>
@@ -32,7 +32,7 @@
             <label class="remember-me">
               <input type="checkbox"> Lembrar acesso
             </label>
-            <a href="#" class="forgot-link">Esqueceu a senha?</a>
+            <a href="#" class="forgot-link">Esqueceu-se da senha?</a>
           </div>
 
           <p v-if="errorMessage" class="error-msg">
@@ -87,25 +87,28 @@ const handleLogin = async () => {
       password: password.value
     });
 
-    // 1. Salva os tokens no navegador
+    // DEBUG: Abre a consola (F12) para ver se o campo 'is_superuser' aparece aqui
+    console.log("Resposta do Servidor:", response.data);
+
+    // 1. Salva os tokens
     localStorage.setItem('access_token', response.data.access);
     if (response.data.refresh) {
       localStorage.setItem('refresh_token', response.data.refresh);
     }
 
-    // 2. Lógica de Redirecionamento Dinâmico
-    // O backend agora precisa retornar o campo 'is_superuser' ou 'role'
+    // 2. Lógica de Redirecionamento baseada no campo enviado pelo Django
+    // Se o Django não enviar o campo, ele vai assumir 'op' como segurança
     const isSuperUser = response.data.is_superuser;
-    const role = isSuperUser ? 'adm' : 'op';
+    const role = isSuperUser === true ? 'adm' : 'op';
     
     localStorage.setItem('user_role', role);
 
-    // 3. Redireciona conforme o perfil
+    // 3. Redirecionamento condicional
     if (role === 'adm') {
-      console.log("Redirecionando Administrador...");
+      console.log("Acedendo como Administrador...");
       router.push('/dashboard-adm');
     } else {
-      console.log("Redirecionando Operador...");
+      console.log("Acedendo como Operador...");
       router.push('/dashboard-op');
     }
 
@@ -114,7 +117,7 @@ const handleLogin = async () => {
     if (error.response && error.response.status === 401) {
       errorMessage.value = "Usuário ou senha incorretos.";
     } else {
-      errorMessage.value = "Erro ao conectar com o servidor.";
+      errorMessage.value = "O servidor não enviou os dados de permissão ou está offline.";
     }
   } finally {
     loading.value = false;
