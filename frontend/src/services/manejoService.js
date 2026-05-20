@@ -11,9 +11,9 @@ export default {
     return api.post('vaccinations/', data);
   },
 
-  // Busca os planos de vacinação ativos para preencher o formulário[cite: 17]
+  // Busca os planos de vacinação ativos para preencher o formulário
   getPlanosVacina() {
-    return api.get('vaccination-plans/');
+    return api.get('vaccination_plans/');
   },
 
   // Busca as vacinas disponíveis[cite: 17]

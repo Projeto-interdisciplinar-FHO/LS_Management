@@ -4,13 +4,28 @@ from quadrants.models import Quadrant
 from purpose_types.models import PurposeType
 
 class Animal(models.Model):
+    # Choices para o status do animal
+    STATUS_CHOICES = [
+        ('ativo', 'Ativo'),
+        ('doente', 'Doente'),
+        ('vendido', 'Vendido'),
+        ('obito', 'Óbito'),
+        ('inativo', 'Inativo'),
+    ]
+    
     name = models.CharField(max_length=45)
     birth_date = models.DateField()
     register_number = models.IntegerField()
     weight = models.DecimalField(max_digits=8, decimal_places=2)
-    active = models.BooleanField()
+    active = models.BooleanField(default=True)  # Mantido para compatibilidade
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default='ativo'
+    )
     sex = models.CharField(max_length=1)
     specie = models.ForeignKey(Specie, on_delete=models.CASCADE)
+    breed = models.ForeignKey('breeds.Breed', on_delete=models.SET_NULL, null=True, blank=True, related_name='animals')
     quadrant = models.ForeignKey(Quadrant, on_delete=models.CASCADE)
     purpose = models.ForeignKey(PurposeType, on_delete=models.CASCADE)
     

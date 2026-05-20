@@ -1,3 +1,5 @@
 from django.contrib import admin
+from quadrants.models import Quadrant
 
-# Register your models here.
+
+admin.site.register(Quadrant)

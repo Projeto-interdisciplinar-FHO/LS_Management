@@ -8,23 +8,44 @@
       </div>
     </header>
 
+    <!-- FILTROS/ABAS DE STATUS -->
+    <section class="filter-tabs">
+      <button 
+        v-for="status in statusFilters" 
+        :key="status.value"
+        class="filter-tab"
+        :class="{ active: activeStatusFilter === status.value }"
+        @click="activeStatusFilter = status.value"
+      >
+        <span class="filter-icon">{{ status.icon }}</span>
+        <span class="filter-label">{{ status.label }}</span>
+        <span class="filter-count">{{ getCountByStatus(status.value) }}</span>
+      </button>
+    </section>
+
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
       <p>Buscando dados no servidor Django...</p>
     </div>
 
-    <div v-else-if="animals.length === 0" class="empty-state">
+    <div v-else-if="filteredAnimals.length === 0" class="empty-state">
       <span class="empty-icon">📂</span>
       <h3>Nenhum animal encontrado</h3>
-      <p>Não há registros no banco de dados ou a API retornou uma lista vazia.</p>
+      <p v-if="activeStatusFilter === 'todos'">Não há registros no banco de dados ou a API retornou uma lista vazia.</p>
+      <p v-else>Nenhum animal com status "{{ getStatusLabel(activeStatusFilter) }}" encontrado.</p>
     </div>
 
     <div v-else class="animals-grid">
-      <div v-for="animal in animals" :key="animal.id" class="animal-card">
+      <div v-for="animal in filteredAnimals" :key="animal.id" class="animal-card">
         
         <div class="card-header">
           <span class="tag-id">REG: {{ animal.register_number }}</span>
-          <span class="status-dot" :class="{ 'active': animal.active }"></span>
+          <div class="header-icons">
+            <AnimalAlertBadge :animal-id="animal.id" :show-count="true" />
+            <span class="status-dot" :style="{ backgroundColor: getStatusColor(animal.status || 'inativo') }" :title="animal.status || 'inativo'">
+              {{ getStatusIcon(animal.status || 'inativo') }}
+            </span>
+          </div>
         </div>
         
         <div class="animal-image-container">
@@ -50,13 +71,17 @@
           </div>
           <div class="detail-item">
             <span class="label">Status</span>
-            <span class="value" :class="animal.active ? 'text-green' : 'text-red'">
-              {{ animal.active ? 'Ativo' : 'Inativo' }}
+            <span class="value" :style="{ color: getStatusColor(animal.status || 'inativo') }">
+              {{ getStatusIcon(animal.status || 'inativo') }} {{ animal.status || 'Inativo' }}
             </span>
           </div>
         </div>
 
-        <button class="btn-detail" @click="viewDetails(animal.id)">Ver Ficha Completa</button>
+        <div class="card-actions">
+          <button class="btn-detail" @click="viewDetails(animal.id)">Ver Ficha</button>
+          <button class="btn-edit" @click="openEditModal(animal)">✏️ Editar</button>
+          <button class="btn-delete" @click="deleteAnimal(animal.id)">🗑️ Deletar</button>
+        </div>
       </div>
     </div>
 
@@ -107,10 +132,13 @@
             </div>
             <div class="form-group">
               <label>Status *</label>
-              <select v-model="newAnimal.active" required>
+              <select v-model="newAnimal.status" required>
                 <option value="">Selecione...</option>
-                <option :value="true">Ativo</option>
-                <option :value="false">Inativo</option>
+                <option value="ativo">✓ Ativo</option>
+                <option value="doente">⚠ Doente</option>
+                <option value="vendido">✓ Vendido</option>
+                <option value="obito">✗ Óbito</option>
+                <option value="inativo">○ Inativo</option>
               </select>
             </div>
           </div>
@@ -146,25 +174,159 @@
         </form>
       </div>
     </div>
+
+    <!-- Modal de Editar Animal -->
+    <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>Editar Animal</h2>
+          <button class="btn-close" @click="closeEditModal">✕</button>
+        </div>
+
+        <form @submit.prevent="submitEditAnimal" class="form-animal">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nome *</label>
+              <input v-model="editingAnimal.name" type="text" required placeholder="Ex: Bezerro">
+            </div>
+            <div class="form-group">
+              <label>Registro *</label>
+              <input v-model.number="editingAnimal.register_number" type="number" required placeholder="Ex: 50">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Data de Nascimento *</label>
+              <input v-model="editingAnimal.birth_date" type="date" required>
+            </div>
+            <div class="form-group">
+              <label>Peso (kg) *</label>
+              <input v-model.number="editingAnimal.weight" type="number" step="0.01" required placeholder="Ex: 15.00">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Sexo *</label>
+              <select v-model="editingAnimal.sex" required>
+                <option value="">Selecione...</option>
+                <option value="m">Macho</option>
+                <option value="f">Fêmea</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Status *</label>
+              <select v-model="editingAnimal.status" required>
+                <option value="">Selecione...</option>
+                <option value="ativo">✓ Ativo</option>
+                <option value="doente">⚠ Doente</option>
+                <option value="vendido">✓ Vendido</option>
+                <option value="obito">✗ Óbito</option>
+                <option value="inativo">○ Inativo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Espécie (ID) *</label>
+              <input v-model.number="editingAnimal.specie" type="number" required placeholder="Ex: 1">
+            </div>
+            <div class="form-group">
+              <label>Raça (ID)</label>
+              <input v-model.number="editingAnimal.breed" type="number" placeholder="Ex: 1">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Quadrante (ID) *</label>
+              <input v-model.number="editingAnimal.quadrant" type="number" required placeholder="Ex: 2">
+            </div>
+            <div class="form-group">
+              <label>Tipo de Propósito (ID) *</label>
+              <input v-model.number="editingAnimal.purpose" type="number" required placeholder="Ex: 1">
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" @click="closeEditModal">Cancelar</button>
+            <button type="submit" class="btn-submit" :disabled="loading">
+              {{ loading ? 'Salvando...' : 'Atualizar Animal' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import { getStatusColor, getStatusIcon } from '@/utils/statusUtils';
+import AnimalAlertBadge from '@/components/AnimalAlertBadge.vue';
 
 const router = useRouter();
 const animals = ref([]);
 const loading = ref(true);
 const showAddModal = ref(false);
+const showEditModal = ref(false);
+const editingAnimalId = ref(null);
+const activeStatusFilter = ref('todos');
+
+const statusFilters = [
+  { value: 'todos', label: 'Todos', icon: '◈' },
+  { value: 'ativo', label: 'Ativos', icon: '✓' },
+  { value: 'doente', label: 'Doentes', icon: '⚠' },
+  { value: 'vendido', label: 'Vendidos', icon: '↗' },
+  { value: 'obito', label: 'Óbito', icon: '✗' },
+  { value: 'inativo', label: 'Inativos', icon: '○' }
+];
+
+// Computed property para filtrar animais baseado no status selecionado
+const filteredAnimals = computed(() => {
+  if (activeStatusFilter.value === 'todos') {
+    return animals.value;
+  }
+  return animals.value.filter(animal => animal.status === activeStatusFilter.value);
+});
+
+// Contar animais por status
+const getCountByStatus = (status) => {
+  if (status === 'todos') {
+    return animals.value.length;
+  }
+  return animals.value.filter(animal => animal.status === status).length;
+};
+
+// Obter label do status
+const getStatusLabel = (status) => {
+  const filter = statusFilters.find(f => f.value === status);
+  return filter ? filter.label : status;
+};
 
 const newAnimal = ref({
   name: '',
   birth_date: '',
   register_number: '',
   weight: '',
-  active: '',
+  status: 'ativo',
+  sex: '',
+  specie: '',
+  breed: null,
+  quadrant: '',
+  purpose: ''
+});
+
+const editingAnimal = ref({
+  name: '',
+  birth_date: '',
+  register_number: '',
+  weight: '',
+  status: 'ativo',
   sex: '',
   specie: '',
   breed: null,
@@ -215,7 +377,7 @@ const resetForm = () => {
     birth_date: '',
     register_number: '',
     weight: '',
-    active: '',
+    status: 'ativo',
     sex: '',
     specie: '',
     breed: null,
@@ -225,16 +387,55 @@ const resetForm = () => {
 };
 
 const submitAddAnimal = async () => {
+  // Validar campos obrigatórios
+  if (!newAnimal.value.name?.trim()) {
+    alert("Nome do animal é obrigatório.");
+    return;
+  }
+  if (!newAnimal.value.birth_date) {
+    alert("Data de nascimento é obrigatória.");
+    return;
+  }
+  if (!newAnimal.value.register_number) {
+    alert("Número de registro é obrigatório.");
+    return;
+  }
+  if (!newAnimal.value.weight) {
+    alert("Peso é obrigatório.");
+    return;
+  }
+  if (!newAnimal.value.sex) {
+    alert("Sexo é obrigatório.");
+    return;
+  }
+  if (!newAnimal.value.status) {
+    alert("Status é obrigatório.");
+    return;
+  }
+  if (!newAnimal.value.specie) {
+    alert("Espécie (ID) é obrigatória.");
+    return;
+  }
+  if (!newAnimal.value.quadrant) {
+    alert("Quadrante (ID) é obrigatório.");
+    return;
+  }
+  if (!newAnimal.value.purpose) {
+    alert("Tipo de Propósito (ID) é obrigatório.");
+    return;
+  }
+
   loading.value = true;
   try {
     // Preparar dados para envio - garantir tipos corretos
     const animalData = {
-      name: newAnimal.value.name,
+      name: newAnimal.value.name.trim(),
       birth_date: newAnimal.value.birth_date,
       register_number: parseInt(newAnimal.value.register_number),
       weight: parseFloat(newAnimal.value.weight),
-      active: newAnimal.value.active === true || newAnimal.value.active === 'true',
-      sex: newAnimal.value.sex.toLowerCase(),
+      status: newAnimal.value.status,
+      active: newAnimal.value.status === 'ativo',
+      sex: String(newAnimal.value.sex).toLowerCase(),
       specie: parseInt(newAnimal.value.specie),
       breed: newAnimal.value.breed ? parseInt(newAnimal.value.breed) : null,
       quadrant: parseInt(newAnimal.value.quadrant),
@@ -253,10 +454,184 @@ const submitAddAnimal = async () => {
     
     // Recarregar lista para garantir sincronização
     await loadAnimals();
+    
+    alert("Animal adicionado com sucesso!");
   } catch (error) {
     console.error("Erro ao criar animal:", error);
-    console.error("Detalhes do erro:", error.response?.data);
-    alert("Erro ao adicionar animal: " + (error.response?.data?.detail || error.message));
+    console.error("Resposta do servidor:", error.response?.data);
+    
+    // Extrair mensagem de erro do servidor
+    let errorMessage = "Erro ao adicionar animal";
+    if (error.response?.data) {
+      if (typeof error.response.data === 'object') {
+        // Se for um objeto com múltiplos campos de erro
+        const errors = Object.entries(error.response.data)
+          .map(([field, msgs]) => {
+            const msgArray = Array.isArray(msgs) ? msgs : [msgs];
+            return `${field}: ${msgArray.join(', ')}`;
+          })
+          .join('\n');
+        errorMessage = errors || error.response.data.detail || errorMessage;
+      } else if (error.response.data.detail) {
+        errorMessage = error.response.data.detail;
+      }
+    }
+    
+    alert(errorMessage);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const openEditModal = (animal) => {
+  editingAnimalId.value = animal.id;
+  editingAnimal.value = { ...animal };
+  showEditModal.value = true;
+};
+
+const closeEditModal = () => {
+  showEditModal.value = false;
+  editingAnimalId.value = null;
+  editingAnimal.value = {
+    name: '',
+    birth_date: '',
+    register_number: '',
+    weight: '',
+    status: 'ativo',
+    sex: '',
+    specie: '',
+    breed: null,
+    quadrant: '',
+    purpose: ''
+  };
+};
+
+const submitEditAnimal = async () => {
+  // Validações similares ao de adição
+  if (!editingAnimal.value.name?.trim()) {
+    alert("Nome do animal é obrigatório.");
+    return;
+  }
+  if (!editingAnimal.value.birth_date) {
+    alert("Data de nascimento é obrigatória.");
+    return;
+  }
+  if (!editingAnimal.value.register_number) {
+    alert("Número de registro é obrigatório.");
+    return;
+  }
+  if (!editingAnimal.value.weight) {
+    alert("Peso é obrigatório.");
+    return;
+  }
+  if (!editingAnimal.value.sex) {
+    alert("Sexo é obrigatório.");
+    return;
+  }
+  if (!editingAnimal.value.status) {
+    alert("Status é obrigatório.");
+    return;
+  }
+  if (!editingAnimal.value.specie) {
+    alert("Espécie (ID) é obrigatória.");
+    return;
+  }
+  if (!editingAnimal.value.quadrant) {
+    alert("Quadrante (ID) é obrigatório.");
+    return;
+  }
+  if (!editingAnimal.value.purpose) {
+    alert("Tipo de Propósito (ID) é obrigatório.");
+    return;
+  }
+
+  loading.value = true;
+  try {
+    const animalData = {
+      name: editingAnimal.value.name.trim(),
+      birth_date: editingAnimal.value.birth_date,
+      register_number: parseInt(editingAnimal.value.register_number),
+      weight: parseFloat(editingAnimal.value.weight),
+      status: editingAnimal.value.status,
+      active: editingAnimal.value.status === 'ativo',
+      sex: String(editingAnimal.value.sex).toLowerCase(),
+      specie: parseInt(editingAnimal.value.specie),
+      breed: editingAnimal.value.breed ? parseInt(editingAnimal.value.breed) : null,
+      quadrant: parseInt(editingAnimal.value.quadrant),
+      purpose: parseInt(editingAnimal.value.purpose)
+    };
+
+    console.log("Atualizando animal com ID:", editingAnimalId.value, "Dados:", animalData);
+    const response = await api.updateAnimal(editingAnimalId.value, animalData);
+    console.log("Animal atualizado com sucesso:", response.data);
+
+    // Atualizar o animal na lista
+    const index = animals.value.findIndex(a => a.id === editingAnimalId.value);
+    if (index !== -1) {
+      animals.value[index] = response.data;
+    }
+
+    closeEditModal();
+    alert("Animal atualizado com sucesso!");
+  } catch (error) {
+    console.error("Erro ao atualizar animal:", error);
+    console.error("Resposta do servidor:", error.response?.data);
+    
+    let errorMessage = "Erro ao atualizar animal";
+    if (error.response?.data) {
+      if (typeof error.response.data === 'object') {
+        const errors = Object.entries(error.response.data)
+          .map(([field, msgs]) => {
+            const msgArray = Array.isArray(msgs) ? msgs : [msgs];
+            return `${field}: ${msgArray.join(', ')}`;
+          })
+          .join('\n');
+        errorMessage = errors || error.response.data.detail || errorMessage;
+      } else if (error.response.data.detail) {
+        errorMessage = error.response.data.detail;
+      }
+    }
+    
+    alert(errorMessage);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const deleteAnimal = async (id) => {
+  const confirm = window.confirm("Tem certeza que deseja deletar este animal? Esta ação não pode ser desfeita.");
+  if (!confirm) return;
+
+  loading.value = true;
+  try {
+    console.log("Deletando animal com ID:", id);
+    await api.deleteAnimal(id);
+    console.log("Animal deletado com sucesso");
+
+    // Remover o animal da lista
+    animals.value = animals.value.filter(a => a.id !== id);
+    
+    alert("Animal deletado com sucesso!");
+  } catch (error) {
+    console.error("Erro ao deletar animal:", error);
+    console.error("Resposta do servidor:", error.response?.data);
+    
+    let errorMessage = "Erro ao deletar animal";
+    if (error.response?.data) {
+      if (typeof error.response.data === 'object') {
+        const errors = Object.entries(error.response.data)
+          .map(([field, msgs]) => {
+            const msgArray = Array.isArray(msgs) ? msgs : [msgs];
+            return `${field}: ${msgArray.join(', ')}`;
+          })
+          .join('\n');
+        errorMessage = errors || error.response.data.detail || errorMessage;
+      } else if (error.response.data.detail) {
+        errorMessage = error.response.data.detail;
+      }
+    }
+    
+    alert(errorMessage);
   } finally {
     loading.value = false;
   }
@@ -276,6 +651,68 @@ const submitAddAnimal = async () => {
   margin-bottom: 30px;
   border-bottom: 1px solid #30363d;
   padding-bottom: 20px;
+}
+
+/* FILTROS/ABAS */
+.filter-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #30363d;
+  flex-wrap: wrap;
+}
+
+.filter-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #8b949e;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.filter-tab:hover {
+  border-color: #58a6ff;
+  color: #58a6ff;
+  background: rgba(88, 166, 255, 0.05);
+}
+
+.filter-tab.active {
+  background: linear-gradient(135deg, #3fb950 0%, #2d8737 100%);
+  border-color: #3fb950;
+  color: white;
+}
+
+.filter-icon {
+  font-size: 1.1rem;
+}
+
+.filter-label {
+  font-weight: 600;
+}
+
+.filter-count {
+  display: inline-block;
+  min-width: 24px;
+  height: 24px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-align: center;
+  line-height: 20px;
+}
+
+.filter-tab.active .filter-count {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .btn-back {
@@ -374,6 +811,12 @@ const submitAddAnimal = async () => {
   font-family: monospace;
   font-size: 0.9rem;
   font-weight: bold;
+}
+
+.header-icons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .status-dot {
@@ -662,5 +1105,55 @@ const submitAddAnimal = async () => {
 
 .btn-detail:hover {
   background: rgba(88, 166, 255, 0.1);
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.btn-detail,
+.btn-edit,
+.btn-delete {
+  flex: 1;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid;
+  font-weight: bold;
+  transition: 0.2s;
+  font-size: 0.85rem;
+}
+
+.btn-detail {
+  background: transparent;
+  border-color: #58a6ff;
+  color: #58a6ff;
+}
+
+.btn-detail:hover {
+  background: rgba(88, 166, 255, 0.1);
+}
+
+.btn-edit {
+  background: transparent;
+  border-color: #3fb950;
+  color: #3fb950;
+}
+
+.btn-edit:hover {
+  background: rgba(63, 185, 80, 0.1);
+}
+
+.btn-delete {
+  background: transparent;
+  border-color: #f85149;
+  color: #f85149;
+}
+
+.btn-delete:hover {
+  background: rgba(248, 81, 73, 0.1);
 }
 </style>
