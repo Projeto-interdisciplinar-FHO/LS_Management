@@ -4,3 +4,6 @@ from django.apps import AppConfig
 class FeedingPlansConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'feeding_plans'
+
+    def ready(self):
+        import feeding_plans.signals 
