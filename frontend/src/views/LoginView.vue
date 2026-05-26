@@ -2,9 +2,9 @@
   <div class="login-wrapper">
     <div class="form-section">
       <div class="login-card">
-        <h2 class="welcome-text">Bem-vindo de volta!</h2>
+        <h2 class="welcome-text">Acesso ao Sistema</h2>
         <p class="subtitle">
-          Entre com as suas credenciais para aceder ao painel.
+          Insira suas credenciais para gerenciar a fazenda.
         </p>
 
         <form @submit.prevent="handleLogin">
@@ -13,7 +13,7 @@
             <input 
               v-model="username" 
               type="text" 
-              placeholder="Digite o seu usuário..." 
+              placeholder="Digite o seu usuário" 
               required
             >
           </div>
@@ -32,7 +32,7 @@
             <label class="remember-me">
               <input type="checkbox"> Lembrar acesso
             </label>
-            <a href="#" class="forgot-link">Esqueceu-se da senha?</a>
+            <a href="#" class="forgot-link">Esqueceu a senha?</a>
           </div>
 
           <p v-if="errorMessage" class="error-msg">
@@ -40,20 +40,16 @@
           </p>
 
           <button type="submit" class="btn-login" :disabled="loading">
-            {{ loading ? 'Autenticando...' : 'ENTRAR NO SISTEMA' }}
+            {{ loading ? 'Autenticando...' : 'ENTRAR' }}
           </button>
         </form>
-
-        <p class="footer-text">Não possui conta? <a href="#">Solicite acesso</a></p>
       </div>
     </div>
 
     <div class="branding-section">
-      <div class="overlay"></div>
       <div class="brand-content">
         <img src="@/assets/logo-vaca-ls.png" class="brand-logo" alt="Logo L.S">
         <h1>L.S Management</h1>
-        <div class="divider"></div>
         <p>Tecnologia e precisão no manejo pecuário.</p>
       </div>
     </div>
@@ -87,28 +83,19 @@ const handleLogin = async () => {
       password: password.value
     });
 
-    // DEBUG: Abre a consola (F12) para ver se o campo 'is_superuser' aparece aqui
-    console.log("Resposta do Servidor:", response.data);
-
-    // 1. Salva os tokens
     localStorage.setItem('access_token', response.data.access);
     if (response.data.refresh) {
       localStorage.setItem('refresh_token', response.data.refresh);
     }
 
-    // 2. Lógica de Redirecionamento baseada no campo enviado pelo Django
-    // Se o Django não enviar o campo, ele vai assumir 'op' como segurança
     const isSuperUser = response.data.is_superuser;
     const role = isSuperUser === true ? 'adm' : 'op';
     
     localStorage.setItem('user_role', role);
 
-    // 3. Redirecionamento condicional
     if (role === 'adm') {
-      console.log("Acedendo como Administrador...");
       router.push('/dashboard-adm');
     } else {
-      console.log("Acedendo como Operador...");
       router.push('/dashboard-op');
     }
 
@@ -117,7 +104,7 @@ const handleLogin = async () => {
     if (error.response && error.response.status === 401) {
       errorMessage.value = "Usuário ou senha incorretos.";
     } else {
-      errorMessage.value = "O servidor não enviou os dados de permissão ou está offline.";
+      errorMessage.value = "Falha ao conectar com o servidor.";
     }
   } finally {
     loading.value = false;
@@ -126,31 +113,125 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.login-wrapper { display: flex; height: 100vh; width: 100vw; }
-.form-section { flex: 1; background-color: #f8fafc; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.login-card { background: #ffffff; padding: 40px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); }
-.welcome-text { color: #051a05; margin-bottom: 8px; font-size: 1.8rem; }
-.subtitle { color: #64748b; margin-bottom: 30px; font-size: 0.9rem; }
-.input-container { margin-bottom: 20px; text-align: left; }
-.input-container label { display: block; font-weight: bold; margin-bottom: 8px; color: #334155; font-size: 0.85rem; }
-.input-container input { width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0; outline: none; }
-.input-container input:focus { border-color: #46a350; }
-.form-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; font-size: 0.85rem; }
-.forgot-link { color: #46a350; text-decoration: none; font-weight: bold; }
-.error-msg { color: #f85149; font-size: 0.85rem; margin-bottom: 15px; font-weight: bold; text-align: center; background: rgba(248, 81, 73, 0.1); padding: 10px; border-radius: 6px; }
-.btn-login { width: 100%; padding: 14px; background-color: #46a350; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-.btn-login:hover:not(:disabled) { background-color: #357a3d; transform: translateY(-2px); }
+/* Importação da nova fonte profissional (Inter) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.login-wrapper { 
+  display: flex; 
+  height: 100vh; 
+  width: 100vw; 
+  font-family: 'Inter', sans-serif; /* Fonte aplicada globalmente aqui */
+  background-color: #ffffff;
+}
+
+/* FORMULÁRIO (ESQUERDA) */
+.form-section { 
+  flex: 1; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  padding: 40px; 
+  background-color: #ffffff; 
+}
+
+.login-card { 
+  width: 100%; 
+  max-width: 380px; 
+}
+
+.welcome-text { 
+  color: #0f172a; 
+  margin-bottom: 8px; 
+  font-size: 2rem; 
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.subtitle { 
+  color: #64748b; 
+  margin-bottom: 40px; 
+  font-size: 1rem; 
+}
+
+.input-container { margin-bottom: 24px; text-align: left; }
+.input-container label { display: block; font-weight: 600; margin-bottom: 8px; color: #334155; font-size: 0.9rem; }
+.input-container input { 
+  width: 100%; 
+  padding: 14px 16px; 
+  border-radius: 8px; 
+  border: 1px solid #cbd5e1; 
+  outline: none; 
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+.input-container input:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1); }
+
+.form-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; font-size: 0.9rem; color: #475569; }
+.remember-me { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.forgot-link { color: #16a34a; text-decoration: none; font-weight: 600; }
+.forgot-link:hover { text-decoration: underline; }
+
+.error-msg { color: #ef4444; font-size: 0.9rem; margin-bottom: 16px; font-weight: 500; text-align: center; background: #fef2f2; padding: 12px; border-radius: 8px; border: 1px solid #fecaca; }
+
+.btn-login { 
+  width: 100%; 
+  padding: 16px; 
+  background-color: #16a34a; 
+  color: white; 
+  border: none; 
+  border-radius: 8px; 
+  font-weight: 600; 
+  font-size: 1rem;
+  cursor: pointer; 
+  transition: 0.2s; 
+  font-family: 'Inter', sans-serif;
+}
+.btn-login:hover:not(:disabled) { background-color: #15803d; }
 .btn-login:disabled { background-color: #94a3b8; cursor: not-allowed; }
-.footer-text { text-align: center; margin-top: 30px; font-size: 0.85rem; color: #64748b; }
-.footer-text a { color: #46a350; font-weight: bold; text-decoration: none; }
-.branding-section { flex: 1.2; background-color: #051a05; background-image: url('@/assets/background_fazenda.jpg'); background-size: cover; background-position: center; position: relative; display: flex; align-items: center; justify-content: center; }
-.overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 26, 5, 0.85); }
-.brand-content { position: relative; z-index: 2; color: white; text-align: center; }
-.brand-logo { width: 150px; margin-bottom: 20px; }
-.brand-content h1 { font-size: 3rem; margin: 0; }
-.divider { width: 60px; height: 4px; background: #46a350; margin: 20px auto; border-radius: 2px; }
+
+/* BRANDING (DIREITA) - CLEAN FLAT DESIGN (Sem gradientes) */
+.branding-section { 
+  flex: 1.2; 
+  background-color: #1f2937; /* Verde escuro */
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  border-left: 1px solid #e2e8f0;
+}
+
+.brand-content { 
+  text-align: center; 
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.brand-logo { 
+  width: 180px; 
+  margin-bottom: 30px; 
+  /* Sem filtros de drop-shadow pesados para manter o visual limpo */
+}
+
+.brand-content h1 { 
+  font-size: 2.5rem; 
+  margin: 0 0 16px 0; 
+  color: #ffffff; /* Branco */
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.brand-content p {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
 
 @media (max-width: 900px) {
   .branding-section { display: none; }
+  .form-section { background-color: #f8fafc; }
+  .login-card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
 }
 </style>
