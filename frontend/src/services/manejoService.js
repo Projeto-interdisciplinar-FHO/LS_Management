@@ -3,7 +3,7 @@ import api from './api';
 export default {
   // Registra um novo peso no histórico (app weight_history)
   registrarPeso(data) {
-    return api.post('weight-history/', data);
+    return api.post('weight_history/', data);
   },
 
   // Registra uma vacinação (app vaccinations)[cite: 17]

@@ -3,33 +3,28 @@
     <header class="page-header">
       <button @click="$router.back()" class="btn-back">← Cancelar</button>
       <h1>{{ isEdit ? 'Editar Animal' : 'Cadastrar Novo Animal' }}</h1>
-      <p>Preencha as informações técnicas do rebanho.</p>
     </header>
 
     <div class="form-container">
-      <form @submit.prevent="saveAnimal" class="animal-form glass-card">
-        
+      <form @submit.prevent="saveAnimal" class="data-form">
+        <h3 class="section-title">Dados Básicos</h3>
         <div class="form-grid">
           <div class="input-group">
             <label>Nome ou Apelido</label>
             <input v-model="formData.name" type="text" placeholder="Ex: Mimosa" required>
           </div>
-
           <div class="input-group">
             <label>Nº de Registro (Brinco)</label>
-            <input v-model="formData.register_number" type="number" placeholder="Ex: 142" required>
+            <input v-model="formData.register_number" type="number" required>
           </div>
-
           <div class="input-group">
             <label>Data de Nascimento</label>
             <input v-model="formData.birth_date" type="date" required>
           </div>
-
           <div class="input-group">
             <label>Peso (kg)</label>
-            <input v-model="formData.weight" type="number" step="0.01" placeholder="Ex: 450.50" required>
+            <input v-model="formData.weight" type="number" step="0.01" required>
           </div>
-
           <div class="input-group">
             <label>Sexo</label>
             <select v-model="formData.sex">
@@ -37,38 +32,48 @@
               <option value="f">Fêmea</option>
             </select>
           </div>
-
           <div class="input-group">
             <label>Status</label>
-            <select v-model="formData.status">
-              <option value="ativo">✓ Ativo</option>
-              <option value="doente">⚠ Doente</option>
-              <option value="vendido">✓ Vendido</option>
-              <option value="obito">✗ Óbito</option>
-              <option value="inativo">○ Inativo</option>
+            <select v-model="formData.active">
+              <option :value="true">Ativo</option>
+              <option :value="false">Inativo</option>
             </select>
           </div>
-          
+        </div>
+
+        <h3 class="section-title mt-4">Classificação e Localização</h3>
+        <div class="form-grid">
           <div class="input-group">
-            <label>ID da Espécie</label>
-            <input v-model="formData.specie" type="number" required>
+            <label>Espécie</label>
+            <select v-model="formData.specie" required>
+              <option value="" disabled>Selecione uma espécie...</option>
+              <option v-for="specie in speciesList" :key="specie.id" :value="specie.id">
+                {{ specie.name }}
+              </option>
+            </select>
           </div>
           <div class="input-group">
-            <label>ID da Raça</label>
-            <input v-model="formData.breed" type="number" required>
+            <label>Raça</label>
+            <select v-model="formData.breed" required>
+              <option value="" disabled>Selecione uma raça...</option>
+              <option v-for="breed in breedsList" :key="breed.id" :value="breed.id">
+                {{ breed.name }}
+              </option>
+            </select>
           </div>
           <div class="input-group">
-            <label>ID do Quadrante (Pasto)</label>
-            <input v-model="formData.quadrant" type="number" required>
-          </div>
-          <div class="input-group">
-            <label>ID do Propósito</label>
-            <input v-model="formData.purpose" type="number" required>
+            <label>Estábulo (Localização)</label>
+            <select v-model="formData.quadrant" required>
+              <option value="" disabled>Selecione um estábulo...</option>
+              <option v-for="stable in stablesList" :key="stable.id" :value="stable.id">
+                {{ stable.name || stable.nome_quadrante || `Estábulo ${stable.id}` }}
+              </option>
+            </select>
           </div>
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn-save" :disabled="loading">
+          <button type="submit" class="btn-primary" :disabled="loading">
             {{ loading ? 'Salvando...' : (isEdit ? 'Salvar Alterações' : 'Cadastrar Animal') }}
           </button>
         </div>
@@ -88,49 +93,63 @@ const router = useRouter();
 const isEdit = ref(false);
 const loading = ref(false);
 
+const speciesList = ref([]);
+const breedsList = ref([]);
+const stablesList = ref([]);
+
 const formData = ref({
-  name: '',
-  register_number: '',
-  birth_date: '',
-  weight: '',
-  sex: 'm',
-  status: 'ativo',
-  specie: 1,
-  breed: 1,
-  quadrant: 1,
-  purpose: 1
+  name: '', register_number: '', birth_date: '', weight: '', sex: 'm', active: true,
+  specie: '', breed: '', quadrant: '' // quadrant mantido no payload caso o backend exija este nome
 });
 
 onMounted(async () => {
-  // Se existir um ID na URL, estamos no modo de Edição (Req 2.3)
+  // Carrega as listas dos menus suspensos
+  fetchDropdownData();
+
   if (route.params.id) {
     isEdit.value = true;
     try {
-      const response = await api.getAnimalById(route.params.id);
+      const response = await api.get(`animals/${route.params.id}/`);
       formData.value = response.data;
     } catch (error) {
-      console.error("Erro ao carregar animal para edição:", error);
-      alert("Erro ao buscar dados do animal.");
+      console.error("Erro ao carregar animal:", error);
     }
   }
 });
+
+const fetchDropdownData = async () => {
+  try {
+    // Estas chamadas assumem que você criará as rotas /species/ e /breeds/ no Django
+    // O catch silencioso garante que a tela não quebre caso a API ainda não exista
+    api.get('species/').then(res => speciesList.value = res.data).catch(() => {
+      // Mock provisório enquanto o backend não tem a rota
+      speciesList.value = [{id: 1, name: 'Bovino'}, {id: 2, name: 'Equino'}];
+    });
+    
+    api.get('breeds/').then(res => breedsList.value = res.data).catch(() => {
+      breedsList.value = [{id: 1, name: 'Holandês'}, {id: 2, name: 'Nelore'}, {id: 3, name: 'Angus'}];
+    });
+
+    api.get('quadrants/').then(res => stablesList.value = res.data).catch(() => {
+      stablesList.value = [{id: 1, name: 'Estábulo Principal'}, {id: 2, name: 'Estábulo Sul'}];
+    });
+  } catch (e) {
+    console.error(e);
+  }
+};
 
 const saveAnimal = async () => {
   loading.value = true;
   try {
     if (isEdit.value) {
-      // Requisito 2.3 - Atualizar
-      await api.updateAnimal(route.params.id, formData.value);
+      await api.put(`animals/${route.params.id}/`, formData.value);
     } else {
-      // Requisito 2.1 - Criar
-      await api.createAnimal(formData.value);
+      await api.post('animals/', formData.value);
     }
-    // Sucesso! Volta para a lista
     router.push('/animais');
   } catch (error) {
     console.error("Erro ao salvar:", error);
-    console.error("Detalhes do erro:", error.response?.data);
-    alert("Falha ao salvar o registro. Verifique os dados.");
+    alert("Falha ao salvar os dados.");
   } finally {
     loading.value = false;
   }
@@ -138,19 +157,24 @@ const saveAnimal = async () => {
 </script>
 
 <style scoped>
-.form-wrapper { padding: 40px; background-color: #0d1117; min-height: 100vh; color: #e6edf3; }
-.btn-back { background: transparent; border: 1px solid #30363d; color: #8b949e; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-bottom: 20px; }
-.page-header h1 { color: #3fb950; margin-bottom: 5px; }
-.page-header p { color: #8b949e; }
-.form-container { max-width: 800px; margin-top: 30px; }
-.glass-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+.form-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; color: #0f172a; font-family: 'Inter', sans-serif; }
+.page-header { margin-bottom: 32px; }
+.btn-back { background: transparent; border: 1px solid #e2e8f0; color: #64748b; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 16px; font-weight: 500; }
+.page-header h1 { font-size: 2rem; font-weight: 700; color: #0f172a; }
+
+.form-container { max-width: 900px; }
+.data-form { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+.section-title { font-size: 1.1rem; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 24px; }
+.mt-4 { margin-top: 40px; }
+
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
 .input-group { display: flex; flex-direction: column; gap: 8px; }
-.input-group label { font-size: 0.85rem; color: #8b949e; font-weight: bold; }
-input, select { background: #0d1117; border: 1px solid #30363d; color: white; padding: 12px; border-radius: 8px; outline: none; }
-input:focus, select:focus { border-color: #58a6ff; }
-.form-actions { display: flex; justify-content: flex-end; border-top: 1px solid #30363d; padding-top: 20px; }
-.btn-save { background: #3fb950; color: #0d1117; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-.btn-save:hover { background: #2ea043; }
-.btn-save:disabled { background: #30363d; color: #8b949e; cursor: not-allowed; }
+.input-group label { font-size: 0.9rem; font-weight: 600; color: #475569; }
+input, select { padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; color: #0f172a; outline: none; transition: 0.2s; background: #fff; }
+input:focus, select:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1); }
+
+.form-actions { display: flex; justify-content: flex-end; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 24px; }
+.btn-primary { background: #16a34a; color: #ffffff; border: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+.btn-primary:hover { background: #15803d; }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>

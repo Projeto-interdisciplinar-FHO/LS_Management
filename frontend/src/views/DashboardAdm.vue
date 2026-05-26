@@ -1,375 +1,304 @@
 <template>
   <div class="dashboard-wrapper">
     <transition name="slide">
-      <aside v-if="isMenuOpen" class="sidebar-drawer" v-click-outside="closeMenu">
+      <aside v-if="isMenuOpen" class="sidebar-drawer">
         <div class="sidebar-content">
           <div class="drawer-header">
             <img src="@/assets/logo-vaca-ls.png" alt="Logo" class="drawer-logo">
             <span class="brand-name">L.S Management</span>
           </div>
+          
           <nav class="drawer-menu">
             <router-link to="/dashboard-adm" class="nav-link active">
-              <span class="nav-icon">⊞</span> Dashboard
+              <span class="nav-icon">⊞</span> Início
             </router-link>
+
+            <div class="menu-category">Cadastros Base</div>
+            <router-link to="/estabulos" class="nav-link">
+              <span class="nav-icon">☖</span> Estábulos
+            </router-link>
+            <a href="#" @click.prevent="openSpecieModal" class="nav-link">
+              <span class="nav-icon">🧬</span> Espécies
+            </a>
+            <a href="#" @click.prevent="openBreedModal" class="nav-link">
+              <span class="nav-icon">🏷️</span> Raças
+            </a>
+
+            <div class="menu-category">Operacional</div>
             <router-link to="/animais" class="nav-link">
               <span class="nav-icon">◈</span> Animais
             </router-link>
-            <router-link to="/saude" class="nav-link">
-              <span class="nav-icon">♥</span> Saúde Animal
+            <router-link to="/lancamento-leite" class="nav-link">
+              <span class="nav-icon">🥛</span> Produção de Leite
             </router-link>
+            <router-link to="/vacinacao" class="nav-link">
+              <span class="nav-icon">✛</span> Vacinação
+            </router-link>
+            
+            <div class="menu-divider"></div>
+            
             <router-link to="/relatorios" class="nav-link">
               <span class="nav-icon">≡</span> Relatórios
             </router-link>
+            <router-link to="/assistente-ia" class="nav-link gemini-link">
+              <span class="nav-icon">✨</span> Assistente IA
+            </router-link>
           </nav>
-          <button @click="logout" class="btn-logout">⏻ Sair</button>
+          
+          <button @click="logout" class="btn-logout">⏻ Sair do Sistema</button>
         </div>
       </aside>
     </transition>
 
     <main class="main-layout" :class="{ 'blur-bg': isMenuOpen }">
       <header class="top-bar">
-        <div class="logo-trigger">
-          <img src="@/assets/logo-vaca-ls.png" alt="Logo" class="mini-logo" @click.stop="toggleMenu">
-          <span class="logo-text">L.S Management</span>
-        </div>
-        <div class="user-profile">
-          <div class="notification-bell">
-            <span>🔔</span>
-            <span class="notif-badge">3</span>
-          </div>
-          <span class="user-role">Administrador</span>
-          <div class="user-avatar">
-            <span>A</span>
-          </div>
+        <button @click="toggleMenu" class="btn-menu">☰</button>
+        <div class="user-info">
+          <span class="user-role">Administrador Geral</span>
+          <div class="avatar">AD</div>
         </div>
       </header>
 
-      <div class="dashboard-grid">
-
-        <!-- ALERTA CRÍTICO: REQUISITO 7.3 -->
-        <section class="alert-banner-section">
-          <AlertBanner :refresh-interval="30000" />
-        </section>
-
-        <section class="card-hero" @click="goToMap">
-          <div class="hero-scanline"></div>
-          <div class="hero-overlay">
-            <div class="hero-badge">● LIVE</div>
-            <div class="hero-text">
-              <h2>Fazenda Santa Clara</h2>
-              <div class="tags">
-                <span class="tag tag-green">✓ Solo Saudável</span>
-                <span class="tag">◈ 120 Animais Ativos</span>
-              </div>
-            </div>
-            <div class="hero-corner-stat">
-              <span class="corner-label">UPTIME</span>
-              <span class="corner-value">99.8%</span>
-            </div>
-          </div>
-        </section>
-
-<div class="stat-card clickable-card" @click="$router.push('/animais')">
-  <div class="stat-header">
-    <span class="stat-icon">◈</span>
-    <span class="stat-label">Animais</span>
-  </div>
-  <div class="stat-main">
-    <span class="stat-number">120</span>
-    <span class="stat-unit">total</span>
-  </div>
-  <p class="click-hint">Gerenciar Rebanho →</p>
-</div>
-
-        <!-- Pastagem card removido -->
-
-        <div class="stat-card clickable-card alert-critical" @click="$router.push('/rebanho')">
-          <div class="stat-header">
-            <span class="stat-icon danger-icon">⏳</span>
-            <span class="stat-label">Em Carência</span>
-          </div>
-          <div class="stat-main">
-            <span class="stat-number danger-text">{{ countCarencia }}</span>
-            <span class="stat-unit">animais</span>
-          </div>
-          <p class="stat-desc">Venda bloqueada (RN04)</p>
-          <p class="click-hint">Ver Animais Bloqueados →</p>
+      <div class="dashboard-content">
+        <div class="welcome-section">
+          <h1>Visão Geral da Fazenda</h1>
+          <p>Acompanhe e gerencie as principais métricas do rebanho.</p>
         </div>
 
-        <div class="stat-card clickable-card alert-sick" @click="$router.push('/animais')">
-          <div class="stat-header">
-            <span class="stat-icon sick-icon">⚠</span>
-            <span class="stat-label">Animais Doentes</span>
+        <section class="main-highlight-card">
+          <div class="highlight-info">
+            <h2>Gestão de Estábulos</h2>
+            <p>Acesse a lista completa de estábulos para visualizar ocupação, movimentar lotes, editar ou remover animais específicos de cada setor.</p>
+            <button @click="$router.push('/estabulos')" class="btn-primary">
+              Acessar Estábulos →
+            </button>
           </div>
-          <div class="stat-main">
-            <span class="stat-number sick-text">{{ countSick }}</span>
-            <span class="stat-unit">animais</span>
-          </div>
-          <p class="stat-desc">Atenção Veterinária Necessária</p>
-          <p class="click-hint" style="margin-top: 8px;">Verificar Diagnósticos →</p>
-        </div>
+          <div class="highlight-icon">☖</div>
+        </section>
 
-        <section class="data-card health-card clickable-card" @click="$router.push('/saude')">
-          <div class="data-header">
-            <span class="data-icon">♥</span>
-            <span class="data-title">Saúde e Vacinas</span>
-            <span class="data-badge ok">NORMAL</span>
-          </div>
-          <div class="health-percent">
-            <span class="big-number">90</span><span class="big-unit">%</span>
-          </div>
-          <div class="progress-track">
-            <div class="progress-fill health" style="width: 90%">
-              <div class="progress-glow"></div>
+        <h3 class="section-title">Controles Operacionais</h3>
+        <div class="secondary-cards-grid">
+          <div class="action-card" @click="$router.push('/animais')">
+            <div class="card-icon">◈</div>
+            <div class="card-text">
+              <h4>Animais</h4>
+              <p>Listagem e cadastro do rebanho</p>
             </div>
           </div>
-          <p class="click-hint" style="margin-top: 10px;">Acessar Histórico de Saúde →</p>
-        </section>
-
-        <section class="data-card production-card clickable-card" @click="$router.push('/lancamento-leite')">
-          <div class="data-header">
-            <span class="data-icon">🥛</span>
-            <span class="data-title">Produção de Leite</span>
+          <div class="action-card" @click="$router.push('/lancamento-leite')">
+            <div class="card-icon">🥛</div>
+            <div class="card-text">
+              <h4>Produção de Leite</h4>
+              <p>Registros e histórico de ordenha</p>
+            </div>
           </div>
-          <div class="prod-row">
-            <span class="prod-label">Total Hoje:</span>
-            <span class="prod-value">{{ totalLeite }} <small>L/dia</small></span>
+          <div class="action-card" @click="$router.push('/vacinacao')">
+            <div class="card-icon">✛</div>
+            <div class="card-text">
+              <h4>Vacinação</h4>
+              <p>Manejo sanitário e histórico</p>
+            </div>
           </div>
-          <div class="mini-chart">
-            <div class="bar" style="--h: 35%"></div>
-            <div class="bar" style="--h: 50%"></div>
-            <div class="bar" style="--h: 45%"></div>
-            <div class="bar" style="--h: 70%"></div>
-            <div class="bar" style="--h: 60%"></div>
-            <div class="bar" style="--h: 80%"></div>
-            <div class="bar" style="--h: 75%"></div>
-            <div class="bar active" style="--h: 90%"></div>
-          </div>
-          <p class="click-hint">Registrar e Ver Histórico →</p>
-        </section>
-
+        </div>
       </div>
     </main>
+
+    <div v-if="showSpecieModal" class="modal-overlay" @click.self="showSpecieModal = false">
+      <div class="modal-content">
+        <header class="modal-header">
+          <h2>Cadastrar Nova Espécie</h2>
+          <button @click="showSpecieModal = false" class="btn-close">✕</button>
+        </header>
+        <form @submit.prevent="submitSpecie" class="modal-form">
+          <div class="input-group">
+            <label>Nome da Espécie</label>
+            <input v-model="specieForm.name" type="text" placeholder="Ex: Bovino" required>
+          </div>
+          <button type="submit" class="btn-primary mt-4" :disabled="loading">
+            {{ loading ? 'Salvando...' : 'Salvar Espécie' }}
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div v-if="showBreedModal" class="modal-overlay" @click.self="showBreedModal = false">
+      <div class="modal-content">
+        <header class="modal-header">
+          <h2>Cadastrar Nova Raça</h2>
+          <button @click="showBreedModal = false" class="btn-close">✕</button>
+        </header>
+        <form @submit.prevent="submitBreed" class="modal-form">
+          <div class="input-group">
+            <label>Nome da Raça</label>
+            <input v-model="breedForm.name" type="text" placeholder="Ex: Nelore" required>
+          </div>
+          <div class="input-group mt-3">
+            <label>Pertence a qual Espécie?</label>
+            <select v-model="breedForm.specie" required>
+              <option value="" disabled>Selecione uma espécie...</option>
+              <option v-for="specie in speciesList" :key="specie.id" :value="specie.id">
+                {{ specie.name }}
+              </option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary mt-4" :disabled="loading">
+            {{ loading ? 'Salvando...' : 'Salvar Raça' }}
+          </button>
+        </form>
+      </div>
+    </div>
+    
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
-import AlertBanner from '@/components/AlertBanner.vue';
 
 const router = useRouter();
-const isMenuOpen = ref(false);
-
-// Variáveis declaradas para evitar o erro "Property is not defined"
-const carênciaAtiva = ref(true);
-const countCarencia = ref(12);
-const countSick = ref(0);
-const totalLeite = ref(320);
+const isMenuOpen = ref(true);
 
 const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; };
-const closeMenu = () => { isMenuOpen.value = false; };
-const goToMap = () => { router.push({ name: 'mapa' }); };
-const logout = () => { localStorage.clear(); router.push('/'); };
+const logout = () => {
+  localStorage.clear();
+  router.push('/login');
+};
 
-// Carregar contagem de animais doentes
-const loadSickAnimalsCount = async () => {
+// ==========================================
+// LÓGICA DOS MODAIS DE CADASTRO BASE
+// ==========================================
+const showSpecieModal = ref(false);
+const showBreedModal = ref(false);
+const loading = ref(false);
+
+const specieForm = ref({ name: '' });
+const breedForm = ref({ name: '', specie: '' });
+const speciesList = ref([]);
+
+// Abre modal de espécie
+const openSpecieModal = () => {
+  specieForm.value.name = '';
+  showSpecieModal.value = true;
+};
+
+// Abre modal de raça e busca espécies no backend
+const openBreedModal = async () => {
+  breedForm.value = { name: '', specie: '' };
   try {
-    const response = await api.getAnimals();
-    const animals = Array.isArray(response.data) ? response.data : response.data.results || [];
-    const sickCount = animals.filter(a => a.status === 'doente').length;
-    countSick.value = sickCount;
+    const res = await api.get('species/');
+    speciesList.value = res.data.results || res.data;
   } catch (error) {
-    console.error("Erro ao buscar animais doentes:", error);
-    countSick.value = 0;
+    console.error("Erro ao buscar espécies", error);
+    // Fallback caso a API ainda não esteja rodando perfeitamente
+    speciesList.value = [{ id: 1, name: 'Bovino' }];
+  }
+  showBreedModal.value = true;
+};
+
+// Envia cadastro de espécie
+const submitSpecie = async () => {
+  loading.value = true;
+  try {
+    await api.post('species/', specieForm.value);
+    alert("Espécie cadastrada com sucesso!");
+    showSpecieModal.value = false;
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao cadastrar espécie.");
+  } finally {
+    loading.value = false;
   }
 };
 
-onMounted(() => {
-  loadSickAnimalsCount();
-});
-
-const vClickOutside = {
-  mounted(el, binding) {
-    el.clickOutsideEvent = (event) => {
-      if (!(el === event.target || el.contains(event.target))) {
-        binding.value(event);
-      }
-    };
-    document.addEventListener('click', el.clickOutsideEvent);
-  },
-  unmounted(el) {
-    document.removeEventListener('click', el.clickOutsideEvent);
-  },
+// Envia cadastro de raça
+const submitBreed = async () => {
+  loading.value = true;
+  try {
+    await api.post('breeds/', breedForm.value);
+    alert("Raça cadastrada com sucesso!");
+    showBreedModal.value = false;
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao cadastrar raça.");
+  } finally {
+    loading.value = false;
+  }
 };
 </script>
 
 <style scoped>
-/* =====================================================
-   DESIGN SYSTEM — DARK TECH / AGRO MONITOR
-   ===================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-:root {
-  --bg-base:       #0d1117;
-  --bg-card:       #161b22;
-  --bg-card-hover: #1c2128;
-  --bg-sidebar:    #0a0f14;
-  --border:        #21262d;
-  --border-accent: #30363d;
-  --green-neon:    #3fb950;
-  --green-dim:     #238636;
-  --green-glow:    rgba(63, 185, 80, 0.25);
-  --yellow:        #d29922;
-  --red:           #f85149;
-  --blue:          #58a6ff;
-  --text-primary:  #e6edf3;
-  --text-secondary:#8b949e;
-  --text-muted:    #484f58;
-  --font-mono:     'Courier New', Courier, monospace;
-}
+.dashboard-wrapper { display: flex; height: 100vh; background-color: #f8fafc; color: #0f172a; font-family: 'Inter', sans-serif; overflow: hidden; }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* SIDEBAR */
+.sidebar-drawer { width: 260px; background: #ffffff; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; z-index: 100; }
+.sidebar-content { display: flex; flex-direction: column; height: 100%; }
+.drawer-header { display: flex; align-items: center; gap: 12px; padding: 24px 20px; border-bottom: 1px solid #e2e8f0; }
+.drawer-logo { width: 40px; height: auto; }
+.brand-name { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
 
-.dashboard-wrapper {
-  width: 100%;
-  min-height: 100vh;
-  background-color: var(--bg-base);
-  background-image:
-    radial-gradient(ellipse at 20% 0%, rgba(63,185,80,0.05) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 100%, rgba(88,166,255,0.04) 0%, transparent 60%);
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  color: var(--text-primary);
-  display: flex;
-  flex-direction: column;
-}
+.drawer-menu { display: flex; flex-direction: column; padding: 20px 12px; flex: 1; gap: 4px; overflow-y: auto; }
+.menu-category { font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin: 16px 0 8px 12px; letter-spacing: 0.5px; }
 
-/* ============ SIDEBAR ============ */
-.sidebar-drawer {
-  position: fixed;
-  left: 0; top: 0;
-  width: 260px; height: 100%;
-  background: var(--bg-sidebar);
-  border-right: 1px solid var(--border-accent);
-  z-index: 9999;
-  padding: 0;
-  box-shadow: 4px 0 24px rgba(0,0,0,0.6);
-}
-.sidebar-content { display: flex; flex-direction: column; height: 100%; padding: 24px 16px; }
-.drawer-header { display: flex; align-items: center; gap: 12px; padding: 0 8px 24px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
-.drawer-logo { width: 36px; height: 36px; object-fit: contain; filter: drop-shadow(0 0 6px var(--green-neon)); }
-.brand-name { font-size: 0.95rem; font-weight: 600; color: var(--green-neon); letter-spacing: 0.02em; }
-.drawer-menu { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.nav-link { display: flex; align-items: center; gap: 10px; color: var(--text-secondary); text-decoration: none; padding: 11px 14px; border-radius: 8px; font-size: 0.9rem; transition: all 0.2s; border: 1px solid transparent; }
-.nav-link:hover { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
-.nav-link.active { background: rgba(63, 185, 80, 0.1); color: var(--green-neon); border-color: rgba(63, 185, 80, 0.3); }
-.nav-icon { font-size: 0.85rem; width: 18px; text-align: center; }
-.btn-logout { margin-top: auto; padding: 11px 14px; background: transparent; border: 1px solid var(--border-accent); border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; transition: all 0.2s; text-align: left; }
-.btn-logout:hover { border-color: var(--red); color: var(--red); }
+.nav-link { display: flex; align-items: center; gap: 12px; padding: 10px 16px; text-decoration: none; color: #64748b; border-radius: 8px; transition: 0.2s; font-weight: 500; font-size: 0.95rem; cursor: pointer; }
+.nav-link:hover, .nav-link.active { background: #f0fdf4; color: #16a34a; }
+.nav-icon { font-size: 1.2rem; width: 24px; text-align: center; }
+.menu-divider { height: 1px; background: #e2e8f0; margin: 12px 0; }
+.gemini-link { color: #8b5cf6; }
+.gemini-link:hover { background: #f5f3ff; color: #7c3aed; }
+.btn-logout { margin: 20px; padding: 12px; background: transparent; border: 1px solid #e2e8f0; color: #ef4444; border-radius: 8px; cursor: pointer; transition: 0.2s; font-weight: 600; }
+.btn-logout:hover { background: #fef2f2; border-color: #fca5a5; }
 
-/* ============ TOP BAR ============ */
-.top-bar { display: flex; align-items: center; justify-content: space-between; padding: 0 28px; height: 60px; background: var(--bg-sidebar); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.logo-trigger { display: flex; align-items: center; gap: 10px; cursor: pointer; min-width: 180px; }
-.mini-logo { width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 0 4px var(--green-neon)); }
-.logo-text { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
-.menu-hint { font-size: 1.2rem; color: var(--text-muted); margin-left: 4px; }
-.top-center { flex: 1; max-width: 480px; margin: 0 24px; }
-.search-bar { display: flex; align-items: center; gap: 10px; background: var(--bg-card); border: 1px solid var(--border-accent); border-radius: 8px; padding: 8px 14px; transition: border-color 0.2s; }
-.search-bar:focus-within { border-color: var(--green-neon); box-shadow: 0 0 0 3px var(--green-glow); }
-.search-icon { color: var(--text-muted); font-size: 1rem; }
-.search-bar input { background: none; border: none; outline: none; color: var(--text-primary); font-size: 0.88rem; width: 100%; }
-.search-bar input::placeholder { color: var(--text-muted); }
-.user-profile { display: flex; align-items: center; gap: 14px; }
-.notification-bell { position: relative; cursor: pointer; font-size: 1.1rem; }
-.notif-badge { position: absolute; top: -4px; right: -6px; background: var(--red); color: white; font-size: 0.6rem; font-weight: bold; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.user-role { font-size: 0.82rem; color: var(--text-secondary); }
-.user-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--green-dim), var(--green-neon)); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: bold; color: #0d1117; border: 2px solid var(--green-neon); box-shadow: 0 0 8px var(--green-glow); }
+/* TOP BAR */
+.main-layout { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+.top-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 32px; background: #ffffff; border-bottom: 1px solid #e2e8f0; }
+.btn-menu { background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: #0f172a; }
+.user-info { display: flex; align-items: center; gap: 12px; }
+.user-role { color: #64748b; font-size: 0.9rem; font-weight: 500; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: #16a34a; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; }
 
-/* ============ GRID ============ */
-.main-layout { flex: 1; display: flex; flex-direction: column; transition: all 0.3s ease; padding-left: 0; }
-.main-layout.blur-bg { filter: blur(3px); padding-left: 280px; pointer-events: none; }
-.dashboard-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 30px; max-width: 1200px; margin: 0 auto; width: 100%; }
-@media (max-width: 1100px) { .dashboard-grid { grid-template-columns: 1fr 1fr; max-width: 900px; } .card-hero { grid-column: 1 / -1; } }
+/* CONTENT */
+.dashboard-content { padding: 40px; max-width: 1200px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+.welcome-section { margin-bottom: 32px; }
+.welcome-section h1 { font-size: 2rem; color: #0f172a; margin-bottom: 8px; font-weight: 700; }
+.welcome-section p { color: #64748b; font-size: 1.05rem; }
 
-/* ============ HERO CARD ============ */
-.card-hero { grid-column: 1 / 3; grid-row: 1 / 2; height: 260px; border-radius: 12px; background-image: url('@/assets/adm_background.jpg'); background-size: cover; background-position: center; position: relative; overflow: hidden; cursor: pointer; border: 1.5px solid #58d368; transition: border-color 0.3s; backdrop-filter: blur(10px); }
-.card-hero:hover { border-color: var(--green-neon); }
-.hero-scanline { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px); pointer-events: none; z-index: 1; }
-.hero-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(13,17,23,0.3) 0%, rgba(13,17,23,0.75) 100%); display: flex; flex-direction: column; justify-content: space-between; padding: 20px 24px; z-index: 2; }
-.hero-badge { align-self: flex-start; background: rgba(63, 185, 80, 0.2); border: 1px solid var(--green-neon); color: var(--green-neon); font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 4px; letter-spacing: 0.08em; font-family: var(--font-mono); }
-.hero-text h2 { font-size: 1.9rem; font-weight: 700; color: var(--text-primary); text-shadow: 0 2px 8px rgba(0,0,0,0.6); margin-bottom: 10px; }
-.tags { display: flex; gap: 8px; flex-wrap: wrap; }
-.tag { background: rgba(255,255,255,0.12); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 500; }
-.tag-green { background: rgba(63, 185, 80, 0.2); border-color: var(--green-neon); color: var(--green-neon); }
-.hero-corner-stat { position: absolute; top: 20px; right: 20px; text-align: right; }
-.corner-label { display: block; font-size: 0.65rem; color: var(--text-secondary); font-family: var(--font-mono); letter-spacing: 0.1em; }
-.corner-value { display: block; font-size: 1.3rem; font-weight: 700; color: var(--green-neon); font-family: var(--font-mono); }
+/* MAIN HIGHLIGHT CARD */
+.main-highlight-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+.highlight-info h2 { font-size: 1.5rem; color: #0f172a; margin-bottom: 12px; }
+.highlight-info p { color: #64748b; line-height: 1.6; margin-bottom: 24px; max-width: 600px; }
+.btn-primary { background: #16a34a; color: #ffffff; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: 0.2s; width: 100%; }
+.btn-primary:hover:not(:disabled) { background: #15803d; }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.highlight-icon { font-size: 5rem; color: #f0fdf4; text-shadow: 0 0 20px #16a34a; opacity: 0.8; }
 
-/* ============ STAT CARDS ============ */
-.stat-card { background: rgba(22, 27, 34, 0.8); border: 1.5px solid #58d368; border-radius: 12px; padding: 20px; transition: all 0.2s; backdrop-filter: blur(10px); }
-.stat-card:hover { border-color: var(--border-accent); background: var(--bg-card-hover); }
-.stat-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-.stat-icon { color: var(--green-neon); font-size: 1.1rem; }
-.stat-label { font-size: 0.82rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
-.stat-main { display: flex; align-items: baseline; gap: 6px; margin-bottom: 12px; }
-.stat-number { font-size: 2.4rem; font-weight: 700; color: var(--text-primary); line-height: 1; font-family: var(--font-mono); }
-.stat-unit { font-size: 0.85rem; color: var(--text-muted); }
-.stat-desc { font-size: 0.82rem; color: var(--text-secondary); }
+/* SECONDARY CARDS */
+.section-title { font-size: 1.1rem; color: #0f172a; margin-bottom: 16px; font-weight: 600; }
+.secondary-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.action-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: all 0.2s ease; }
+.action-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: #16a34a; }
+.action-card .card-icon { font-size: 2rem; color: #16a34a; background: #f0fdf4; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+.card-text h4 { font-size: 1.1rem; color: #0f172a; margin-bottom: 4px; }
+.card-text p { font-size: 0.9rem; color: #64748b; }
 
-.stat-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
-.stat-row:last-of-type { border-bottom: none; }
-.row-label { color: var(--text-secondary); flex: 1; }
-.row-value { font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); }
-.row-value.danger { color: var(--red); }
-.warn-icon { color: var(--yellow); font-size: 0.9rem; }
+/* =========================================
+   ESTILOS DOS MODAIS (NOVO)
+   ========================================= */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+.modal-content { background: #ffffff; border-radius: 12px; width: 100%; max-width: 400px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); animation: modalIn 0.3s ease-out; }
+@keyframes modalIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; }
+.modal-header h2 { font-size: 1.25rem; font-weight: 600; color: #0f172a; margin: 0; }
+.btn-close { background: transparent; border: none; font-size: 1.2rem; color: #64748b; cursor: pointer; transition: 0.2s; }
+.btn-close:hover { color: #ef4444; }
 
-/* ============ DATA CARDS ============ */
-.data-card { background: rgba(22, 27, 34, 0.8); border: 1.5px solid #58d368; border-radius: 12px; padding: 20px; transition: all 0.2s; backdrop-filter: blur(10px); }
-.data-card:hover { border-color: var(--border-accent); background: var(--bg-card-hover); }
-.data-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-.data-icon { font-size: 1rem; color: var(--green-neon); }
-.data-title { font-size: 0.82rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; flex: 1; }
-.data-badge { font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.05em; }
-.data-badge.ok { background: rgba(63, 185, 80, 0.1); border: 1px solid var(--green-dim); color: var(--green-neon); }
-
-.health-percent { display: flex; align-items: baseline; gap: 2px; margin-bottom: 14px; }
-.big-number { font-size: 2.8rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); line-height: 1; }
-.big-unit { font-size: 1.2rem; color: var(--text-muted); font-family: var(--font-mono); }
-.progress-track { height: 5px; background: var(--border-accent); border-radius: 3px; overflow: hidden; margin-bottom: 14px; }
-.progress-fill { height: 100%; border-radius: 3px; position: relative; }
-.progress-fill.health { background: linear-gradient(90deg, var(--green-dim), var(--green-neon)); box-shadow: 0 0 8px var(--green-glow); }
-
-.prod-row { display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
-.prod-row:last-of-type { border-bottom: none; }
-.prod-label { font-size: 0.82rem; color: var(--text-secondary); }
-.prod-value { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); }
-.prod-value small { font-size: 0.75rem; color: var(--text-muted); font-weight: 400; font-family: inherit; }
-.mini-chart { display: flex; align-items: flex-end; gap: 4px; height: 50px; margin-top: 14px; padding-top: 4px; }
-.bar { flex: 1; height: var(--h); background: var(--border-accent); border-radius: 3px 3px 0 0; transition: background 0.2s; }
-.bar.active { background: var(--green-neon); box-shadow: 0 0 6px var(--green-glow); }
-
-/* ============ INTERAÇÕES CLICÁVEIS ============ */
-.clickable-card { cursor: pointer; position: relative; }
-.clickable-card:hover { transform: translateY(-5px); border-color: #3fb950; box-shadow: 0 5px 15px rgba(63, 185, 80, 0.15); }
-.click-hint { font-size: 0.75rem; color: #58a6ff; margin-top: 15px; opacity: 0; transition: opacity 0.3s; display: block; font-weight: 600; }
-.clickable-card:hover .click-hint { opacity: 1; }
-
-.danger-icon, .danger-text { color: var(--red) !important; }
-.alert-critical { border-color: rgba(248, 81, 73, 0.5) !important; }
-
-.sick-icon { color: var(--yellow) !important; }
-.sick-text { color: var(--yellow) !important; }
-.alert-sick { 
-  border-color: rgba(210, 153, 34, 0.5) !important;
-  animation: pulse-alert 2s infinite;
-}
-
-@keyframes pulse-alert {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(210, 153, 34, 0.3); }
-  50% { box-shadow: 0 0 12px rgba(210, 153, 34, 0.3); }
-}
-
-/* ============ TRANSITIONS ============ */
-.slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
-.slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
+.modal-form { display: flex; flex-direction: column; }
+.input-group { display: flex; flex-direction: column; gap: 8px; }
+.input-group label { font-size: 0.9rem; font-weight: 600; color: #475569; }
+.input-group input, .input-group select { padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; color: #0f172a; outline: none; transition: 0.2s; background: #fff; font-family: inherit; }
+.input-group input:focus, .input-group select:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1); }
+.mt-3 { margin-top: 16px; }
+.mt-4 { margin-top: 24px; }
 </style>
