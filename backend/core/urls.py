@@ -15,13 +15,28 @@ from milk_production_history.views import (
 )
 from vaccines.views import VaccineCreateListView, VaccineRetrieveUpdateDestroy
 from vaccination_plans.views import VaccinationPlanCreateListView, VaccinationPlanRetrieveUpdateDestroy
-from vaccinations.views import VaccinationCreateListView, VaccinationRetrieveUpdateDestroy, vaccinations_by_animal, upcoming_vaccinations
+from vaccinations.views import (
+    VaccinationCreateListView,
+    VaccinationRetrieveUpdateDestroy,
+    vaccinations_by_animal,
+    upcoming_vaccinations,
+    batch_vaccination,
+    quadrant_animals_count,
+)
 from foods.views import FoodCreateListView, FoodRetrieveUpdateDestroy
 from feedings.views import FeedingCreateListView, FeedingRetrieveUpdateDestroy
 from feeding_plans.views import FeedingPlanCreateListView, FeedingPlanRetrieveUpdateDestroy
 from movement_types.views import MovementTypeCreateListView, MovementTypeRetrieveUpdateDestroy
 from animal_movements.views import AnimalMovementCreateListView, AnimalMovementRetrieveUpdateDestroy
 from animal_health.views import AnimalHealthCreateListView, AnimalHealthRetrieveUpdateDestroy
+from notifications.views import (
+    NotificationListView,
+    NotificationUnreadListView,
+    NotificationUnreadCountView,
+    NotificationMarkAsReadView,
+    NotificationBulkMarkAsReadView,
+    NotificationDetailView,
+)
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from authentication.views import CustomTokenObtainPairView
 
@@ -52,6 +67,8 @@ urlpatterns = [
     path('vaccinations/<int:pk>', VaccinationRetrieveUpdateDestroy.as_view(), name="vaccinations-detail-view"),
     path('vaccinations/animal/<int:animal_id>/', vaccinations_by_animal, name="vaccinations-by-animal"),
     path('vaccinations/upcoming/', upcoming_vaccinations, name="vaccinations-upcoming"),
+    path('vaccinations/batch/', batch_vaccination, name="vaccinations-batch"),
+    path('vaccinations/quadrant/<int:quadrant_id>/animals-count/', quadrant_animals_count, name="quadrant-animals-count"),
     path('foods/', FoodCreateListView.as_view(), name="foods-create-list"),
     path('foods/<int:pk>', FoodRetrieveUpdateDestroy.as_view(), name="foods-detail-view"),
     path('feedings/', FeedingCreateListView.as_view(), name="feedings-create-list"),
@@ -65,8 +82,16 @@ urlpatterns = [
     path('animal_health/', AnimalHealthCreateListView.as_view(), name="animal-health-create-list"),
     path('animal_health/<int:pk>', AnimalHealthRetrieveUpdateDestroy.as_view(), name="animal-health-detail-view"),
 
-    # Biometria e Alertas (Requisito 7)
-    path('biometrics/', include('animal_biometrics.urls')),
+    # Tasks app
+    path('tasks/', include('tasks.urls')),
+
+    # Notificações (Requisito 8.1)
+    path('notifications/', NotificationListView.as_view(), name="notifications-list"),
+    path('notifications/unread/', NotificationUnreadListView.as_view(), name="notifications-unread-list"),
+    path('notifications/unread-count/', NotificationUnreadCountView.as_view(), name="notifications-unread-count"),
+    path('notifications/<int:pk>/', NotificationDetailView.as_view(), name="notifications-detail"),
+    path('notifications/<int:pk>/mark-as-read/', NotificationMarkAsReadView.as_view(), name="notifications-mark-as-read"),
+    path('notifications/bulk-mark-as-read/', NotificationBulkMarkAsReadView.as_view(), name="notifications-bulk-mark-as-read"),
 
     path('api/token/', CustomTokenObtainPairView.as_view(), name='token-obtain'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
@@ -74,6 +99,4 @@ urlpatterns = [
     path('authentication/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('authentication/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('authentication/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-
-    path('statistics/', ApiStatsView.as_view(), name='stats-view'),
 ]

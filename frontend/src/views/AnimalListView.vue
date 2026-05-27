@@ -2,7 +2,7 @@
   <div class="list-wrapper">
     <header class="page-header">
       <div class="header-info">
-        <button @click="$router.back()" class="btn-back">← Voltar</button>
+        <button @click="goBackToDashboard" class="btn-back">← Voltar</button>
         <h1>Gestão de Animais</h1>
         <p>Listagem completa e controle do rebanho por estábulos.</p>
       </div>
@@ -82,6 +82,10 @@ onMounted(() => {
 
 const viewDetails = (id) => {
   router.push({ name: 'animal-detail', params: { id } });
+};
+
+const goBackToDashboard = () => {
+  router.back();
 };
 </script>
 

@@ -3,6 +3,10 @@ from breeds.models import Breed
 
 
 class BreedSerializer(serializers.ModelSerializer):
+    specie_name = serializers.CharField(source='specie.name', read_only=True)
+    
     class Meta:
         model = Breed
-        fields = '__all__'
+        fields = ['id', 'name', 'specie', 'specie_name']
+        read_only_fields = ['id', 'specie_name']
+

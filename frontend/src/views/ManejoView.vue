@@ -105,7 +105,9 @@ const handleWeight = async () => {
     weightData.value = { animal: '', weight: '' }
   } catch (err) {
     alert('Erro ao salvar pesagem.')
-  } finally { loading.value = false }
+  } finally { 
+    loading.value = false 
+  }
 }
 
 const handleVaccine = async () => {
@@ -116,7 +118,9 @@ const handleVaccine = async () => {
     vaccineData.value = { animal: '', vaccine_id: '' }
   } catch (err) {
     alert('Erro ao salvar vacinação.')
-  } finally { loading.value = false }
+  } finally { 
+    loading.value = false 
+  }
 }
 
 const handleBatchMove = async () => {
@@ -127,7 +131,9 @@ const handleBatchMove = async () => {
     batchData.value = { origin_quadrant: '', target_quadrant: '' }
   } catch (err) {
     alert('Erro ao mover lote.')
-  } finally { loading.value = false }
+  } finally { 
+    loading.value = false 
+  }
 }
 
 onMounted(async () => {

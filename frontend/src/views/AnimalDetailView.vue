@@ -2,7 +2,7 @@
   <div class="detail-wrapper" v-if="animal && !loading">
     <header class="detail-header">
       <div class="nav-actions">
-        <button @click="$router.push('/animais')" class="btn-back">← Voltar para a Lista</button>
+        <button @click="goBackToDashboard" class="btn-back">← Voltar para a Lista</button>
         <button @click="deleteAnimal" class="btn-danger">🗑 Excluir Registro</button>
       </div>
       <div class="animal-title-section">
@@ -25,6 +25,13 @@
         class="tab-btn"
       >
         🥛 Registro de Leite
+      </button>
+      <button 
+        @click="activeTab = 'peso'" 
+        :class="{ 'tab-active': activeTab === 'peso' }"
+        class="tab-btn"
+      >
+        ⚖️ Histórico de Pesos
       </button>
       <button 
         @click="activeTab = 'vacinas'" 
@@ -144,9 +151,37 @@
           </thead>
           <tbody>
             <tr v-for="record in milkHistory" :key="record.id">
-              <td>{{ formatDate(record.date_collected || record.date) }}</td>
-              <td class="font-bold text-green">{{ record.milk_quantity || record.quantity }} L</td>
+              <td>{{ formatDate(record.production_date || record.date_collected || record.date) }}</td>
+              <td class="font-bold text-green">{{ record.milk_production || record.milk_quantity || record.quantity }} L</td>
               <td class="text-muted">Litros</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="activeTab === 'peso'" class="data-card table-card">
+        <div class="card-header-inline">
+          <h3>Histórico de Pesagens</h3>
+          <span class="records-count">{{ weightHistory.length }} Pesagens registradas</span>
+        </div>
+
+        <div v-if="weightHistory.length === 0" class="empty-history">
+          <p>Nenhuma pesagem registrada para este animal até o momento.</p>
+        </div>
+
+        <table v-else class="history-table">
+          <thead>
+            <tr>
+              <th>Data da Pesagem</th>
+              <th>Peso (kg)</th>
+              <th>Unidade</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="record in weightHistory" :key="record.id">
+              <td>{{ formatDate(record.weighing_date || record.date || record.date_weighed) }}</td>
+              <td class="font-bold text-green">{{ record.weight }} kg</td>
+              <td class="text-muted">kg</td>
             </tr>
           </tbody>
         </table>
@@ -172,7 +207,7 @@
           </thead>
           <tbody>
             <tr v-for="vaccine in vaccineHistory" :key="vaccine.id">
-              <td>{{ formatDate(vaccine.date || vaccine.date_applied) }}</td>
+              <td>{{ formatDate(vaccine.vaccination_date || vaccine.date || vaccine.date_applied) }}</td>
               <td class="font-bold">{{ vaccine.vaccine_name || vaccine.name }}</td>
               <td><span class="badge badge-active">Protegido</span></td>
             </tr>
@@ -193,6 +228,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
+import { notify } from '@/services/notificationService';
 
 const route = useRoute();
 const router = useRouter();
@@ -206,6 +242,7 @@ const isEditing = ref(false);   // Controle de edição do card de infos
 // Históricos sincronizados vindos das outras páginas
 const milkHistory = ref([]);
 const vaccineHistory = ref([]);
+const weightHistory = ref([]);
 
 // Dados reativos para o formulário de edição interna
 const editData = ref({
@@ -231,22 +268,34 @@ const loadCompleteAnimalData = async () => {
     // Prepara dados de edição
     editData.value = { ...response.data };
 
-    // 2. Busca histórico de leite filtrado por este animal
+    // 2. Busca histórico de leite direto do backend por animal
     try {
-      const milkRes = await api.get('historico-prod-leite/');
-      const data = milkRes.data.results || milkRes.data;
-      milkHistory.value = data.filter(item => String(item.animal) === String(id));
+      const milkRes = await api.getMilkProductionByAnimal(id);
+      const data = milkRes.data.historico || milkRes.data.results || milkRes.data;
+      milkHistory.value = Array.isArray(data) ? data : [];
     } catch (e) {
-      console.warn("Rota de histórico de leite pendente ou vazia.");
+      console.warn("Erro ao buscar histórico de leite do animal:", e);
+      milkHistory.value = [];
     }
 
-    // 3. Busca histórico de vacinas filtrado por este animal
+    // 3. Busca histórico de peso direto do backend por animal
     try {
-      const vaccineRes = await api.get('historico-vacina/');
-      const data = vaccineRes.data.results || vaccineRes.data;
-      vaccineHistory.value = data.filter(item => String(item.animal) === String(id));
+      const weightRes = await api.getWeightHistoryByAnimal(id);
+      const data = weightRes.data.historico || weightRes.data.results || weightRes.data;
+      weightHistory.value = Array.isArray(data) ? data : [];
     } catch (e) {
-      console.warn("Rota de histórico de vacinas pendente ou vazia.");
+      console.warn("Erro ao buscar histórico de peso do animal:", e);
+      weightHistory.value = [];
+    }
+
+    // 4. Busca histórico de vacinas direto do backend por animal
+    try {
+      const vaccineRes = await api.getVaccinationsByAnimal(id);
+      const data = vaccineRes.data.results || vaccineRes.data;
+      vaccineHistory.value = data;
+    } catch (e) {
+      console.warn("Erro ao buscar histórico de vacinas do animal:", e);
+      vaccineHistory.value = [];
     }
 
   } catch (error) {
@@ -266,13 +315,13 @@ const toggleEdit = () => {
 const updateAnimalInfo = async () => {
   saving.value = true;
   try {
-    await api.put(`animals/${animal.value.id}/`, editData.value);
-    animal.value = { ...editData.value };
+    await api.patch(`animals/${animal.value.id}/`, editData.value);
+    animal.value = { ...animal.value, ...editData.value };
     isEditing.value = false;
-    alert("Informações do animal atualizadas com sucesso!");
+    notify("Informações do animal atualizadas com sucesso!", 'success');
   } catch (error) {
-    console.error(error);
-    alert("Erro ao salvar alterações.");
+    console.error("Erro ao atualizar animal:", error.response?.data || error);
+    notify("Erro ao salvar alterações. Verifique o console para mais detalhes.", 'error');
   } finally {
     saving.value = false;
   }
@@ -282,11 +331,15 @@ const deleteAnimal = async () => {
   if (confirm(`Remover permanentemente o animal ${animal.value.name || ''} do sistema?`)) {
     try {
       await api.delete(`animals/${animal.value.id}/`);
-      router.push('/animais');
+      router.back();
     } catch (error) {
-      alert("Erro ao excluir registro.");
+      notify("Erro ao excluir registro.", 'error');
     }
   }
+};
+
+const goBackToDashboard = () => {
+  router.back();
 };
 
 const formatDate = (dateString) => {

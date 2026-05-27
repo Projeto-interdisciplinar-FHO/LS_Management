@@ -92,6 +92,13 @@
               <p>Registros e histórico de ordenha</p>
             </div>
           </div>
+          <div class="action-card" @click="$router.push('/pesagem')">
+            <div class="card-icon">⚖️</div>
+            <div class="card-text">
+              <h4>Registro de Peso</h4>
+              <p>Registre o peso do rebanho rapidamente.</p>
+            </div>
+          </div>
           <div class="action-card" @click="$router.push('/vacinacao')">
             <div class="card-icon">✛</div>
             <div class="card-text">

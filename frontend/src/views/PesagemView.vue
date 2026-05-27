@@ -18,8 +18,13 @@
         <form @submit.prevent="handleSubmit" class="data-form">
           <div class="form-grid">
             <div class="input-group">
-              <label>ID do Animal (Brinco)</label>
-              <input v-model="formData.animal" type="number" placeholder="Ex: 142" required>
+              <label>Animal</label>
+              <select v-model.number="formData.animal" required>
+                <option value="" disabled>Selecione um animal...</option>
+                <option v-for="animal in animals" :key="animal.id" :value="animal.id">
+                  {{ animal.name || 'Sem nome' }} (Brinco: #{{ animal.register_number }})
+                </option>
+              </select>
             </div>
             <div class="input-group">
               <label>Peso (kg)</label>
@@ -27,7 +32,7 @@
             </div>
             <div class="input-group">
               <label>Data da Pesagem</label>
-              <input v-model="formData.date_weighed" type="date" required>
+              <input v-model="formData.weighing_date" type="date" required>
             </div>
           </div>
           <div class="form-actions">
@@ -45,30 +50,47 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import api from '@/services/api';
 
 const loading = ref(false);
 const message = ref('');
 const isSuccess = ref(false);
+const animals = ref([]);
 
 const formData = ref({
   animal: '',
   weight: '',
-  date_weighed: new Date().toISOString().split('T')[0]
+  weighing_date: new Date().toISOString().split('T')[0]
 });
+
+const loadAnimals = async () => {
+  try {
+    const response = await api.getAnimals();
+    animals.value = response.data.results || response.data;
+  } catch (error) {
+    console.error('Erro ao carregar animais:', error);
+    animals.value = [];
+  }
+};
 
 const handleSubmit = async () => {
   loading.value = true;
   message.value = '';
   try {
-    // Ajuste o endpoint conforme seu backend
-    await api.post('historico-peso/', formData.value);
+    const payload = {
+      animal: parseInt(formData.value.animal, 10),
+      weight: parseFloat(formData.value.weight),
+      weighing_date: formData.value.weighing_date
+    };
+    await api.registrarPeso(payload);
     isSuccess.value = true;
     message.value = 'Pesagem registrada com sucesso!';
     formData.value.animal = '';
     formData.value.weight = '';
+    formData.value.weighing_date = new Date().toISOString().split('T')[0];
   } catch (error) {
+    console.error('Erro ao salvar pesagem:', error.response?.data || error);
     isSuccess.value = false;
     message.value = 'Erro ao registrar pesagem. Verifique os dados.';
   } finally {
@@ -76,6 +98,8 @@ const handleSubmit = async () => {
     setTimeout(() => { message.value = ''; }, 4000);
   }
 };
+
+onMounted(loadAnimals);
 </script>
 
 <style scoped>

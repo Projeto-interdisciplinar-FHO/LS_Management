@@ -70,6 +70,15 @@
               </option>
             </select>
           </div>
+          <div class="input-group">
+            <label>Finalidade</label>
+            <select v-model="formData.purpose" required>
+              <option value="" disabled>Selecione a finalidade...</option>
+              <option v-for="purpose in purposeList" :key="purpose.id" :value="purpose.id">
+                {{ purpose.name || purpose.tipo || `Finalidade ${purpose.id}` }}
+              </option>
+            </select>
+          </div>
         </div>
 
         <div class="form-actions">
@@ -86,6 +95,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
+import { notify } from '@/services/notificationService';
 
 const route = useRoute();
 const router = useRouter();
@@ -96,10 +106,11 @@ const loading = ref(false);
 const speciesList = ref([]);
 const breedsList = ref([]);
 const stablesList = ref([]);
+const purposeList = ref([]);
 
 const formData = ref({
   name: '', register_number: '', birth_date: '', weight: '', sex: 'm', active: true,
-  specie: '', breed: '', quadrant: '' // quadrant mantido no payload caso o backend exija este nome
+  specie: '', breed: '', quadrant: '', purpose: '' // purpose é obrigatório no backend
 });
 
 onMounted(async () => {
@@ -130,6 +141,14 @@ const fetchDropdownData = async () => {
       breedsList.value = [{id: 1, name: 'Holandês'}, {id: 2, name: 'Nelore'}, {id: 3, name: 'Angus'}];
     });
 
+    api.get('purpose_types/').then(res => purposeList.value = res.data).catch(() => {
+      purposeList.value = [
+        {id: 1, name: 'Criação'},
+        {id: 2, name: 'Leite'},
+        {id: 3, name: 'Venda'}
+      ];
+    });
+
     api.get('quadrants/').then(res => stablesList.value = res.data).catch(() => {
       stablesList.value = [{id: 1, name: 'Estábulo Principal'}, {id: 2, name: 'Estábulo Sul'}];
     });
@@ -149,7 +168,7 @@ const saveAnimal = async () => {
     router.push('/animais');
   } catch (error) {
     console.error("Erro ao salvar:", error);
-    alert("Falha ao salvar os dados.");
+    notify("Falha ao salvar os dados.", 'error');
   } finally {
     loading.value = false;
   }

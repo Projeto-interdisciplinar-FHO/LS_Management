@@ -27,12 +27,16 @@
           </div>
           <div class="input-group mt-3">
             <label>Vacina Aplicada</label>
-            <select v-model="individualForm.vaccine_id" required>
+            <select v-model="individualForm.vaccine" required>
               <option value="" disabled>Selecione uma vacina...</option>
               <option v-for="vaccine in vaccinesList" :key="vaccine.id" :value="vaccine.id">
                 {{ vaccine.name }}
               </option>
             </select>
+          </div>
+          <div class="input-group mt-3">
+            <label>Dosagem Aplicada</label>
+            <input v-model="individualForm.dosage" type="text" placeholder="Ex: 5 ml" required>
           </div>
           <div class="input-group mt-3">
             <label>Data de Aplicação</label>
@@ -53,7 +57,7 @@
         <form @submit.prevent="submitBatch" class="data-form">
           <div class="input-group">
             <label>Selecione o Estábulo</label>
-            <select v-model="batchForm.stable" required>
+            <select v-model="batchForm.quadrant" required>
               <option value="" disabled>Escolha um estábulo...</option>
               <option v-for="stable in stablesList" :key="stable.id" :value="stable.id">
                 {{ stable.name || stable.nome_quadrante || `Estábulo ${stable.id}` }}
@@ -62,12 +66,16 @@
           </div>
           <div class="input-group mt-3">
             <label>Vacina Aplicada</label>
-            <select v-model="batchForm.vaccine_id" required>
+            <select v-model="batchForm.vaccine" required>
               <option value="" disabled>Selecione uma vacina...</option>
               <option v-for="vaccine in vaccinesList" :key="vaccine.id" :value="vaccine.id">
                 {{ vaccine.name }}
               </option>
             </select>
+          </div>
+          <div class="input-group mt-3">
+            <label>Dosagem Aplicada</label>
+            <input v-model="batchForm.dosage" type="text" placeholder="Ex: 5 ml" required>
           </div>
           <div class="input-group mt-3">
             <label>Data de Aplicação</label>
@@ -95,13 +103,15 @@ const animalsList = ref([]); // Nova lista para o dropdown de animais
 
 const individualForm = ref({ 
   animal: '', 
-  vaccine: '', // Tirando o _id
-  date_applied: new Date().toISOString().split('T')[0] // Ajustando a data
+  vaccine: '',
+  dosage: '',
+  date: new Date().toISOString().split('T')[0]
 });
 
 const batchForm = ref({ 
-  stable: '', 
-  vaccine_id: '', 
+  quadrant: '', 
+  vaccine: '', 
+  dosage: '',
   date: new Date().toISOString().split('T')[0] 
 });
 
@@ -146,13 +156,19 @@ const fetchDropdownData = async () => {
 const submitIndividual = async () => {
   loadingInd.value = true;
   try {
-    // Aqui fazemos a inserção real no banco de dados do Django
-    await api.post('historico-vacina/', individualForm.value);
+    const payload = {
+      animal: individualForm.value.animal,
+      vaccine: individualForm.value.vaccine,
+      vaccination_date: individualForm.value.date,
+      dosage: individualForm.value.dosage
+    };
+
+    await api.post('vaccinations/', payload);
     
     alert("Vacina individual registrada com sucesso!");
-    // Limpa o formulário após o sucesso
     individualForm.value.animal = '';
-    individualForm.value.vaccine_id = '';
+    individualForm.value.vaccine = '';
+    individualForm.value.dosage = '';
   } catch (error) {
     console.error(error);
     alert("Erro ao registrar a vacina. Verifique a conexão com o servidor.");
@@ -164,12 +180,19 @@ const submitIndividual = async () => {
 const submitBatch = async () => {
   loadingBatch.value = true;
   try {
-    // Rota hipotética no backend para vacinação em massa
-    await api.post('historico-vacina/lote/', batchForm.value);
+    const payload = {
+      quadrant_id: batchForm.value.quadrant,
+      vaccine_id: batchForm.value.vaccine,
+      vaccination_date: batchForm.value.date,
+      dosage: batchForm.value.dosage
+    };
+
+    await api.post('vaccinations/batch/', payload);
     
     alert("Lote vacinado com sucesso!");
-    batchForm.value.stable = '';
-    batchForm.value.vaccine_id = '';
+    batchForm.value.quadrant = '';
+    batchForm.value.vaccine = '';
+    batchForm.value.dosage = '';
   } catch (error) {
     console.error(error);
     alert("Erro ao vacinar o lote no servidor.");
