@@ -164,6 +164,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '@/services/api';
+import { notify } from '@/services/notificationService';
 
 const stables = ref([]);
 const animals = ref([]);
@@ -171,7 +172,7 @@ const loading = ref(true);
 const showModal = ref(false);
 const isEditingStable = ref(false);
 const savingStable = ref(false);
-const expandedStables = ref([]); // Controla quais sanfonas estão abertas
+const expandedStables = ref([]);
 
 const stableForm = ref({
   id: null,
@@ -187,7 +188,6 @@ onMounted(() => {
 const loadData = async () => {
   loading.value = true;
   try {
-    // 1. Busca os Estábulos (mapeados no backend como 'quadrants' por compatibilidade)
     const stablesRes = await api.get('quadrants/');
     stables.value = stablesRes.data.results || stablesRes.data;
 
@@ -197,7 +197,6 @@ const loadData = async () => {
         { id: 2, name: 'Piquete Sul Maternidade', capacity: 15, purpose: 'Maternidade / Crias' }
       ];
     }
-
 
     const animalsRes = await api.get('animals/');
     animals.value = animalsRes.data.results || animalsRes.data;
@@ -209,24 +208,27 @@ const loadData = async () => {
   }
 };
 
-// Filtra e retorna os animais alocados no estábulo selecionado
-const getAnimalsInStable = (stableId) => {
-  return animals.value.filter(animal => String(animal.quadrant) === String(stableId));
+const getAnimalQuadrantId = (animal) => {
+  if (animal && animal.quadrant && typeof animal.quadrant === 'object') {
+    return animal.quadrant.id || animal.quadrant;
+  }
+  return animal.quadrant;
 };
 
-// Conta quantos animais estão no estábulo
+const getAnimalsInStable = (stableId) => {
+  return animals.value.filter(animal => String(getAnimalQuadrantId(animal)) === String(stableId));
+};
+
 const getStableAnimalCount = (stableId) => {
   return getAnimalsInStable(stableId).length;
 };
 
-// Calcula a porcentagem de ocupação
 const getCapacityPercentage = (stableId, maxCapacity) => {
   const current = getStableAnimalCount(stableId);
   const percent = (current / maxCapacity) * 100;
   return percent > 100 ? 100 : percent;
 };
 
-// Define a cor da barra de progresso baseada na ocupação
 const getProgressBarClass = (stableId, maxCapacity) => {
   const current = getStableAnimalCount(stableId);
   if (current >= maxCapacity) return 'bar-red';
@@ -234,7 +236,6 @@ const getProgressBarClass = (stableId, maxCapacity) => {
   return 'bar-green';
 };
 
-// Liga e desliga a exibição de animais por estábulo
 const toggleStableExpansion = (stableId) => {
   if (expandedStables.value.includes(stableId)) {
     expandedStables.value = expandedStables.value.filter(id => id !== stableId);
@@ -243,41 +244,26 @@ const toggleStableExpansion = (stableId) => {
   }
 };
 
-// Ação de movimentar o animal de estábulo
 const moveAnimal = async (animal, event) => {
-  const targetStableId = event.target.value;
+  const targetStableId = Number(event.target.value);
   if (!targetStableId) return;
 
   try {
-    // Monta o payload completo alterando apenas o estábulo (quadrant)
-    const updatedAnimal = { ...animal, quadrant: targetStableId };
-    await api.put(`animals/${animal.id}/`, updatedAnimal);
-    
-    alert(`Animal ${animal.name || ''} transferido com sucesso!`);
-    loadData(); // Recarrega listas para atualizar as capacidades na tela
+    await api.patch(`animals/${animal.id}/`, { quadrant: targetStableId });
+    notify(`Animal ${animal.name || ''} transferido com sucesso!`, 'success');
+    loadData();
   } catch (error) {
     console.error(error);
-    alert("Falha ao processar movimentação do animal.");
+    notify('Falha ao processar movimentação do animal.', 'error');
   } finally {
-    event.target.value = ""; // Reseta o select
+    event.target.value = '';
   }
 };
 
-// Ação de desalocar o animal do estábulo (setar estábulo como null)
 const removeAnimalFromStable = async (animal) => {
-  if (confirm(`Deseja remover o animal ${animal.name || ''} deste estábulo? Ele ficará desalocado.`)) {
-    try {
-      const updatedAnimal = { ...animal, quadrant: null };
-      await api.put(`animals/${animal.id}/`, updatedAnimal);
-      loadData();
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao desalocar animal.");
-    }
-  }
+  notify('A desalocação direta não é suportada pelo cadastro atual. Transfira o animal para outro estábulo.', 'warning');
 };
 
-// Gerenciamento de abertura de Modais para CRUD de Estábulos
 const openCreateModal = () => {
   isEditingStable.value = false;
   stableForm.value = { id: null, name: '', capacity: '', purpose: '' };
@@ -295,29 +281,30 @@ const saveStable = async () => {
   try {
     if (isEditingStable.value) {
       await api.put(`quadrants/${stableForm.value.id}/`, stableForm.value);
-      alert("Instalação atualizada com sucesso!");
+      notify('Instalação atualizada com sucesso!', 'success');
     } else {
       await api.post('quadrants/', stableForm.value);
-      alert("Novo estábulo cadastrado no sistema!");
+      notify('Novo estábulo cadastrado no sistema!', 'success');
     }
     showModal.value = false;
     loadData();
   } catch (error) {
     console.error(error);
-    alert("Erro ao salvar instalação técnica.");
+    notify('Erro ao salvar instalação técnica.', 'error');
   } finally {
     savingStable.value = false;
   }
 };
 
 const deleteStable = async (stableId) => {
-  if (confirm("Deseja realmente remover este estábulo? Os animais alocados nele ficarão desalocados automaticamente.")) {
+  if (confirm('Deseja realmente remover este estábulo? Os animais alocados nele ficarão desalocados automaticamente.')) {
     try {
       await api.delete(`quadrants/${stableId}/`);
+      notify('Estábulo excluído com sucesso.', 'success');
       loadData();
     } catch (error) {
       console.error(error);
-      alert("Falha ao excluir estábulo.");
+      notify('Falha ao excluir estábulo.', 'error');
     }
   }
 };
@@ -328,7 +315,6 @@ const deleteStable = async (stableId) => {
 
 .stables-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; color: #0f172a; font-family: 'Inter', sans-serif; }
 
-/* HEADER VISUAL CLEAND */
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; border-bottom: 1px solid #e2e8f0; padding-bottom: 24px; }
 .btn-back { background: transparent; border: 1px solid #e2e8f0; color: #64748b; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 16px; font-weight: 500; transition: 0.2s; }
 .btn-back:hover { background: #f1f5f9; color: #0f172a; }
@@ -339,7 +325,6 @@ const deleteStable = async (stableId) => {
 .btn-primary:hover:not(:disabled) { background: #15803d; }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* GRID DE ESTÁBULOS */
 .stables-grid { display: flex; flex-direction: column; gap: 24px; }
 .stable-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: border-color 0.2s; }
 .stable-card:hover { border-color: #cbd5e1; }
@@ -356,7 +341,6 @@ const deleteStable = async (stableId) => {
 .btn-icon-action:hover { background: #f1f5f9; color: #0f172a; }
 .btn-icon-danger:hover { background: #fef2f2; color: #ef4444; }
 
-/* SEÇÃO DE CAPACIDADE */
 .capacity-section { margin-bottom: 20px; }
 .capacity-labels { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 8px; font-weight: 500; }
 .capacity-labels .label { color: #64748b; }
@@ -369,11 +353,9 @@ const deleteStable = async (stableId) => {
 .bar-orange { background: #f97316; }
 .bar-red { background: #ef4444; }
 
-/* BOTOES DE CONTROLE DO SANFONA */
 .btn-toggle-animals { width: 100%; text-align: center; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: #475569; cursor: pointer; transition: 0.2s; }
 .btn-toggle-animals:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
 
-/* SUB-TABELA DE ANIMAIS */
 .animals-sub-table-wrapper { margin-top: 16px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; }
 .animals-sub-table { width: 100%; border-collapse: collapse; text-align: left; }
 .animals-sub-table th { background: #f8fafc; padding: 12px 16px; font-size: 0.8rem; text-transform: uppercase; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
@@ -390,7 +372,6 @@ const deleteStable = async (stableId) => {
 .text-green { color: #16a34a; }
 .empty-stable-row { text-align: center; padding: 24px !important; color: #94a3b8; font-style: italic; }
 
-/* MODAIS FLAT DESIGN */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
 .modal-content { background: #ffffff; border-radius: 12px; width: 100%; max-width: 400px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; }
@@ -406,7 +387,6 @@ const deleteStable = async (stableId) => {
 .mt-3 { margin-top: 16px; }
 .mt-4 { margin-top: 24px; }
 
-/* ANIMATION LOADING */
 .loading-state { text-align: center; padding: 100px; color: #64748b; }
 .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #16a34a; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
 @keyframes spin { 100% { transform: rotate(360deg); } }

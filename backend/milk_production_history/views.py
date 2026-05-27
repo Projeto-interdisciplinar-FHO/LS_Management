@@ -6,12 +6,24 @@ from django.utils import timezone
 from django.db.models import Sum
 from milk_production_history.models import MilkProductionHistory
 from milk_production_history.serializers import MilkProductionHistorySerializer
+from notifications.models import Notification
 
 
 class MilkProductionHistoryCreateListView(generics.ListCreateAPIView):
     queryset = MilkProductionHistory.objects.all()
     serializer_class = MilkProductionHistorySerializer
-
+    
+    def perform_create(self, serializer):
+        """Cria o registro de ordenha e registra uma notificação"""
+        milk = serializer.save()
+        
+        # Cria notificação para o administrador
+        message = f"Operador registrou ordenha: {milk.animal.name} (#{milk.animal.register_number}) - {milk.milk_production}L"
+        Notification.create_notification(
+            message=message,
+            notification_type='milk',
+            animal=milk.animal
+        )
 
 class MilkProductionHistoryRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     queryset = MilkProductionHistory.objects.all()

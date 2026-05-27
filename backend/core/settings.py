@@ -59,13 +59,27 @@ INSTALLED_APPS = [
     'movement_types',
     'animal_movements',
     'animal_health',
-    'animal_biometrics',
+    'notifications',
+    'tasks',
 ]
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://124.0.0.1:5173",
     "http://localhost:8080",
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-source',  # Header customizado para tarefas
 ]
 
 REST_FRAMEWORK = {

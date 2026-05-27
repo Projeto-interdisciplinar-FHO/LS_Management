@@ -1,4 +1,4 @@
-from rest_framework import generics
+from rest_framework import generics, status, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from datetime import timedelta
@@ -6,10 +6,48 @@ from django.utils import timezone
 from django.db.models import Avg, Max, Min
 from weight_history.models import WeightHistory
 from weight_history.serializers import WeightHistorySerializer
+from notifications.models import Notification
+from animals.models import Animal
 
 class WeightHistoryCreateListView(generics.ListCreateAPIView):
     queryset = WeightHistory.objects.all()
     serializer_class = WeightHistorySerializer
+    
+    def perform_create(self, serializer):
+        """Cria o registro de peso e registra uma notificação"""
+        weight = serializer.save()
+        
+        # Cria notificação para o administrador
+        message = f"Operador registrou pesagem: {weight.animal.name} (#{weight.animal.register_number}) - {weight.weight}kg"
+        Notification.create_notification(
+            message=message,
+            notification_type='weight',
+            animal=weight.animal
+        )
+    
+    def create(self, request, *args, **kwargs):
+        """Sobrescreve create para melhorar tratamento de erros"""
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except serializers.ValidationError as e:
+            return Response(
+                {'error': str(e.detail) if hasattr(e, 'detail') else str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Animal.DoesNotExist:
+            return Response(
+                {'error': 'Animal não encontrado'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Erro ao registrar peso: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class WeightHistoryRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     queryset = WeightHistory.objects.all()
@@ -68,4 +106,3 @@ class WeightHistoryByAnimalView(APIView):
             return Response(response_data)
         except Exception as e:
             return Response({'error': str(e)}, status=400)
-    serializer_class = WeightHistorySerializer

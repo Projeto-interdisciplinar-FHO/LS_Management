@@ -17,6 +17,9 @@
             <router-link to="/lancamento-leite" class="nav-link">
               <span class="nav-icon">🥛</span> Registrar Leite
             </router-link>
+            <router-link to="/pesagem" class="nav-link">
+              <span class="nav-icon">⚖️</span> Registrar Peso
+            </router-link>
             <router-link to="/vacinacao" class="nav-link">
               <span class="nav-icon">✛</span> Registrar Vacina
             </router-link>

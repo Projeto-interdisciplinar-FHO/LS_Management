@@ -1,8 +1,13 @@
 <template>
   <div id="ls-app-root">
     <RouterView />
+    <NotificationToast />
   </div>
 </template>
+
+<script setup>
+import NotificationToast from '@/components/NotificationToast.vue';
+</script>
 
 <style>
 html, body, #app, #ls-app-root {
