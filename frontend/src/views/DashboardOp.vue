@@ -38,6 +38,7 @@
             <button class="nav-trigger" :class="{active: openDropdown === 'relatorios'}">Relatórios ▾</button>
             <div v-if="openDropdown === 'relatorios'" class="dropdown-menu">
               <router-link to="/relatorios" class="dropdown-item" @click="closeDropdown">Relatórios</router-link>
+              <router-link :to="{ path: '/relatorios', query: { tab: 'herd_report' } }" class="dropdown-item" @click="closeDropdown">Relatório do Rebanho</router-link>
             </div>
           </div>
         </nav>
