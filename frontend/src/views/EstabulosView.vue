@@ -2,7 +2,7 @@
   <div class="stables-wrapper">
     <header class="page-header">
       <div class="header-info">
-        <button @click="$router.push('/dashboard-adm')" class="btn-back">← Voltar ao Início</button>
+        <button @click="goHome" class="btn-back">← Voltar ao Início</button>
         <h1>Gestão de Estábulos</h1>
         <p>Controle de lotação, movimentação de rebanho e finalidade das instalações.</p>
       </div>
@@ -164,6 +164,15 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '@/services/api';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const goHome = () => {
+  const role = localStorage.getItem('user_role');
+  if (role === 'op') router.push('/dashboard-op');
+  else router.push('/dashboard-adm');
+};
 import { notify } from '@/services/notificationService';
 
 const stables = ref([]);

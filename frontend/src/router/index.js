@@ -16,9 +16,13 @@ import VaccinationOperatorView from '@/views/VaccinationOperatorView.vue'
 import AnimalConsultationView from '@/views/AnimalConsultationView.vue'
 import TasksManagementView from '@/views/TasksManagementView.vue'
 import EstabulosView from '@/views/EstabulosView.vue'
+import SpeciesListView from '@/views/SpeciesListView.vue'
+import BreedsListView from '@/views/BreedsListView.vue'
+import VaccinesListView from '@/views/VaccinesListView.vue'
 import AssistenteIAView from '../views/AssistenteIAView.vue';
 import LancamentoAlimentacaoView from '@/views/LancamentoAlimentacaoView.vue';
 import DashboardAlimentacaoView from '@/views/DashboardAlimentacaoView.vue';
+import VeterinaryRecordsView from '@/views/VeterinaryRecordsView.vue';
 
 
 const router = createRouter({
@@ -41,6 +45,9 @@ const router = createRouter({
     { path: '/manejo', name: 'manejo', component: ManejoView },
     { path: '/relatorios', name: 'relatorios', component: RelatoriosView },
     { path: '/saude', name: 'saude', component: SaudeView },
+    { path: '/especies', name: 'especies', component: SpeciesListView },
+    { path: '/racas', name: 'racas', component: BreedsListView },
+    { path: '/vacinas', name: 'vacinas', component: VaccinesListView },
     
     // Novas rotas do Operador
     { path: '/vaccination-operator', name: 'vaccination-operator', component: VaccinationOperatorView },
@@ -53,6 +60,7 @@ const router = createRouter({
     { path: '/assistente-ia', name: 'assistente-ia', component: AssistenteIAView },
     {path: '/lancamento-alimentacao',name: 'lancamento-alimentacao', component: LancamentoAlimentacaoView},
     {path: '/dashboard-alimentacao',name: 'dashboard-alimentacao',component: DashboardAlimentacaoView},
+    { path: '/veterinario', name: 'veterinario', component: VeterinaryRecordsView },
   ]
 })
 

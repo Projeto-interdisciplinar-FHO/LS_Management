@@ -2,7 +2,7 @@
   <div class="saude-wrapper">
     <header class="page-header">
       <div class="header-info">
-        <button @click="$router.push('/dashboard-adm')" class="btn-back">← Voltar ao Dashboard</button>
+        <button @click="goHome" class="btn-back">← Voltar ao Dashboard</button>
         <h1>💪 Saúde & Vacinação</h1>
         <p>Controle centralizado de vacinações da fazenda</p>
       </div>
@@ -110,6 +110,12 @@ import { useRouter } from 'vue-router';
 import api from '@/services/api';
 
 const router = useRouter();
+
+const goHome = () => {
+  const role = localStorage.getItem('user_role');
+  if (role === 'op') router.push('/dashboard-op');
+  else router.push('/dashboard-adm');
+};
 const loading = ref(true);
 const vaccinations = ref([]);
 const activeFilter = ref('all');

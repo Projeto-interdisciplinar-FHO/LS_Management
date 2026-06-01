@@ -19,9 +19,11 @@
           <div class="form-grid">
             <div class="input-group">
               <label>Animal</label>
-              <select v-model.number="formData.animal" required>
-                <option value="" disabled>Selecione um animal...</option>
-                <option v-for="animal in animals" :key="animal.id" :value="animal.id">
+              <select v-model.number="formData.animal" required :disabled="femaleAnimals.length === 0">
+                <option value="" disabled>
+                  {{ femaleAnimals.length > 0 ? 'Selecione um animal...' : 'Nenhuma fêmea cadastrada disponível' }}
+                </option>
+                <option v-for="animal in femaleAnimals" :key="animal.id" :value="animal.id">
                   {{ animal.name || 'Sem nome' }} (Brinco: #{{ animal.register_number }})
                 </option>
               </select>
@@ -36,7 +38,7 @@
             </div>
           </div>
           <div class="form-actions">
-            <button type="submit" class="btn-primary" :disabled="loading">
+            <button type="submit" class="btn-primary" :disabled="loading || femaleAnimals.length === 0">
               {{ loading ? 'Salvando...' : 'Registrar Ordenha' }}
             </button>
           </div>
@@ -50,13 +52,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import api from '@/services/api';
 
 const loading = ref(false);
 const message = ref('');
 const isSuccess = ref(false);
 const animals = ref([]);
+
+const isFemaleAnimal = (animalData) => String(animalData?.sex || '').toLowerCase() === 'f';
+const femaleAnimals = computed(() => animals.value.filter(isFemaleAnimal));
 
 const formData = ref({
   animal: '',
@@ -67,7 +72,7 @@ const formData = ref({
 onMounted(async () => {
   try {
     const res = await api.get('animals/');
-    animals.value = res.data.results || res.data;
+    animals.value = (res.data.results || res.data).filter(isFemaleAnimal);
   } catch (error) {
     console.error('Erro ao carregar animais para ordenha:', error);
     animals.value = [];

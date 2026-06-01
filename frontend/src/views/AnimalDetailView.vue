@@ -3,7 +3,7 @@
     <header class="detail-header">
       <div class="nav-actions">
         <button @click="goBackToDashboard" class="btn-back">← Voltar para a Lista</button>
-        <button @click="deleteAnimal" class="btn-danger">🗑 Excluir Registro</button>
+        <button @click="deleteAnimal" :disabled="deleting" class="btn-danger">🗑 Excluir Registro</button>
       </div>
       <div class="animal-title-section">
         <h1>Ficha Individual: {{ animal.name || 'Sem Nome' }}</h1>
@@ -20,6 +20,7 @@
         📋 Informações Gerais
       </button>
       <button 
+        v-if="showMilkTab"
         @click="activeTab = 'leite'" 
         :class="{ 'tab-active': activeTab === 'leite' }"
         class="tab-btn"
@@ -32,6 +33,20 @@
         class="tab-btn"
       >
         ⚖️ Histórico de Pesos
+      </button>
+      <button 
+        @click="activeTab = 'nutricao'" 
+        :class="{ 'tab-active': activeTab === 'nutricao' }"
+        class="tab-btn"
+      >
+        🍽️ Registro de Alimentação
+      </button>
+      <button 
+        @click="activeTab = 'veterinario'" 
+        :class="{ 'tab-active': activeTab === 'veterinario' }"
+        class="tab-btn"
+      >
+        🩺 Atendimento Veterinário
       </button>
       <button 
         @click="activeTab = 'vacinas'" 
@@ -131,7 +146,7 @@
 
       </div>
 
-      <div v-if="activeTab === 'leite'" class="data-card table-card">
+      <div v-if="showMilkTab && activeTab === 'leite'" class="data-card table-card">
         <div class="card-header-inline">
           <h3>Histórico de Produção de Leite</h3>
           <span class="records-count">{{ milkHistory.length }} Coletas registradas</span>
@@ -187,6 +202,68 @@
         </table>
       </div>
 
+      <div v-if="activeTab === 'nutricao'" class="data-card table-card">
+        <div class="card-header-inline">
+          <div>
+            <h3>Registro de Alimentação</h3>
+            <p class="subheader-text">Histórico de rações e suplementos fornecidos ao animal.</p>
+          </div>
+        </div>
+
+        <div v-if="feedings.length === 0" class="empty-history">
+          <p>Nenhum registro de alimentação encontrado para este animal.</p>
+        </div>
+
+        <table v-else class="history-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Alimento / Ração</th>
+              <th>Qtd.</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="record in feedings" :key="record.id || record.feeding_time + record.animal">
+              <td>{{ formatDate(record.date_fed || record.feeding_time) }}</td>
+              <td class="text-ellipsis">{{ record.feed_name || record.food?.name || '—' }}</td>
+              <td>{{ record.quantity ? `${record.quantity} kg` : record.meal_weight ? `${record.meal_weight} kg` : '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="activeTab === 'veterinario'" class="data-card table-card">
+        <div class="card-header-inline">
+          <div>
+            <h3>Atendimentos Veterinários</h3>
+            <p class="subheader-text">Histórico de consultas, medicamentos e soluções aplicadas.</p>
+          </div>
+        </div>
+
+        <div v-if="healthRecords.length === 0" class="empty-history">
+          <p>Nenhum atendimento veterinário encontrado para este animal.</p>
+        </div>
+
+        <table v-else class="history-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Motivo</th>
+              <th>Solução</th>
+              <th>Veterinário</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="record in healthRecords" :key="record.id || record.consultation_date + record.veterinarian">
+              <td>{{ formatDate(record.consultation_date) }}</td>
+              <td class="text-ellipsis">{{ record.consultation_reason || '—' }}</td>
+              <td class="text-ellipsis">{{ record.consultation_solution || '—' }}</td>
+              <td>{{ record.veterinarian || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <div v-if="activeTab === 'vacinas'" class="data-card table-card">
         <div class="card-header-inline">
           <h3>Histórico de Vacinação Sanitária</h3>
@@ -225,7 +302,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
 import { notify } from '@/services/notificationService';
@@ -236,13 +313,19 @@ const router = useRouter();
 const animal = ref(null);
 const loading = ref(true);
 const saving = ref(false);
+const deleting = ref(false);
 const activeTab = ref('geral'); // Controle das abas secundárias
 const isEditing = ref(false);   // Controle de edição do card de infos
+
+const isFemaleAnimal = (animalData) => String(animalData?.sex || '').toLowerCase() === 'f';
+const showMilkTab = computed(() => animal.value ? isFemaleAnimal(animal.value) : false);
 
 // Históricos sincronizados vindos das outras páginas
 const milkHistory = ref([]);
 const vaccineHistory = ref([]);
 const weightHistory = ref([]);
+const feedings = ref([]);
+const healthRecords = ref([]);
 
 // Dados reativos para o formulário de edição interna
 const editData = ref({
@@ -252,6 +335,11 @@ const editData = ref({
   sex: '',
   active: true
 });
+
+const truncateText = (value, maxLen = 24) => {
+  if (!value) return '';
+  return value.length > maxLen ? `${value.slice(0, maxLen - 1)}…` : value;
+};
 
 onMounted(async () => {
   await loadCompleteAnimalData();
@@ -288,14 +376,34 @@ const loadCompleteAnimalData = async () => {
       weightHistory.value = [];
     }
 
-    // 4. Busca histórico de vacinas direto do backend por animal
+    // 4. Busca histórico de alimentação direto do backend por animal
+    try {
+      const feedingRes = await api.getFeedingsByAnimal(id);
+      const data = feedingRes.data.results || feedingRes.data;
+      feedings.value = Array.isArray(data) ? data : [];
+    } catch (e) {
+      console.warn("Erro ao buscar registros de alimentação do animal:", e);
+      feedings.value = [];
+    }
+
+    // 5. Busca histórico de vacinas direto do backend por animal
     try {
       const vaccineRes = await api.getVaccinationsByAnimal(id);
       const data = vaccineRes.data.results || vaccineRes.data;
-      vaccineHistory.value = data;
+      vaccineHistory.value = Array.isArray(data) ? data : [];
     } catch (e) {
       console.warn("Erro ao buscar histórico de vacinas do animal:", e);
       vaccineHistory.value = [];
+    }
+
+    // 6. Busca histórico de tratamentos veterinários direto do backend por animal
+    try {
+      const healthRes = await api.getVeterinaryRecords(id);
+      const data = healthRes.data.results || healthRes.data;
+      healthRecords.value = Array.isArray(data) ? data : [];
+    } catch (e) {
+      console.warn("Erro ao buscar tratamentos veterinários do animal:", e);
+      healthRecords.value = [];
     }
 
   } catch (error) {
@@ -328,12 +436,24 @@ const updateAnimalInfo = async () => {
 };
 
 const deleteAnimal = async () => {
+  if (deleting.value) return;
+  if (!animal.value?.id) {
+    notify('Não foi possível identificar o animal para exclusão.', 'error');
+    return;
+  }
+
   if (confirm(`Remover permanentemente o animal ${animal.value.name || ''} do sistema?`)) {
+    deleting.value = true;
     try {
-      await api.delete(`animals/${animal.value.id}/`);
-      router.back();
+      await api.deleteAnimal(animal.value.id);
+      notify('Animal excluído com sucesso.', 'success');
+      await router.push('/animais');
     } catch (error) {
-      notify("Erro ao excluir registro.", 'error');
+      console.error('Erro ao excluir animal:', error.response?.data || error);
+      const message = error.response?.data?.detail || error.response?.data?.message || 'Erro ao excluir registro.';
+      notify(message, 'error');
+    } finally {
+      deleting.value = false;
     }
   }
 };
@@ -360,6 +480,7 @@ const formatDate = (dateString) => {
 .btn-back:hover { background: #f1f5f9; color: #0f172a; }
 .btn-danger { background: #fef2f2; border: 1px solid #fca5a5; color: #ef4444; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
 .btn-danger:hover { background: #fee2e2; }
+.btn-danger[disabled] { opacity: 0.6; cursor: not-allowed; }
 .animal-title-section h1 { font-size: 2.2rem; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px; }
 .tag-brinco { background: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 6px; font-family: monospace; font-weight: 700; font-size: 1rem; }
 
@@ -406,9 +527,11 @@ const formatDate = (dateString) => {
 
 /* TABELAS DE HISTÓRICO (NÃO EDITÁVEIS) */
 .records-count { font-size: 0.85rem; background: #f1f5f9; color: #475569; padding: 6px 12px; border-radius: 6px; font-weight: 600; }
+.actions-inline { display: flex; gap: 12px; align-items: center; }
+.subheader-text { margin: 4px 0 0; color: #64748b; font-size: 0.95rem; }
 .history-table { width: 100%; border-collapse: collapse; text-align: left; }
 .history-table th { background: #f8fafc; padding: 14px; font-size: 0.85rem; text-transform: uppercase; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
-.history-table td { padding: 14px; border-bottom: 1px solid #e2e8f0; font-size: 0.95rem; }
+.history-table td { padding: 14px; border-bottom: 1px solid #e2e8f0; font-size: 0.95rem; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .history-table tr:last-child td { border-bottom: none; }
 .text-green { color: #16a34a; }
 .text-muted { color: #94a3b8; font-size: 0.85rem; }

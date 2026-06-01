@@ -34,6 +34,16 @@ export default {
   createAnimal(animalData) { return apiClient.post('animals/', animalData); },
   updateAnimal(id, animalData) { return apiClient.put(`animals/${id}/`, animalData); },
   deleteAnimal(id) { return apiClient.delete(`animals/${id}/`); },
+  getFeedings() { return apiClient.get('feedings/'); },
+  getFeedingsByAnimal(animalId) { return apiClient.get(`feedings/?animal_id=${animalId}`); },
+  createFeeding(feedingData) { return apiClient.post('feedings/', feedingData); },
+  getFoods() { return apiClient.get('foods/'); },
+    createFood(foodData) { return apiClient.post('foods/', foodData); },
+    getVeterinaryRecords(animalId = null) {
+      const url = animalId ? `animal_health/?animal_id=${animalId}` : 'animal_health/';
+      return apiClient.get(url);
+    },
+    createVeterinaryRecord(data) { return apiClient.post('animal_health/', data); },
   
   // Produção de Leite
   getMilkProductionByAnimal(animalId) { return apiClient.get(`milk_production_history/animal/${animalId}/`); },

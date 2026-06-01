@@ -1,7 +1,7 @@
 <template>
   <div class="page-wrapper">
     <header class="page-header">
-      <button @click="$router.push('/dashboard-adm')" class="btn-back">← Voltar</button>
+      <button @click="goHome" class="btn-back">← Voltar</button>
       <div class="header-content">
         <h1>✨ Assistente IA (Gemini)</h1>
         <p>Consultoria zootécnica e análise inteligente da sua fazenda.</p>
@@ -61,6 +61,14 @@
 
 <script setup>
 import { ref, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
+const router = useRouter();
+
+const goHome = () => {
+  const role = localStorage.getItem('user_role');
+  if (role === 'op') router.push('/dashboard-op');
+  else router.push('/dashboard-adm');
+};
 import { askGemini } from '@/services/gemini';
 import api from '@/services/api'; // Para podermos ler o banco de dados no futuro
 

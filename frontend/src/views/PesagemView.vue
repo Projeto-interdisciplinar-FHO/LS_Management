@@ -1,56 +1,69 @@
-<template>
-  <div class="page-wrapper">
+﻿<template>
+  <div class="taxonomy-page">
     <header class="page-header">
-      <button @click="$router.back()" class="btn-back">← Voltar</button>
-      <div class="header-content">
-        <h1>Registro de Peso</h1>
+      <div class="header-copy">
+        <button @click="goHome" class="btn-back">← Voltar ao Dashboard</button>
+        <h1>Registro de peso</h1>
         <p>Acompanhe e registre a evolução de peso dos animais.</p>
       </div>
     </header>
 
-    <div class="content-container">
-      <section class="form-card">
-        <header class="card-header">
-          <span class="icon">⚖️</span>
-          <h2>Nova Pesagem</h2>
-        </header>
+    <section class="content-card">
+      <div class="section-header">
+        <div>
+          <h2>Nova pesagem</h2>
+          <p>Registre o peso de um animal com os dados técnicos do acompanhamento.</p>
+        </div>
+        <span class="count-badge">Formulário ativo</span>
+      </div>
 
-        <form @submit.prevent="handleSubmit" class="data-form">
-          <div class="form-grid">
-            <div class="input-group">
-              <label>Animal</label>
-              <select v-model.number="formData.animal" required>
-                <option value="" disabled>Selecione um animal...</option>
-                <option v-for="animal in animals" :key="animal.id" :value="animal.id">
-                  {{ animal.name || 'Sem nome' }} (Brinco: #{{ animal.register_number }})
-                </option>
-              </select>
-            </div>
-            <div class="input-group">
-              <label>Peso (kg)</label>
-              <input v-model="formData.weight" type="number" step="0.1" placeholder="Ex: 450.5" required>
-            </div>
-            <div class="input-group">
-              <label>Data da Pesagem</label>
-              <input v-model="formData.weighing_date" type="date" required>
-            </div>
+      <form @submit.prevent="handleSubmit" class="taxonomy-form">
+        <div class="input-grid">
+          <div class="input-group">
+            <label>Animal</label>
+            <select v-model.number="formData.animal" required>
+              <option value="" disabled>Selecione um animal...</option>
+              <option v-for="animal in animals" :key="animal.id" :value="animal.id">
+                {{ animal.name || 'Sem nome' }} (Brinco: #{{ animal.register_number }})
+              </option>
+            </select>
           </div>
-          <div class="form-actions">
-            <button type="submit" class="btn-primary" :disabled="loading">
-              {{ loading ? 'Salvando...' : 'Confirmar Peso' }}
-            </button>
+
+          <div class="input-group">
+            <label>Peso (kg)</label>
+            <input v-model="formData.weight" type="number" step="0.1" placeholder="Ex: 450.5" required>
           </div>
-        </form>
-        <p v-if="message" :class="{'msg-success': isSuccess, 'msg-error': !isSuccess}">
-          {{ message }}
-        </p>
-      </section>
-    </div>
+
+          <div class="input-group">
+            <label>Data da pesagem</label>
+            <input v-model="formData.weighing_date" type="date" required>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" :disabled="loading">
+            {{ loading ? 'Salvando...' : 'Confirmar peso' }}
+          </button>
+        </div>
+      </form>
+
+      <p v-if="message" :class="['form-status', isSuccess ? 'success' : 'error']">
+        {{ message }}
+      </p>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+const router = useRouter();
+
+const goHome = () => {
+  const role = localStorage.getItem('user_role');
+  if (role === 'op') router.push('/dashboard-op');
+  else router.push('/dashboard-adm');
+};
 import api from '@/services/api';
 
 const loading = ref(false);
@@ -95,7 +108,9 @@ const handleSubmit = async () => {
     message.value = 'Erro ao registrar pesagem. Verifique os dados.';
   } finally {
     loading.value = false;
-    setTimeout(() => { message.value = ''; }, 4000);
+    setTimeout(() => {
+      message.value = '';
+    }, 4000);
   }
 };
 
@@ -103,27 +118,153 @@ onMounted(loadAnimals);
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-.page-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif; color: #0f172a; }
-.page-header { margin-bottom: 32px; }
-.btn-back { background: transparent; border: 1px solid #e2e8f0; color: #64748b; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 16px; font-weight: 500; transition: 0.2s; }
-.btn-back:hover { background: #f1f5f9; color: #0f172a; }
-.header-content h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
-.header-content p { color: #64748b; }
-.content-container { max-width: 800px; }
-.form-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-.card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; }
-.card-header h2 { font-size: 1.25rem; font-weight: 600; }
-.icon { font-size: 1.5rem; }
-.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px; }
-.input-group { display: flex; flex-direction: column; gap: 8px; }
-.input-group label { font-size: 0.9rem; font-weight: 600; color: #475569; }
-input { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; outline: none; transition: 0.2s; }
-input:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1); }
-.form-actions { display: flex; justify-content: flex-end; }
-.btn-primary { background: #16a34a; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-.btn-primary:hover { background: #15803d; }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-.msg-success { color: #16a34a; margin-top: 16px; font-weight: 500; }
-.msg-error { color: #ef4444; margin-top: 16px; font-weight: 500; }
+.taxonomy-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: 'Inter', sans-serif;
+  padding: 32px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.header-copy h1 {
+  margin: 12px 0 8px;
+  font-size: 2rem;
+}
+
+.header-copy p {
+  margin: 0;
+  color: #64748b;
+}
+
+.btn-back {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.content-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+  max-width: 860px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.section-header h2 {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+}
+
+.section-header p {
+  margin: 0;
+  color: #64748b;
+}
+
+.count-badge {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.taxonomy-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+input,
+select {
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: 0.2s;
+  background: #fff;
+}
+
+input:focus,
+select:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-primary {
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-status {
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+.form-status.success {
+  color: #16a34a;
+}
+
+.form-status.error {
+  color: #ef4444;
+}
 </style>
