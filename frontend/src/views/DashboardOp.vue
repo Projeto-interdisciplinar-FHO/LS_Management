@@ -575,4 +575,137 @@ const removeTask = (id) => {
 .op-add-form { display:flex; gap:10px; margin-top:12px; }
 .op-add-form input { flex:1; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0; }
 
+.btn-theme-toggle {
+  border: 1px solid #cbd5e1;
+  background: #eef2ff;
+  color: #1f2937;
+  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.btn-theme-toggle:hover {
+  background: #e0e7ff;
+  transform: translateY(-1px);
+}
+
+.dashboard-wrapper.dark {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+.dashboard-wrapper.dark .top-bar {
+  background: #111827;
+  border-color: #1f2937;
+}
+
+.dashboard-wrapper.dark .brand-name,
+.dashboard-wrapper.dark .brand-subtitle,
+.dashboard-wrapper.dark .user-role,
+.dashboard-wrapper.dark .task-text,
+.dashboard-wrapper.dark .date-today,
+.dashboard-wrapper.dark .welcome-section p,
+.dashboard-wrapper.dark .highlight-copy-text,
+.dashboard-wrapper.dark .highlight-copy-badge,
+.dashboard-wrapper.dark .card-header h2,
+.dashboard-wrapper.dark .welcome-section h1,
+.dashboard-wrapper.dark .action-card h4,
+.dashboard-wrapper.dark .action-card p {
+  color: #e5e7eb;
+}
+
+.dashboard-wrapper.dark .brand-badge {
+  background: #8b5cf6;
+}
+
+.dashboard-wrapper.dark .nav-trigger {
+  background: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.dashboard-wrapper.dark .dropdown-menu {
+  background: #111827;
+  border-color: #374151;
+  box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.6);
+}
+
+.dashboard-wrapper.dark .dropdown-item {
+  color: #e2e8f0;
+}
+
+.dashboard-wrapper.dark .dropdown-item:hover,
+.dashboard-wrapper.dark .dropdown-item.router-link-active {
+  background: #374151;
+  color: #fff;
+}
+
+.dashboard-wrapper.dark .btn-logout,
+.dashboard-wrapper.dark .btn-theme-toggle {
+  background: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.dashboard-wrapper.dark .dashboard-content,
+.dashboard-wrapper.dark .tasks-container,
+.dashboard-wrapper.dark .main-highlight-card,
+.dashboard-wrapper.dark .task-item,
+.dashboard-wrapper.dark .add-task-form input,
+.dashboard-wrapper.dark .task-list,
+.dashboard-wrapper.dark .empty-state {
+  background: transparent;
+}
+
+.dashboard-wrapper.dark .main-highlight-card {
+  background: #111827;
+  border-color: #1f2937;
+}
+
+.dashboard-wrapper.dark .task-item {
+  background: #111827;
+  border-color: #374151;
+}
+
+.dashboard-wrapper.dark .task-item.completed {
+  background: #1f2937;
+  border-color: #374151;
+  opacity: 0.85;
+}
+
+.dashboard-wrapper.dark .add-task-form input {
+  background: #111827;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.dashboard-wrapper.dark .btn-add-task,
+.dashboard-wrapper.dark .btn-primary.small,
+.dashboard-wrapper.dark .btn-primary.btn-secondary-restored {
+  background: #7c3aed;
+  color: #fff;
+}
+
+.dashboard-wrapper.dark .welcome-section p,
+.dashboard-wrapper.dark .action-card p {
+  color: #cbd5e1;
+}
+
+.dashboard-wrapper.dark .action-card {
+  background: #111827;
+  border-color: #1f2937;
+}
+
+.dashboard-wrapper.dark .highlight-copy-badge {
+  background: #1f2937;
+  border-color: #374151;
+}
+
 </style>

@@ -156,6 +156,27 @@ const logout = () => {
   font-family: 'Inter', sans-serif;
 }
 
+.btn-theme-toggle {
+  border: 1px solid #cbd5e1;
+  background: #eef2ff;
+  color: #1f2937;
+  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.btn-theme-toggle:hover {
+  background: #e0e7ff;
+  transform: translateY(-1px);
+}
+
 .main-layout {
   display: flex;
   flex-direction: column;
@@ -522,5 +543,89 @@ const logout = () => {
     justify-content: flex-start;
     overflow-x: auto;
   }
+}
+
+.dashboard-wrapper.dark {
+  background-color: #0f172a;
+  color: #e5e7eb;
+}
+
+.dashboard-wrapper.dark .top-bar {
+  background: #111827;
+  border-color: #1f2937;
+}
+
+.dashboard-wrapper.dark .brand-name,
+.dashboard-wrapper.dark .brand-subtitle,
+.dashboard-wrapper.dark .user-role,
+.dashboard-wrapper.dark .welcome-section p,
+.dashboard-wrapper.dark .highlight-copy-text,
+.dashboard-wrapper.dark .card-text p,
+.dashboard-wrapper.dark .action-card h4,
+.dashboard-wrapper.dark .action-card p,
+.dashboard-wrapper.dark .section-title {
+  color: #e5e7eb;
+}
+
+.dashboard-wrapper.dark .brand-badge {
+  background: #8b5cf6;
+}
+
+.dashboard-wrapper.dark .nav-trigger {
+  background: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.dashboard-wrapper.dark .dropdown-menu {
+  background: #111827;
+  border-color: #374151;
+  box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.6);
+}
+
+.dashboard-wrapper.dark .dropdown-item {
+  color: #e2e8f0;
+}
+
+.dashboard-wrapper.dark .dropdown-item:hover,
+.dashboard-wrapper.dark .dropdown-item.router-link-active {
+  background: #374151;
+  color: #fff;
+}
+
+.dashboard-wrapper.dark .btn-logout,
+.dashboard-wrapper.dark .btn-theme-toggle {
+  background: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.dashboard-wrapper.dark .main-highlight-card,
+.dashboard-wrapper.dark .action-card,
+.dashboard-wrapper.dark .highlight-copy-badge,
+.dashboard-wrapper.dark .dashboard-content {
+  background: #111827;
+}
+
+.dashboard-wrapper.dark .main-highlight-card {
+  border-color: #1f2937;
+}
+
+.dashboard-wrapper.dark .action-card {
+  border: 1px solid #1f2937;
+}
+
+.dashboard-wrapper.dark .highlight-copy-badge {
+  border: 1px solid #374151;
+}
+
+.dashboard-wrapper.dark .btn-secondary-restored,
+.dashboard-wrapper.dark .btn-primary {
+  background: #7c3aed;
+  color: #fff;
+}
+
+.dashboard-wrapper.dark .highlight-cover-image {
+  filter: brightness(0.95) contrast(1.05);
 }
 </style>
