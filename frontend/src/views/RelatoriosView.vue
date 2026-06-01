@@ -8,11 +8,12 @@
       </div>
     </header>
 
-    <section class="animal-selector-card">
+    <section v-if="!selectedAnimalId" class="animal-selector-card">
       <div class="input-group">
         <label for="animal-select">🔍 Escolha o Animal (Número do Brinco)</label>
         <select id="animal-select" v-model="selectedAnimalId" @change="handleAnimalChange" class="select-animal">
           <option value="" disabled>Selecione um brinco cadastrado...</option>
+          <option value="all">Comparativo geral — Todos os animais</option>
           <option v-for="animal in animalsList" :key="animal.id" :value="animal.id">
             Brinco: #{{ animal.register_number }} — {{ animal.name || 'Sem Nome' }} ({{ animal.weight }} kg)
           </option>
@@ -20,69 +21,38 @@
       </div>
     </section>
 
-    <div class="reports-container">
-      <div v-if="selectedAnimalId" class="summary-cards-grid">
+    <section v-else class="selected-animal-banner">
+      <div>
+        <strong v-if="selectedAnimalId !== 'all'">Animal selecionado:</strong>
+        <strong v-else>Comparativo geral selecionado</strong>
+        <span v-if="selectedAnimalId !== 'all'">Brinco #{{ selectedAnimalData.register_number || 'N/A' }} — {{ selectedAnimalData.name || 'Sem nome' }}</span>
+        <span v-else>Exibindo informações agregadas do rebanho</span>
+      </div>
+      <button class="btn-secondary" @click="clearSelection">Selecionar outro animal</button>
+    </section>
+
+    <div class="reports-container" v-if="selectedAnimalId">
+      <div class="summary-cards-grid" v-if="selectedAnimalId !== 'all'">
         <section class="glass-card ficha-card">
           <header class="card-header-inline">
             <h2>Ficha do Animal</h2>
-            <span class="badge">Brinco #{{ selectedAnimal.register_number || 'N/A' }}</span>
+            <span class="badge">Brinco #{{ selectedAnimalData.register_number || 'N/A' }}</span>
           </header>
           <div class="ficha-grid">
-            <div class="ficha-item"><span>Nome</span><strong>{{ selectedAnimal.name || 'Sem nome' }}</strong></div>
-            <div class="ficha-item"><span>Espécie</span><strong>{{ selectedAnimal.specie_name || selectedAnimal.specie || 'N/A' }}</strong></div>
-            <div class="ficha-item"><span>Raça</span><strong>{{ selectedAnimal.breed_name || 'Não informado' }}</strong></div>
-            <div class="ficha-item"><span>Quadrante</span><strong>{{ selectedAnimal.quadrant_name || selectedAnimal.quadrant || 'N/A' }}</strong></div>
-            <div class="ficha-item"><span>Propósito</span><strong>{{ selectedAnimal.purpose_name || selectedAnimal.purpose || 'N/A' }}</strong></div>
-            <div class="ficha-item"><span>Status</span><strong class="text-capitalize">{{ selectedAnimal.status || (selectedAnimal.active ? 'ativo' : 'inativo') }}</strong></div>
-            <div class="ficha-item"><span>Sexo</span><strong>{{ selectedAnimal.sex === 'f' ? 'Fêmea' : 'Macho' }}</strong></div>
-            <div class="ficha-item"><span>Data de Nascimento</span><strong>{{ formatDate(selectedAnimal.birth_date) }}</strong></div>
-            <div class="ficha-item"><span>Peso Atual</span><strong>{{ selectedAnimal.weight || 0 }} kg</strong></div>
-          </div>
-        </section>
-
-        <section class="glass-card comparison-card">
-          <header class="card-header-inline">
-            <h2>Comparativo Individual x Grupo</h2>
-            <span class="badge">{{ groupStats.groupName }}</span>
-          </header>
-          <div class="comparison-grid">
-            <div class="comparison-item">
-              <span>Animais no grupo</span>
-              <strong>{{ groupStats.groupSize }}</strong>
-            </div>
-            <div class="comparison-item">
-              <span>Peso médio do grupo</span>
-              <strong>{{ groupStats.groupAvgWeight.toFixed(1) }} kg</strong>
-            </div>
-            <div class="comparison-item">
-              <span>Vacinas médias do grupo</span>
-              <strong>{{ groupStats.groupAverageVaccines.toFixed(1) }}</strong>
-            </div>
-            <div class="comparison-item">
-              <span>Média de leite /30d</span>
-              <strong>{{ groupStats.groupAverageMilk30.toFixed(1) }} L</strong>
-            </div>
-            <div class="comparison-item highlight-item">
-              <span>Peso do animal</span>
-              <strong>{{ selectedAnimal.weight || 0 }} kg</strong>
-            </div>
-            <div class="comparison-item highlight-item">
-              <span>Vacinas do animal</span>
-              <strong>{{ groupStats.selectedVaccinesCount }}</strong>
-            </div>
-            <div class="comparison-item highlight-item">
-              <span>Leite do animal /30d</span>
-              <strong>{{ groupStats.selectedMilkLastMonth }} L</strong>
-            </div>
-            <div class="comparison-item highlight-item">
-              <span>Diferença de peso</span>
-              <strong>{{ groupStats.weightDeltaPercent }}%</strong>
-            </div>
+            <div class="ficha-item"><span>Nome</span><strong>{{ selectedAnimalData.name || 'Sem nome' }}</strong></div>
+            <div class="ficha-item"><span>Espécie</span><strong>{{ selectedAnimalData.specie_name || selectedAnimalData.specie || 'N/A' }}</strong></div>
+            <div class="ficha-item"><span>Raça</span><strong>{{ selectedAnimalData.breed_name || 'Não informado' }}</strong></div>
+            <div class="ficha-item"><span>Quadrante</span><strong>{{ selectedAnimalData.quadrant_name || selectedAnimalData.quadrant || 'N/A' }}</strong></div>
+            <div class="ficha-item"><span>Propósito</span><strong>{{ selectedAnimalData.purpose_name || selectedAnimalData.purpose || 'N/A' }}</strong></div>
+            <div class="ficha-item"><span>Status</span><strong class="text-capitalize">{{ selectedAnimalData.status || (selectedAnimalData.active ? 'ativo' : 'inativo') }}</strong></div>
+            <div class="ficha-item"><span>Sexo</span><strong>{{ selectedAnimalData.sex === 'f' ? 'Fêmea' : 'Macho' }}</strong></div>
+            <div class="ficha-item"><span>Data de Nascimento</span><strong>{{ formatDate(selectedAnimalData.birth_date) }}</strong></div>
+            <div class="ficha-item"><span>Peso Atual</span><strong>{{ selectedAnimalData.weight || 0 }} kg</strong></div>
           </div>
         </section>
       </div>
 
-      <nav class="tabs-nav">
+      <nav class="tabs-nav" v-if="selectedAnimalId !== 'all'">
         <button 
           v-for="tab in tabs" 
           :key="tab.id"
@@ -100,7 +70,43 @@
       </div>
 
       <main v-else class="tab-content-area">
-        
+        <div v-if="selectedAnimalId === 'all'" class="glass-card">
+          <header class="card-header-inline">
+            <h2>Comparativo Geral do Rebanho</h2>
+            <span class="badge">{{ herdReport.totalAnimals }} Animais</span>
+          </header>
+          <div class="report-grid">
+            <div class="report-metric">
+              <span>Total de animais cadastrados</span>
+              <strong>{{ herdReport.totalAnimals }}</strong>
+            </div>
+            <div class="report-metric">
+              <span>Peso médio geral</span>
+              <strong>{{ herdReport.averageWeight.toFixed(1) }} kg</strong>
+            </div>
+            <div class="report-metric">
+              <span>Média de vacinas por animal</span>
+              <strong>{{ herdReport.averageVaccinations.toFixed(1) }}</strong>
+            </div>
+            <div class="report-metric">
+              <span>Total leite /30d</span>
+              <strong>{{ herdReport.milkLast30Days.toFixed(1) }} L</strong>
+            </div>
+            <div class="report-metric">
+              <span>Média leite /30d</span>
+              <strong>{{ herdReport.averageMilkLast30Days.toFixed(1) }} L</strong>
+            </div>
+            <div class="report-metric">
+              <span>Total alimentação /30d</span>
+              <strong>{{ herdReport.feedingsLast30Days.toFixed(1) }} kg</strong>
+            </div>
+            <div class="report-metric">
+              <span>Média alimentação /30d</span>
+              <strong>{{ herdReport.averageFeedingsLast30Days.toFixed(1) }} kg</strong>
+            </div>
+          </div>
+        </div>
+
         <div v-if="activeTab === 'weight_individual'" class="glass-card">
           <header class="card-header-inline">
             <h2>Histórico de Linha de Peso</h2>
@@ -213,55 +219,13 @@
           </div>
         </div>
 
-        <div v-if="activeTab === 'herd_report'" class="glass-card">
-          <header class="card-header-inline">
-            <h2>Relatório do Rebanho</h2>
-            <span class="badge">{{ herdReport.totalAnimals }} Animais</span>
-          </header>
-          <div class="report-grid">
-            <div class="report-metric">
-              <span>Total de animais cadastrados</span>
-              <strong>{{ herdReport.totalAnimals }}</strong>
-            </div>
-            <div class="report-metric">
-              <span>Peso médio geral</span>
-              <strong>{{ herdReport.averageWeight.toFixed(1) }} kg</strong>
-            </div>
-            <div class="report-metric">
-              <span>Média de vacinas por animal</span>
-              <strong>{{ herdReport.averageVaccinations.toFixed(1) }}</strong>
-            </div>
-            <div class="report-metric">
-              <span>Total leite /30d</span>
-              <strong>{{ herdReport.milkLast30Days.toFixed(1) }} L</strong>
-            </div>
-            <div class="report-metric">
-              <span>Média leite /30d</span>
-              <strong>{{ herdReport.averageMilkLast30Days.toFixed(1) }} L</strong>
-            </div>
-            <div class="report-metric">
-              <span>Total alimentação /30d</span>
-              <strong>{{ herdReport.feedingsLast30Days.toFixed(1) }} kg</strong>
-            </div>
-            <div class="report-metric">
-              <span>Média alimentação /30d</span>
-              <strong>{{ herdReport.averageFeedingsLast30Days.toFixed(1) }} kg</strong>
-            </div>
-          </div>
-        </div>
-
       </main>
     </div>
 
-    <div v-if="!selectedAnimalId && activeTab !== 'herd_report'" class="empty-selection-placeholder">
+    <div v-if="!selectedAnimalId" class="empty-selection-placeholder">
       <span class="placeholder-icon">📊</span>
       <h3>Nenhum animal selecionado</h3>
       <p>Escolha um brinco no seletor acima para cruzar os dados de peso, vacinas e leite.</p>
-    </div>
-    <div v-else-if="!selectedAnimalId && activeTab === 'herd_report'" class="empty-selection-placeholder">
-      <span class="placeholder-icon">🐄</span>
-      <h3>Relatório do Rebanho</h3>
-      <p>Aqui está o resumo geral do rebanho inteiro. Selecione um brinco para ver o histórico individual também.</p>
     </div>
   </div>
 </template>
@@ -279,10 +243,21 @@ const goHome = () => {
 import api from '@/services/api'
 
 const animalsList = ref([])
+const quadrants = ref([])
+const species = ref([])
+const breeds = ref([])
+const purposes = ref([])
 const selectedAnimalId = ref('')
 const selectedAnimal = ref(null)
 const activeTab = ref('weight_individual')
 const loadingHistory = ref(false)
+
+const selectedAnimalData = computed(() => {
+  if (selectedAnimal.value) return enrichAnimalNames(selectedAnimal.value)
+  if (!selectedAnimalId.value) return {}
+  const target = animalsList.value.find(a => getAnimalId(a) === Number(selectedAnimalId.value))
+  return target ? enrichAnimalNames(target) : {}
+})
 
 // Históricos individuais do animal selecionado
 const weightHistory = ref([])
@@ -318,8 +293,7 @@ const tabs = ref([
   { id: 'weight_individual', label: 'Evolução de Peso', icon: '⚖️' },
   { id: 'vaccination_individual', label: 'Histórico Sanitário', icon: '💉' },
   { id: 'milk_production', label: 'Produção de Leite', icon: '🥛' },
-  { id: 'feeding_history', label: 'Alimentação', icon: '🍽️' },
-  { id: 'herd_report', label: 'Relatório do Rebanho', icon: '🐄' }
+  { id: 'feeding_history', label: 'Alimentação', icon: '🍽️' }
 ])
 
 onMounted(() => {
@@ -328,8 +302,20 @@ onMounted(() => {
 
 const loadAnimals = async () => {
   try {
-    const response = await api.get('animals/')
-    animalsList.value = response.data.results || response.data
+    const [animalsRes, quadrantsRes, speciesRes, breedsRes, purposesRes] = await Promise.all([
+      api.get('animals/?limit=500'),
+      api.get('quadrants/?limit=500'),
+      api.get('species/?limit=500'),
+      api.get('breeds/?limit=500'),
+      api.get('purpose_types/?limit=500')
+    ])
+
+    quadrants.value = quadrantsRes.data.results || quadrantsRes.data || []
+    species.value = speciesRes.data.results || speciesRes.data || []
+    breeds.value = breedsRes.data.results || breedsRes.data || []
+    purposes.value = purposesRes.data.results || purposesRes.data || []
+
+    animalsList.value = (animalsRes.data.results || animalsRes.data || []).map(animal => enrichAnimalNames(animal))
     await loadHerdReport()
   } catch (error) {
     console.error("Erro ao puxar lista de brincos:", error)
@@ -419,6 +405,59 @@ const normalizeNumber = (value) => {
   return Number.isFinite(normalized) ? normalized : 0
 }
 
+const findNameById = (collection, id) => {
+  if (!collection || id == null) return null
+  const item = collection.find(entry => Number(entry.id) === Number(id))
+  if (!item) return null
+  // Alguns endpoints usam campos diferentes para o rótulo (name, title, label, description)
+  return item.name || item.title || item.label || item.description || null
+}
+
+const getSpecieId = (animal) => {
+  if (!animal) return null
+  if (animal.specie_id) return Number(animal.specie_id)
+  if (animal.specie && typeof animal.specie === 'object') return Number(animal.specie.id || animal.specie)
+  if (animal.specie) return Number(animal.specie)
+  return null
+}
+
+const getBreedId = (animal) => {
+  if (!animal) return null
+  if (animal.breed_id) return Number(animal.breed_id)
+  if (animal.breed && typeof animal.breed === 'object') return Number(animal.breed.id || animal.breed)
+  if (animal.breed) return Number(animal.breed)
+  return null
+}
+
+const getPurposeId = (animal) => {
+  if (!animal) return null
+  if (animal.purpose_id) return Number(animal.purpose_id)
+  if (animal.purpose && typeof animal.purpose === 'object') return Number(animal.purpose.id || animal.purpose)
+  if (animal.purpose) return Number(animal.purpose)
+  return null
+}
+
+const enrichAnimalNames = (animal) => {
+  const specieId = getSpecieId(animal)
+  const breedId = getBreedId(animal)
+  const quadrantId = getQuadrantId(animal)
+  const purposeId = getPurposeId(animal)
+
+  return {
+    ...animal,
+    specie_name: animal.specie_name || findNameById(species.value, specieId) || (typeof animal.specie === 'string' ? animal.specie : 'N/A'),
+    breed_name: animal.breed_name || findNameById(breeds.value, breedId) || (typeof animal.breed === 'string' ? animal.breed : 'Não informado'),
+    quadrant_name: animal.quadrant_name || findNameById(quadrants.value, quadrantId) || (typeof animal.quadrant === 'string' ? animal.quadrant : `Quadrante ${quadrantId || 'N/A'}`),
+    purpose_name: animal.purpose_name || findNameById(purposes.value, purposeId) || (typeof animal.purpose === 'string' ? animal.purpose : 'N/A')
+  }
+}
+
+const clearSelection = () => {
+  selectedAnimalId.value = ''
+  selectedAnimal.value = null
+  activeTab.value = 'weight_individual'
+}
+
 const isWithinDays = (dateStr, days) => {
   if (!dateStr) return false
   const date = new Date(dateStr)
@@ -476,6 +515,15 @@ const buildGroupStats = (selected, rawWeights, rawVaccines, rawMilk) => {
 
 const handleAnimalChange = async () => {
   if (!selectedAnimalId.value) return
+  // special case: comparative geral
+  if (selectedAnimalId.value === 'all') {
+    loadingHistory.value = false
+    selectedAnimal.value = null
+    activeTab.value = 'comparative'
+    // refresh aggregated stats
+    await loadHerdReport()
+    return
+  }
   loadingHistory.value = true
   activeTab.value = 'weight_individual'
 
@@ -491,7 +539,7 @@ const handleAnimalChange = async () => {
       api.get('milk_production_history/')
     ])
 
-    selectedAnimal.value = animalRes.data
+    selectedAnimal.value = enrichAnimalNames(animalRes.data)
 
     const weightData = weightsRes.data
     weightHistory.value = weightData.historico || weightData.results || []
@@ -535,23 +583,28 @@ const formatDate = (dateStr) => {
 .page-header p { margin: 0; color: #64748b; }
 
 /* CARD SELETOR */
-.animal-selector-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 32px; }
-.input-group { display: flex; flex-direction: column; gap: 8px; }
-.input-group label { font-size: 0.95rem; font-weight: 600; color: #475569; }
-.select-animal { padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; outline: none; background: #ffffff; color: #0f172a; font-family: inherit; }
-.select-animal:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.1); }
+.animal-selector-card { background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%); border: 1px solid rgba(14,165,233,0.06); border-radius: 14px; padding: 18px; box-shadow: 0 8px 20px rgba(2,6,23,0.06); margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.animal-selector-card .input-group { flex: 1; display: flex; gap: 12px; align-items: center; }
+.animal-selector-card label { font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-right: 8px; white-space: nowrap; }
+.select-animal { flex: 1; padding: 10px 14px; border: 1px solid #e6eef6; border-radius: 10px; font-size: 0.975rem; outline: none; background: #ffffff; color: #0f172a; font-family: inherit; transition: all .18s ease; }
+.select-animal:focus { border-color: #0ea5e9; box-shadow: 0 6px 18px rgba(14,165,233,0.08); transform: translateY(-1px); }
 
-/* ABAS DE NAVEGAÇÃO */
-.tabs-nav { display: flex; gap: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 24px; }
-.tab-button { background: #ffffff; border: 1px solid #e2e8f0; color: #64748b; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; font-family: inherit; }
-.tab-button:hover { border-color: #cbd5e1; color: #0f172a; }
-.tab-button.active { background: #16a34a; border-color: #15803d; color: white; }
+@media (max-width: 860px) {
+  .animal-selector-card { flex-direction: column; align-items: stretch; }
+  .animal-selector-card .input-group { flex-direction: column; align-items: stretch; }
+}
+
+/* ABAS DE NAVEGAÇÃO (estilo tipo pill) */
+.tabs-nav { display: flex; gap: 10px; padding: 10px; margin-bottom: 18px; background: transparent; }
+.tab-button { background: transparent; border: 1px solid transparent; color: #475569; padding: 8px 14px; border-radius: 999px; cursor: pointer; font-weight: 600; transition: all .15s ease; font-family: inherit; box-shadow: none; }
+.tab-button:hover { background: rgba(2,6,23,0.03); color: #0f172a; transform: translateY(-2px); }
+.tab-button.active { background: linear-gradient(90deg,#16a34a,#059669); color: white; border-color: rgba(0,0,0,0.06); box-shadow: 0 6px 18px rgba(5,150,105,0.12); }
 
 /* CARTÕES DE RELATÓRIO */
-.glass-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-.card-header-inline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; }
-.card-header-inline h2 { font-size: 1.25rem; font-weight: 700; margin: 0; }
-.badge { background: #f1f5f9; color: #475569; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+.glass-card { background: linear-gradient(180deg,#ffffff,#fcfeff); border: 1px solid rgba(14,165,233,0.05); border-radius: 14px; padding: 22px; box-shadow: 0 10px 30px rgba(2,6,23,0.06); }
+.card-header-inline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: none; padding-bottom: 0; }
+.card-header-inline h2 { font-size: 1.125rem; font-weight: 700; margin: 0; color: #07203a; }
+.badge { background: linear-gradient(90deg,#eef2ff,#f0fdf4); color: #0f172a; padding: 6px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 6px 14px rgba(2,6,23,0.03); }
 
 /* TABELAS */
 .table-responsive { overflow-x: auto; }
@@ -571,17 +624,30 @@ const formatDate = (dateStr) => {
 .text-orange { color: #ea580c; }
 .badge-status-clean { background: #f0fdf4; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
 
-.report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-top: 12px; }
-.report-metric { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-.report-metric span { font-size: 0.9rem; color: #475569; }
-.report-metric strong { font-size: 1.25rem; color: #0f172a; }
+.report-grid { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
+.report-metric { background: linear-gradient(180deg,#fbfeff,#ffffff); border: 1px solid rgba(2,6,23,0.04); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 16px; }
+.report-metric span { font-size: 0.95rem; color: #475569; font-weight: 500; }
+.report-metric strong { font-size: 1.125rem; color: #07203a; font-weight: 700; }
 
-.summary-cards-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-bottom: 32px; }
-.ficha-grid, .comparison-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.ficha-item, .comparison-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 6px; }
-.ficha-item span, .comparison-item span { color: #64748b; font-size: 0.85rem; }
-.ficha-item strong, .comparison-item strong { font-size: 1rem; color: #0f172a; }
-.highlight-item { background: #eff6ff; border-color: #bfdbfe; }
+..selected-animal-banner { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 32px; }
+.selected-animal-banner strong { color: #0f172a; }
+.selected-animal-banner span { color: #475569; }
+.btn-secondary { background: transparent; border: 1px solid #cbd5e1; color: #334155; padding: 10px 18px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+.btn-secondary:hover { background: #f1f5f9; color: #0f172a; }
+
+.summary-cards-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-bottom: 22px; }
+.ficha-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.ficha-item, .comparison-item { background: linear-gradient(180deg,#fbfeff,#ffffff); border: 1px solid rgba(2,6,23,0.04); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.ficha-item span, .comparison-item span { color: #475569; font-size: 0.85rem; }
+.ficha-item strong, .comparison-item strong { font-size: 1rem; color: #07203a; }
+.highlight-item { background: linear-gradient(90deg,#f0f9ff,#eff6ff); border-color: rgba(59,130,246,0.12); }
+
+@media (max-width: 980px) {
+  .ficha-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .ficha-grid { grid-template-columns: 1fr; }
+}
 
 /* PLACEHOLDERS */
 .empty-selection-placeholder { text-align: center; padding: 80px 40px; color: #64748b; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; }
