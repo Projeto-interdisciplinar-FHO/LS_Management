@@ -46,17 +46,6 @@
         <div class="cover-overlay-gradient"></div>
         <img src="@/assets/background_fazenda.jpeg" alt="Pecuária de Precisão" class="main-cover-image">
         
-        <div class="floating-ia-card">
-          <div class="ia-card-header">
-            <span class="ia-spark">✨</span>
-            <span class="ia-title">L.S. Assistente IA</span>
-          </div>
-          <p class="ia-sample-text">"A conversão alimentar do Lote Engorda A aumentou 12% após a introdução da nova ração lactação."</p>
-          <div class="ia-status-dot-row">
-            <span class="status-pulse"></span>
-            <span class="status-label">Análise preditiva activa</span>
-          </div>
-        </div>
       </section>
 
     </div>
@@ -286,77 +275,6 @@
   z-index: 1;
 }
 
-/* CARD INTEGRADO DA IA (GLASSMORPHISM) */
-.floating-ia-card {
-  position: absolute;
-  bottom: 60px;
-  right: 60px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  padding: 24px;
-  border-radius: 16px;
-  max-width: 340px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  z-index: 2;
-  animation: floatEffect 6s ease-in-out infinite;
-}
-
-@keyframes floatEffect {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-.ia-card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.ia-spark {
-  font-size: 1.1rem;
-  color: #8b5cf6;
-}
-
-.ia-title {
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: #7c3aed;
-  font-family: 'Urbanist', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.ia-sample-text {
-  font-size: 0.9rem;
-  color: #334155;
-  line-height: 1.5;
-  margin: 0 0 14px 0;
-  font-style: italic;
-  font-weight: 500;
-}
-
-.ia-status-dot-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.status-pulse {
-  width: 6px;
-  height: 6px;
-  background-color: #8b5cf6;
-  border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
-}
-
-.status-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748b;
-}
 
 /* RESPONSIVIDADE PARA TELAS MENORES */
 @media (max-width: 1024px) {

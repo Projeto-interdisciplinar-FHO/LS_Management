@@ -18,9 +18,10 @@
         <form @submit.prevent="handleSubmit" class="data-form">
           <div class="form-grid">
             <div class="input-group">
-              <label>Selecione o Animal</label>
+              <label>Selecione o Animal ou Rebanho</label>
               <select v-model="formData.animal" required>
-                <option value="" disabled>Escolha um animal...</option>
+                <option value="" disabled>Escolha um animal ou todo o rebanho...</option>
+                <option value="all">Todo o rebanho</option>
                 <option v-for="animal in animalsList" :key="animal.id" :value="animal.id">
                   {{ animal.name || 'Sem nome' }} (Brinco: #{{ animal.register_number }})
                 </option>
@@ -85,7 +86,7 @@ const fetchData = async () => {
     animalsList.value = animRes.data.results || animRes.data;
 
     // Busca os tipos de alimentos cadastrados no backend
-    const feedRes = await api.get('feeds/');
+    const feedRes = await api.get('foods/');
     feedTypesList.value = feedRes.data.results || feedRes.data;
   } catch (error) {
     console.error("Erro ao carregar dados do formulário nutricional:", error);
@@ -101,10 +102,24 @@ const fetchData = async () => {
 const handleSubmit = async () => {
   loading.value = true;
   try {
-    // Envia o registro do trato para o histórico do Django
-    await api.post('historico-alimentacao/', formData.value);
-    alert('Trato alimentar registrado com sucesso!');
-    
+    const selectedAnimalIds = formData.value.animal === 'all'
+      ? animalsList.value.map(a => a.id)
+      : [formData.value.animal];
+
+    if (selectedAnimalIds.length === 0) {
+      throw new Error('Nenhum animal selecionado para lançamento.');
+    }
+
+    const payloads = selectedAnimalIds.map(animalId => ({
+      animal: animalId,
+      food: formData.value.feed_type_id,
+      feeding_time: `${formData.value.date_fed}T12:00:00Z`,
+      meal_weight: formData.value.quantity
+    }));
+
+    await Promise.all(payloads.map(payload => api.post('feedings/', payload)));
+    alert(`Registro de alimentação ${formData.value.animal === 'all' ? 'para todo o rebanho' : 'do animal'} lançado com sucesso!`);
+
     // Reseta o formulário mantendo apenas a data
     formData.value.animal = '';
     formData.value.feed_type_id = '';

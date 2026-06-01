@@ -7,6 +7,7 @@ class AnimalHealth(models.Model):
     veterinarian = models.CharField(max_length=100)
     consultation_date = models.DateField()
     consultation_reason = models.TextField()
+    consultation_solution = models.TextField(blank=True, default='')
 
     def __str__(self):
         return f"{self.animal.name} - {self.consultation_date}"

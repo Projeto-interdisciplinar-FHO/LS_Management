@@ -160,7 +160,7 @@
         </div>
 
         <!-- Produção -->
-        <div class="details-section">
+        <div v-if="isFemaleAnimal(selectedAnimal)" class="details-section">
           <h3>📊 Produção</h3>
           <div class="info-row">
             <span class="label">Última Produção de Leite:</span>
@@ -170,6 +170,10 @@
             <span class="label">Data da Produção:</span>
             <span class="value">{{ selectedAnimal.last_milk_date ? formatDate(selectedAnimal.last_milk_date) : 'Sem registros' }}</span>
           </div>
+        </div>
+        <div v-else class="details-section">
+          <h3>📊 Produção</h3>
+          <p class="value">Produção de leite disponível apenas para fêmeas.</p>
         </div>
       </div>
 
@@ -227,6 +231,8 @@ const filteredAnimals = computed(() => {
 const selectedAnimal = computed(() => {
   return animals.value.find(a => a.id === selectedAnimalId.value) || null;
 });
+
+const isFemaleAnimal = (animalData) => String(animalData?.sex || '').toLowerCase() === 'f';
 
 // Métodos
 const loadInitialData = async () => {

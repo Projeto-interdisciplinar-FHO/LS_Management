@@ -1,7 +1,7 @@
 <template>
   <div class="page-wrapper">
     <header class="page-header">
-      <button @click="$router.push('/dashboard-adm')" class="btn-back">← Painel Geral</button>
+      <button @click="goHome" class="btn-back">← Painel Geral</button>
       <div class="header-main-row">
         <div class="header-content">
           <h1>Dashboard Nutricional</h1>
@@ -16,29 +16,25 @@
     <div class="reports-grid" v-if="!loading">
       <section class="report-card">
         <header class="card-header-inline">
-          <h2>Histórico de Consumo do Rebanho</h2>
-          <span class="badge">{{ feedingHistory.length }} Lançamentos</span>
+          <h2>Alimentos / Insumos Cadastrados</h2>
+          <span class="badge">{{ foodsList.length }} Tipos</span>
         </header>
 
         <div class="table-responsive">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Data</th>
-                <th>Animal (Brinco)</th>
-                <th>Alimento Aplicado</th>
-                <th class="text-right">Quantidade Consumida</th>
+                <th>Nome / Descrição</th>
+                <th>Fabricante ou Composição</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="log in feedingHistory" :key="log.id">
-                <td>{{ formatDate(log.date_fed) }}</td>
-                <td class="font-bold">#{{ log.animal_register || log.animal }}</td>
-                <td><span class="feed-tag">{{ log.feed_name || 'Ração Padrão' }}</span></td>
-                <td class="text-right font-bold text-green">{{ log.quantity }} kg</td>
+              <tr v-for="food in foodsList" :key="food.id">
+                <td class="font-bold">{{ food.name }}</td>
+                <td>{{ food.description || '—' }}</td>
               </tr>
-              <tr v-if="feedingHistory.length === 0">
-                <td colspan="4" class="text-center text-muted">Nenhum trato registrado no banco de dados ainda.</td>
+              <tr v-if="foodsList.length === 0">
+                <td colspan="2" class="text-center text-muted">Nenhum alimento cadastrado ainda.</td>
               </tr>
             </tbody>
           </table>
@@ -78,23 +74,31 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '@/services/api';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const goHome = () => {
+  const role = localStorage.getItem('user_role');
+  if (role === 'op') router.push('/dashboard-op');
+  else router.push('/dashboard-adm');
+};
 
 const loading = ref(true);
 const savingFeed = ref(false);
 const showAddFeedModal = ref(false);
 
-const feedingHistory = ref([]);
+const foodsList = ref([]);
 const newFeedForm = ref({ name: '', description: '' });
 
 onMounted(() => {
-  loadFeedingData();
+  loadFoodsList();
 });
 
-const loadFeedingData = async () => {
+const loadFoodsList = async () => {
   loading.value = true;
   try {
-    const historyRes = await api.get('historico-alimentacao/');
-    feedingHistory.value = historyRes.data.results || historyRes.data;
+    const historyRes = await api.get('foods/');
+    foodsList.value = historyRes.data.results || historyRes.data;
   } catch (error) {
     console.error("Erro ao puxar dados alimentares:", error);
   } finally {
@@ -105,11 +109,11 @@ const loadFeedingData = async () => {
 const submitNewFeed = async () => {
   savingFeed.value = true;
   try {
-    await api.post('feeds/', newFeedForm.value);
+    await api.post('foods/', newFeedForm.value);
     alert('Novo alimento adicionado com sucesso ao estoque!');
     showAddFeedModal.value = false;
     newFeedForm.value = { name: '', description: '' };
-    loadFeedingData();
+    loadFoodsList();
   } catch (error) {
     console.error(error);
     alert('Erro ao cadastrar novo insumo.');
