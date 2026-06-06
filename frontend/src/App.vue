@@ -20,15 +20,12 @@ import { useRoute } from 'vue-router';
 import NotificationToast from '@/components/NotificationToast.vue';
 
 const route = useRoute();
-const theme = ref('light');
+const theme = ref('dark');
 
 const isLightOnlyPage = computed(() => {
   return route.name === 'home' || route.name === 'login' || route.path === '/login' || route.path === '/';
 });
-const themeClass = computed(() => {
-  if (isLightOnlyPage.value) return 'theme-light';
-  return theme.value === 'dark' ? 'theme-dark' : 'theme-light';
-});
+const themeClass = computed(() => theme.value === 'dark' ? 'theme-dark' : 'theme-light');
 const themeButtonLabel = computed(() => theme.value === 'dark' ? 'Usar modo claro' : 'Usar modo escuro');
 const themeIcon = computed(() => theme.value === 'dark' ? '☀️' : '🌙');
 const showThemeToggle = computed(() => {
@@ -45,21 +42,22 @@ onMounted(() => {
   const savedTheme = localStorage.getItem('appTheme');
   if (savedTheme === 'dark' || savedTheme === 'light') {
     theme.value = savedTheme;
-  } else if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
+  } else {
     theme.value = 'dark';
   }
 });
 
 const applyDocumentTheme = () => {
-  const useDarkTheme = theme.value === 'dark' && !isLightOnlyPage.value;
+  const useDarkTheme = theme.value === 'dark';
   document.documentElement.classList.toggle('theme-dark', useDarkTheme);
   document.documentElement.classList.toggle('theme-light', !useDarkTheme);
 };
 
-watch([theme, isLightOnlyPage], applyDocumentTheme, { immediate: true });
+watch(theme, applyDocumentTheme, { immediate: true });
 </script>
 
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap');
 html, body, #app, #ls-app-root {
   margin: 0 !important;
   padding: 0 !important;
@@ -68,6 +66,7 @@ html, body, #app, #ls-app-root {
   overflow-x: hidden;
   background-color: #f8fafc;
   color: #0f172a;
+  font-family: 'Lexend', sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 

@@ -4,7 +4,7 @@
       <div class="header-info">
         <button @click="goHome" class="btn-back">← Voltar ao Início</button>
         <h1>Gestão de Estábulos</h1>
-        <p>Controle de lotação, movimentação de rebanho e finalidade das instalações.</p>
+        <p>Controle de lotação e movimentação de rebanho.</p>
       </div>
       <button @click="openCreateModal" class="btn-primary">
         + Novo Estábulo
@@ -320,9 +320,9 @@ const deleteStable = async (stableId) => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap');
 
-.stables-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; color: #0f172a; font-family: 'Inter', sans-serif; }
+.stables-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; color: #0f172a; font-family: 'Lexend', sans-serif; }
 
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; border-bottom: 1px solid #e2e8f0; padding-bottom: 24px; }
 .btn-back { background: transparent; border: 1px solid #e2e8f0; color: #64748b; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 16px; font-weight: 500; transition: 0.2s; }

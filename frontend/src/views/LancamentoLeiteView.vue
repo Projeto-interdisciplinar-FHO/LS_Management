@@ -107,8 +107,8 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-.page-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif; color: #0f172a; }
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap');
+.page-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; font-family: 'Lexend', sans-serif; color: #0f172a; }
 .page-header { margin-bottom: 32px; }
 .btn-back { background: transparent; border: 1px solid #e2e8f0; color: #64748b; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 16px; font-weight: 500; transition: 0.2s; }
 .btn-back:hover { background: #f1f5f9; color: #0f172a; }

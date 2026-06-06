@@ -10,7 +10,7 @@
 
         <header class="main-brand-title">
           <div class="logo-inline">
-            <img src="@/assets/logo-vaca-ls.png" alt="Logo L.S" class="embedded-logo">
+            <img :src="logoImage" alt="Logo L.S" class="embedded-logo">
             <span class="brand-subname">L.S. Management</span>
           </div>
           <h1>O cérebro da sua fazenda.</h1>
@@ -44,7 +44,7 @@
 
       <section class="visual-cover-side">
         <div class="cover-overlay-gradient"></div>
-        <img src="@/assets/background_fazenda.jpeg" alt="Pecuária de Precisão" class="main-cover-image">
+        <img :src="backgroundImage" alt="Pecuária de Precisão" class="main-cover-image">
         
       </section>
 
@@ -53,11 +53,14 @@
 </template>
 
 <script setup>
+import logoImage from '../assets/logo-vaca-ls.png';
+import backgroundImage from '../assets/background_fazenda.jpeg';
+
 // Configuração limpa e padronizada enviando perfis para a rota de autenticação comum
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@500;700;800&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap');
 
 /* RESET E BASE DA HOME VUE */
 .hero-wrapper {
@@ -65,8 +68,8 @@
   padding: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #ffffff;
-  font-family: 'Inter', sans-serif;
+  background-color: #0b1220;
+  font-family: 'Lexend', sans-serif;
   overflow: hidden;
   display: flex;
 }
@@ -85,7 +88,7 @@
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
-  background-color: #ffffff;
+  background-color: #0b1220;
   position: relative;
   box-sizing: border-box;
 }
@@ -94,8 +97,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: #f0fdf4;
-  border: 1px solid #dcfce7;
+  background-color: rgba(15, 23, 42, 0.85);
+  border: 1px solid #1f2937;
   padding: 8px 16px;
   border-radius: 50px;
   width: max-content;
@@ -104,14 +107,14 @@
 .badge-dot {
   width: 8px;
   height: 8px;
-  background-color: #16a34a;
+  background-color: #22c55e;
   border-radius: 50%;
 }
 
 .badge-text {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #166534;
+  color: #d9f8e8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -133,18 +136,18 @@
 }
 
 .brand-subname {
-  font-family: 'Urbanist', sans-serif;
+  font-family: 'Lexend', sans-serif;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #64748b;
+  color: #f8fafc;
   letter-spacing: -0.5px;
 }
 
 .main-brand-title h1 {
-  font-family: 'Urbanist', sans-serif;
+  font-family: 'Lexend', sans-serif;
   font-size: 3.5rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #f8fafc;
   line-height: 1.1;
   margin: 0 0 16px 0;
   letter-spacing: -1.5px;
@@ -152,7 +155,7 @@
 
 .brand-description {
   font-size: 1.1rem;
-  color: #475569;
+  color: #cbd5e1;
   line-height: 1.6;
   max-width: 520px;
   margin: 0;
@@ -176,28 +179,20 @@
   border-radius: 12px;
   text-decoration: none;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid #e2e8f0;
+  border: 1px solid #1f2937;
+  background-color: #111827;
+  color: #f8fafc;
 }
 
-.btn-admin-tech {
-  background-color: #ffffff;
-}
-
-.btn-admin-tech:hover {
-  border-color: #16a34a;
+.btn-admin-tech:hover,
+.btn-operator-field:hover {
+  border-color: #22c55e;
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(22, 163, 74, 0.08);
+  box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.18);
 }
 
 .btn-operator-field {
-  background-color: #f8fafc;
-}
-
-.btn-operator-field:hover {
-  border-color: #16a34a;
-  background-color: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(22, 163, 74, 0.05);
+  background-color: #111827;
 }
 
 .btn-icon {
@@ -208,21 +203,17 @@
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  background-color: #0f1725;
+  border: 1px solid #1f2937;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  color: #22c55e;
 }
 
-.btn-admin-tech .btn-icon {
-  color: #16a34a;
-  background-color: #f0fdf4;
-  border-color: #dcfce7;
-}
-
+.btn-admin-tech .btn-icon,
 .btn-operator-field .btn-icon {
-  color: #16a34a;
-  background-color: #f0fdf4;
-  border-color: #dcfce7;
+  color: #22c55e;
+  background-color: #0f1725;
+  border-color: #1f2937;
 }
 
 .btn-text {
@@ -233,13 +224,13 @@
 
 .btn-text strong {
   font-size: 1.1rem;
-  color: #0f172a;
+  color: #f8fafc;
   font-weight: 600;
 }
 
 .btn-text span {
   font-size: 0.85rem;
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .brand-footer-notice p {
@@ -255,7 +246,7 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #0f172a;
+  background-color: transparent;
 }
 
 .main-cover-image {
@@ -271,7 +262,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.1) 20%, transparent 100%);
+  background: linear-gradient(to right, rgba(11,18,32,0.96) 0%, rgba(11,18,32,0.92) 10%, rgba(11,18,32,0.72) 25%, transparent 100%);
   z-index: 1;
 }
 

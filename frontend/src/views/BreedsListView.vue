@@ -152,7 +152,7 @@ onMounted(() => {
   min-height: 100vh;
   background: #f8fafc;
   color: #0f172a;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Lexend', sans-serif;
   padding: 32px;
 }
 

@@ -19,7 +19,6 @@ import EstabulosView from '@/views/EstabulosView.vue'
 import SpeciesListView from '@/views/SpeciesListView.vue'
 import BreedsListView from '@/views/BreedsListView.vue'
 import VaccinesListView from '@/views/VaccinesListView.vue'
-import AssistenteIAView from '../views/AssistenteIAView.vue';
 import LancamentoAlimentacaoView from '@/views/LancamentoAlimentacaoView.vue';
 import DashboardAlimentacaoView from '@/views/DashboardAlimentacaoView.vue';
 import VeterinaryRecordsView from '@/views/VeterinaryRecordsView.vue';
@@ -57,7 +56,6 @@ const router = createRouter({
     { path: '/vacinacao', name: 'vacinacao', component: VaccinationOperatorView },
     { path: '/rebanho', name: 'rebanho', component: AnimalConsultationView },
     { path: '/estabulos', name: 'estabulos', component: EstabulosView },
-    { path: '/assistente-ia', name: 'assistente-ia', component: AssistenteIAView },
     {path: '/lancamento-alimentacao',name: 'lancamento-alimentacao', component: LancamentoAlimentacaoView},
     {path: '/dashboard-alimentacao',name: 'dashboard-alimentacao',component: DashboardAlimentacaoView},
     { path: '/veterinario', name: 'veterinario', component: VeterinaryRecordsView },
