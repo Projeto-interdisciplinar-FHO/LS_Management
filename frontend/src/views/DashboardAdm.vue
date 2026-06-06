@@ -18,17 +18,16 @@
               <router-link to="/especies" class="dropdown-item" @click="closeDropdown">Espécie</router-link>
               <router-link to="/racas" class="dropdown-item" @click="closeDropdown">Raça</router-link>
               <router-link to="/vacinas" class="dropdown-item" @click="closeDropdown">Vacina</router-link>
-              <router-link to="/animais/novo" class="dropdown-item" @click="closeDropdown">+ Adicionar Animal</router-link>
+              <router-link to="/dashboard-alimentacao" class="dropdown-item" @click="closeDropdown">Alimentação</router-link>
+              <router-link to="/animais" class="dropdown-item" @click="closeDropdown">Animal</router-link>
             </div>
           </div>
           <div class="nav-dropdown" @click.stop="toggleDropdown('operacional')">
             <button class="nav-trigger" :class="{active: openDropdown === 'operacional'}">Operacional ▾</button>
             <div v-if="openDropdown === 'operacional'" class="dropdown-menu">
-              <router-link to="/animais" class="dropdown-item" @click="closeDropdown">Animal</router-link>
               <router-link to="/pesagem" class="dropdown-item" @click="closeDropdown">Peso</router-link>
               <router-link to="/lancamento-leite" class="dropdown-item" @click="closeDropdown">Registro de leite</router-link>
               <router-link to="/vacinacao" class="dropdown-item" @click="closeDropdown">Aplicar vacinação</router-link>
-              <router-link to="/dashboard-alimentacao" class="dropdown-item" @click="closeDropdown">Alimentação</router-link>
               <router-link to="/lancamento-alimentacao" class="dropdown-item" @click="closeDropdown">Registro de alimentação</router-link>
               <router-link to="/veterinario" class="dropdown-item" @click="closeDropdown">Veterinário</router-link>
             </div>
@@ -51,72 +50,81 @@
       </header>
 
       <div class="dashboard-content">
-        <div class="welcome-section">
-          <h1>Visão Geral da Fazenda</h1>
-          <p>Acompanhe e gerencie as principais métricas do rebanho.</p>
-        </div>
-
-        <section class="main-highlight-card">
-          <div class="highlight-copy-side">
-            <div class="highlight-copy-badge">
-              <span class="highlight-copy-dot"></span>
-              <span class="highlight-copy-text">Gestão Técnica</span>
-            </div>
-            <h2>Gestão de Estábulos</h2>
-            <p>Acesse a lista completa de estábulos para visualizar ocupação, movimentar lotes, editar ou remover animais específicos de cada setor.</p>
-            <button @click="$router.push('/estabulos')" class="btn-primary btn-secondary-restored">
-              Acessar Estábulos →
-            </button>
-          </div>
-
-          <div class="highlight-visual-side">
-            <img src="@/assets/Estabulo.jpeg" alt="Estábulo" class="highlight-cover-image">
+        <section class="page-hero">
+          <div class="hero-copy">
+            <span class="eyebrow">Painel Administrativo</span>
           </div>
         </section>
 
-        <h3 class="section-title">Controles Operacionais</h3>
-        <div class="secondary-cards-grid">
-          <div class="action-card" @click="$router.push('/animais')">
-            <div class="card-icon">◈</div>
-            <div class="card-text">
-              <h4>Animais</h4>
-              <p>Listagem e cadastro do rebanho</p>
+        <section class="stats-grid">
+          <article class="info-card" v-for="card in statCards" :key="card.title" :class="card.borderClass">
+            <div class="card-media">
+              <img :src="card.image" :alt="card.title" />
             </div>
-          </div>
-          <div class="action-card" @click="$router.push('/lancamento-leite')">
-            <div class="card-icon">🥛</div>
-            <div class="card-text">
-              <h4>Produção de Leite</h4>
-              <p>Registros e histórico de ordenha</p>
+            <div class="card-content">
+              <span class="card-meta" :class="card.accentClass">{{ card.category }}</span>
+              <h2 class="card-title">{{ card.title }}</h2>
+              <p class="card-description">{{ card.description }}</p>
+              <div class="card-footer">
+                <strong class="card-value">{{ card.count }}</strong>
+                <span class="card-unit">{{ card.unit }}</span>
+              </div>
             </div>
-          </div>
-          <div class="action-card" @click="$router.push('/pesagem')">
-            <div class="card-icon">⚖️</div>
-            <div class="card-text">
-              <h4>Registro de Peso</h4>
-              <p>Registre o peso do rebanho rapidamente.</p>
-            </div>
-          </div>
-          <div class="action-card" @click="$router.push('/vacinacao')">
-            <div class="card-icon">✛</div>
-            <div class="card-text">
-              <h4>Vacinação</h4>
-              <p>Manejo sanitário e histórico</p>
-            </div>
-          </div>
-        </div>
+          </article>
+        </section>
+
       </div>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
+import api from '@/services/api';
+import animaisImage from '../assets/animais.jpeg';
+import estabuloImage from '../assets/Estabulo.jpeg';
+import leiteImage from '../assets/leite.jpeg';
 
 const router = useRouter();
-
 const openDropdown = ref(null);
+const totalAnimals = ref(0);
+const totalQuadrants = ref(0);
+const totalVaccinations = ref(0);
+const totalFeedings = ref(0);
+
+const statCards = computed(() => [
+  {
+    category: 'CONTROLE POPULACIONAL',
+    title: 'Gestão de Animais',
+    count: totalAnimals.value,
+    unit: 'cabeças',
+    description: 'Visão geral de cabeças registradas na fazenda, mapeando a distribuição biológica de matrizes, e gado de engorda.',
+    image: animaisImage,
+    accentClass: 'card-meta--green',
+    borderClass: 'card-border--green',
+  },
+  {
+    category: 'CAPACIDADE DE ALOCAÇÃO',
+    title: 'Lotação de Estábulos',
+    count: totalQuadrants.value,
+    unit: 'quadrantes',
+    description: 'Espaços de confinamento e módulos de pasto rotacionado ativos, monitorando os limites críticos de capacidade.',
+    image: estabuloImage,
+    accentClass: 'card-meta--blue',
+    borderClass: 'card-border--blue',
+  },
+  {
+    category: 'ATIVIDADES COLETADAS',
+    title: 'Manejos Realizados',
+    count: totalFeedings.value + totalVaccinations.value,
+    unit: 'ações hoje',
+    description: 'Consolidação técnica das coletas diárias de campo, acumulando todas as pesagens corporais e registros de ordenhas leiteiras.',
+    image: leiteImage,
+    accentClass: 'card-meta--purple',
+    borderClass: 'card-border--purple',
+  },
+]);
 
 function toggleDropdown(menu) {
   openDropdown.value = openDropdown.value === menu ? null : menu;
@@ -127,15 +135,34 @@ function closeDropdown() {
 }
 
 function handleClickOutside(e) {
-  // Fecha dropdown se clicar fora do nav
   if (!e.target.closest('.dashboard-nav')) {
     closeDropdown();
   }
 }
 
+async function fetchMetrics() {
+  try {
+    const [animalsRes, quadrantsRes, vaccinationsRes, feedingsRes] = await Promise.all([
+      api.getAnimals(),
+      api.getQuadrants(),
+      api.getVaccinationsByAnimal(0),
+      api.getFeedings()
+    ]);
+
+    totalAnimals.value = Array.isArray(animalsRes.data) ? animalsRes.data.length : 0;
+    totalQuadrants.value = Array.isArray(quadrantsRes.data) ? quadrantsRes.data.length : 0;
+    totalVaccinations.value = Array.isArray(vaccinationsRes.data) ? vaccinationsRes.data.length : 0;
+    totalFeedings.value = Array.isArray(feedingsRes.data) ? feedingsRes.data.length : 0;
+  } catch (error) {
+    console.error('Erro ao carregar métricas do painel administrativo', error);
+  }
+}
+
 onMounted(() => {
   window.addEventListener('click', handleClickOutside);
+  fetchMetrics();
 });
+
 onBeforeUnmount(() => {
   window.removeEventListener('click', handleClickOutside);
 });
@@ -147,13 +174,13 @@ const logout = () => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap');
 
 .dashboard-wrapper {
   min-height: 100vh;
-  background-color: #f8fafc;
-  color: #0f172a;
-  font-family: 'Inter', sans-serif;
+  background: #f0f5fb;
+  color: #102a43;
+  font-family: 'Lexend', sans-serif;
 }
 
 .main-layout {
@@ -167,9 +194,9 @@ const logout = () => {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 18px 28px;
+  padding: 20px 32px;
   background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #d8e3ef;
   position: sticky;
   top: 0;
   z-index: 50;
@@ -182,9 +209,9 @@ const logout = () => {
 }
 
 .brand-badge {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -193,19 +220,24 @@ const logout = () => {
   font-weight: 800;
 }
 
-.brand-name {
+.brand-name,
+.brand-subtitle,
+.user-role {
   margin: 0;
-  font-size: 0.98rem;
+}
+
+.brand-name {
+  font-size: 1rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #102a43;
 }
 
 .brand-subtitle {
-  margin: 2px 0 0;
-  font-size: 0.68rem;
-  color: #64748b;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: #627d98;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
 }
 
 .dashboard-nav {
@@ -221,22 +253,431 @@ const logout = () => {
 }
 
 .nav-trigger {
-  list-style: none;
   cursor: pointer;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #f8fbff;
+  border: 1px solid #dfe7ef;
   border-radius: 999px;
-  padding: 10px 14px;
-  color: #0f172a;
+  padding: 10px 15px;
+  color: #102a43;
   font-size: 0.9rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-.nav-trigger::-webkit-details-marker {
-  display: none;
+.nav-trigger.active,
+.nav-trigger:hover {
+  background: #e8f1fb;
+  border-color: #b7d1ec;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 170px;
+  background: #ffffff;
+  border: 1px solid #d8e3ef;
+  border-radius: 16px;
+  box-shadow: 0 18px 36px rgba(16, 42, 67, 0.08);
+  padding: 10px 0;
+  z-index: 100;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 18px;
+  color: #102a43;
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+
+.dropdown-item:hover {
+  background: #eff6ff;
+}
+
+.right-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f5b8a;
+  color: #fff;
+  font-weight: 800;
+}
+
+.btn-logout {
+  border: 1px solid #d8e3ef;
+  background: #ffffff;
+  color: #102a43;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-logout:hover {
+  background: #f1f5f9;
+}
+
+.dashboard-content {
+  width: min(1180px, calc(100% - 48px));
+  margin: 32px auto 48px;
+  display: grid;
+  gap: 32px;
+}
+
+.page-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+}
+
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  justify-content: center;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: min(720px, 100%);
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #ebf8f1;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.page-hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 2.3vw, 3rem);
+  line-height: 1.05;
+  color: #102a43;
+}
+
+.page-hero p {
+  margin: 0;
+  max-width: 620px;
+  line-height: 1.75;
+  color: #334e68;
+}
+
+.hero-image-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 32px;
+  min-height: 280px;
+  background: linear-gradient(180deg, rgba(15,91,138,0.12) 0%, rgba(248,249,255,0.72) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-image-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  padding-top: 26px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.info-card {
+  border-radius: 28px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 20px 50px rgba(15, 42, 67, 0.08);
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+}
+
+.card-media {
+  min-height: 180px;
+  overflow: hidden;
+  background: #f4f7ff;
+}
+
+.card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-content {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.card-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #2563eb;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  background: rgba(37, 99, 235, 0.08);
+  padding: 8px 12px;
+  border-radius: 999px;
+}
+
+.card-meta::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.card-meta--green {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.card-meta--blue {
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.card-meta--purple {
+  color: #7c3aed;
+  background: rgba(168, 85, 247, 0.08);
+}
+
+.card-border--green {
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.card-border--blue {
+  border: 1px solid rgba(37, 99, 235, 0.28);
+}
+
+.card-border--purple {
+  border: 1px solid rgba(168, 85, 247, 0.28);
+}
+
+.card-value {
+  font-size: 3rem;
+  color: #102a43;
+  line-height: 1;
+}
+
+.card-unit {
+  display: block;
+  color: #64748b;
+  font-size: 0.95rem;
+  margin-top: 6px;
+  text-transform: lowercase;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.3;
+  color: #102a43;
+}
+
+.card-description {
+  margin: 0;
+  color: #486581;
+  line-height: 1.75;
+  min-height: 80px;
+}
+
+.card-footer {
+  margin-top: auto;
+}
+.theme-dark .info-card {
+  background: #111827;
+  border-color: #1f2937;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+.theme-dark .card-media {
+  background: #0f172a;
+}
+.theme-dark .card-content {
+  background: transparent;
+}
+.theme-dark .card-title,
+.theme-dark .card-description,
+.theme-dark .card-unit,
+.theme-dark .card-value,
+.theme-dark .card-meta,
+.theme-dark .eyebrow,
+.theme-dark .brand-name,
+.theme-dark .brand-subtitle,
+.theme-dark .user-role {
+  color: #e5e7eb;
+}
+.theme-dark .card-meta {
+  background: rgba(255,255,255,0.06);
+}
+.theme-dark .card-meta--green {
+  background: rgba(16, 185, 129, 0.15);
+}
+.theme-dark .card-meta--blue {
+  background: rgba(37, 99, 235, 0.15);
+}
+.theme-dark .card-meta--purple {
+  background: rgba(168, 85, 247, 0.15);
+}
+.theme-dark .brand-badge {
+  background: #16a34a;
+}
+.theme-dark .top-bar {
+  background: #0f172a;
+}
+.theme-dark .dashboard-content {
+  background: #0b1120;
+}
+.theme-dark .stats-grid {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+.theme-dark .card-description {
+  color: #cbd5e1;
+}
+.theme-dark .card-unit {
+  color: #94a3b8;
+}
+.theme-dark .card-title {
+  color: #f8fafc;
+}
+.theme-dark .btn-logout {
+  background: #1f2937;
+  color: #e5e7eb;
+}
+.theme-dark .nav-trigger {
+  background: #111827;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+.theme-dark .dropdown-menu {
+  background: #111827;
+  border-color: #1f2937;
+}
+.theme-dark .dropdown-item {
+  color: #e5e7eb;
+}
+.theme-dark .dropdown-item:hover,
+.theme-dark .dropdown-item.router-link-active {
+  background: #1f2937;
+  color: #ffffff;
+}
+.theme-dark .btn-theme-toggle {
+  background: #1f2937;
+  color: #e5e7eb;
+}
+.details-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 28px 30px;
+  background: #ffffff;
+  border: 1px solid #d8e3ef;
+  border-radius: 28px;
+}
+
+.details-row h2 {
+  margin: 0 0 10px;
+  font-size: 1.2rem;
+  color: #102a43;
+}
+
+.details-row p {
+  margin: 0;
+  color: #486581;
+  line-height: 1.75;
+}
+
+.small-stat {
+  min-width: 180px;
+  padding: 22px;
+  background: #eff6ff;
+  border-radius: 22px;
+  text-align: center;
+}
+
+.small-stat span {
+  display: block;
+  color: #627d98;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.small-stat strong {
+  display: block;
+  font-size: 2rem;
+  color: #0f172a;
+}
+
+@media (max-width: 1100px) {
+  .page-hero,
+  .stats-grid,
+  .details-row {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 720px) {
+  .top-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .dashboard-nav {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero-image-card {
+    min-height: 220px;
+  }
 }
 
 .dropdown-menu {
@@ -522,5 +963,89 @@ const logout = () => {
     justify-content: flex-start;
     overflow-x: auto;
   }
+}
+
+.dashboard-wrapper.dark {
+  background-color: #0f172a;
+  color: #e5e7eb;
+}
+
+.dashboard-wrapper.dark .top-bar {
+  background: #111827;
+  border-color: #1f2937;
+}
+
+.dashboard-wrapper.dark .brand-name,
+.dashboard-wrapper.dark .brand-subtitle,
+.dashboard-wrapper.dark .user-role,
+.dashboard-wrapper.dark .welcome-section p,
+.dashboard-wrapper.dark .highlight-copy-text,
+.dashboard-wrapper.dark .card-text p,
+.dashboard-wrapper.dark .action-card h4,
+.dashboard-wrapper.dark .action-card p,
+.dashboard-wrapper.dark .section-title {
+  color: #e5e7eb;
+}
+
+.dashboard-wrapper.dark .brand-badge {
+  background: #8b5cf6;
+}
+
+.dashboard-wrapper.dark .nav-trigger {
+  background: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.dashboard-wrapper.dark .dropdown-menu {
+  background: #111827;
+  border-color: #374151;
+  box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.6);
+}
+
+.dashboard-wrapper.dark .dropdown-item {
+  color: #e2e8f0;
+}
+
+.dashboard-wrapper.dark .dropdown-item:hover,
+.dashboard-wrapper.dark .dropdown-item.router-link-active {
+  background: #374151;
+  color: #fff;
+}
+
+.dashboard-wrapper.dark .btn-logout,
+.dashboard-wrapper.dark .btn-theme-toggle {
+  background: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.dashboard-wrapper.dark .main-highlight-card,
+.dashboard-wrapper.dark .action-card,
+.dashboard-wrapper.dark .highlight-copy-badge,
+.dashboard-wrapper.dark .dashboard-content {
+  background: #111827;
+}
+
+.dashboard-wrapper.dark .main-highlight-card {
+  border-color: #1f2937;
+}
+
+.dashboard-wrapper.dark .action-card {
+  border: 1px solid #1f2937;
+}
+
+.dashboard-wrapper.dark .highlight-copy-badge {
+  border: 1px solid #374151;
+}
+
+.dashboard-wrapper.dark .btn-secondary-restored,
+.dashboard-wrapper.dark .btn-primary {
+  background: #7c3aed;
+  color: #fff;
+}
+
+.dashboard-wrapper.dark .highlight-cover-image {
+  filter: brightness(0.95) contrast(1.05);
 }
 </style>

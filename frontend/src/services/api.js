@@ -44,6 +44,7 @@ export default {
       return apiClient.get(url);
     },
     createVeterinaryRecord(data) { return apiClient.post('animal_health/', data); },
+    deleteVeterinaryRecord(id) { return apiClient.delete(`animal_health/${id}`); },
   
   // Produção de Leite
   getMilkProductionByAnimal(animalId) { return apiClient.get(`milk_production_history/animal/${animalId}/`); },

@@ -176,7 +176,7 @@ const saveAnimal = async () => {
 </script>
 
 <style scoped>
-.form-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; color: #0f172a; font-family: 'Inter', sans-serif; }
+.form-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; color: #0f172a; font-family: 'Lexend', sans-serif; }
 .page-header { margin-bottom: 32px; }
 .btn-back { background: transparent; border: 1px solid #e2e8f0; color: #64748b; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 16px; font-weight: 500; }
 .page-header h1 { font-size: 2rem; font-weight: 700; color: #0f172a; }

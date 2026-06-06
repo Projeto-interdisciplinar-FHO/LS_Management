@@ -167,9 +167,9 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap');
 
-.page-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif; color: #0f172a; }
+.page-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; font-family: 'Lexend', sans-serif; color: #0f172a; }
 .page-header { margin-bottom: 32px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .header-content h1 { font-size: 2rem; margin: 0 0 8px; }
 .header-content p { color: #64748b; margin: 0; }

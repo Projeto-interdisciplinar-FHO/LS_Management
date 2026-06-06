@@ -48,7 +48,7 @@
 
     <div class="branding-section">
       <div class="brand-content">
-        <img src="@/assets/logo-vaca-ls.png" class="brand-logo" alt="Logo L.S">
+        <img :src="logoImage" class="brand-logo" alt="Logo L.S">
         <h1>L.S Management</h1>
         <p>Tecnologia e precisão no manejo pecuário.</p>
       </div>
@@ -60,6 +60,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import logoImage from '../assets/logo-vaca-ls.png';
 
 const router = useRouter();
 
@@ -114,14 +115,14 @@ const handleLogin = async () => {
 
 <style scoped>
 /* Importação da nova fonte profissional (Inter) */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap');
 
 .login-wrapper { 
   display: flex; 
   height: 100vh; 
   width: 100vw; 
-  font-family: 'Inter', sans-serif; /* Fonte aplicada globalmente aqui */
-  background-color: #ffffff;
+  font-family: 'Lexend', sans-serif; /* Fonte aplicada globalmente aqui */
+  background-color: #0b1220;
 }
 
 /* FORMULÁRIO (ESQUERDA) */
@@ -131,16 +132,21 @@ const handleLogin = async () => {
   align-items: center; 
   justify-content: center; 
   padding: 40px; 
-  background-color: #ffffff; 
+  background-color: #0b1220; 
 }
 
 .login-card { 
   width: 100%; 
-  max-width: 380px; 
+  max-width: 420px; 
+  background: #111827;
+  padding: 42px 36px;
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(148, 163, 184, 0.18);
 }
 
 .welcome-text { 
-  color: #0f172a; 
+  color: #f8fafc; 
   margin-bottom: 8px; 
   font-size: 2rem; 
   font-weight: 700;
@@ -148,57 +154,60 @@ const handleLogin = async () => {
 }
 
 .subtitle { 
-  color: #64748b; 
+  color: #cbd5e1; 
   margin-bottom: 40px; 
   font-size: 1rem; 
 }
 
 .input-container { margin-bottom: 24px; text-align: left; }
-.input-container label { display: block; font-weight: 600; margin-bottom: 8px; color: #334155; font-size: 0.9rem; }
+.input-container label { display: block; font-weight: 600; margin-bottom: 8px; color: #e2e8f0; font-size: 0.9rem; }
 .input-container input { 
   width: 100%; 
-  padding: 14px 16px; 
-  border-radius: 8px; 
-  border: 1px solid #cbd5e1; 
+  padding: 16px 18px; 
+  border-radius: 12px; 
+  border: 1px solid #1f2937; 
   outline: none; 
-  font-family: 'Inter', sans-serif;
+  font-family: 'Lexend', sans-serif;
   font-size: 1rem;
   transition: all 0.2s;
   box-sizing: border-box;
+  background: #0f1725;
+  color: #f8fafc;
 }
-.input-container input:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1); }
+.input-container input::placeholder { color: #94a3b8; }
+.input-container input:focus { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.14); }
 
-.form-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; font-size: 0.9rem; color: #475569; }
-.remember-me { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.forgot-link { color: #16a34a; text-decoration: none; font-weight: 600; }
+.form-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; font-size: 0.9rem; color: #cbd5e1; }
+.remember-me { display: flex; align-items: center; gap: 8px; cursor: pointer; color: #cbd5e1; }
+.remember-me input { accent-color: #22c55e; }
+.forgot-link { color: #22c55e; text-decoration: none; font-weight: 600; }
 .forgot-link:hover { text-decoration: underline; }
 
-.error-msg { color: #ef4444; font-size: 0.9rem; margin-bottom: 16px; font-weight: 500; text-align: center; background: #fef2f2; padding: 12px; border-radius: 8px; border: 1px solid #fecaca; }
+.error-msg { color: #fecaca; font-size: 0.9rem; margin-bottom: 16px; font-weight: 500; text-align: center; background: #8318430f; padding: 12px; border-radius: 8px; border: 1px solid #fca5a5; }
 
 .btn-login { 
   width: 100%; 
   padding: 16px; 
   background-color: #16a34a; 
-  color: white; 
+  color: #ffffff; 
   border: none; 
-  border-radius: 8px; 
-  font-weight: 600; 
+  border-radius: 12px; 
+  font-weight: 700; 
   font-size: 1rem;
   cursor: pointer; 
   transition: 0.2s; 
-  font-family: 'Inter', sans-serif;
+  font-family: 'Lexend', sans-serif;
 }
 .btn-login:hover:not(:disabled) { background-color: #15803d; }
 .btn-login:disabled { background-color: #94a3b8; cursor: not-allowed; }
 
-/* BRANDING (DIREITA) - CLEAN FLAT DESIGN (Sem gradientes) */
+/* BRANDING (DIREITA) - CLEAN FLAT DESIGN */
 .branding-section { 
   flex: 1.2; 
-  background-color: #1f2937; /* Verde escuro */
+  background-color: #16a34a; /* Verde */
   display: flex; 
   align-items: center; 
   justify-content: center; 
-  border-left: 1px solid #e2e8f0;
 }
 
 .brand-content { 
@@ -212,19 +221,18 @@ const handleLogin = async () => {
 .brand-logo { 
   width: 180px; 
   margin-bottom: 30px; 
-  /* Sem filtros de drop-shadow pesados para manter o visual limpo */
 }
 
 .brand-content h1 { 
   font-size: 2.5rem; 
   margin: 0 0 16px 0; 
-  color: #ffffff; /* Branco */
+  color: #ffffff; 
   font-weight: 800;
   letter-spacing: -1px;
 }
 
 .brand-content p {
-  color: #ffffff;
+  color: #f3f4f6;
   font-size: 1.1rem;
   font-weight: 500;
 }

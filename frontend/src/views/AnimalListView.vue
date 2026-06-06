@@ -90,7 +90,7 @@ const goBackToDashboard = () => {
 </script>
 
 <style scoped>
-.list-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; color: #0f172a; font-family: 'Inter', sans-serif; }
+.list-wrapper { padding: 40px; background-color: #f8fafc; min-height: 100vh; color: #0f172a; font-family: 'Lexend', sans-serif; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; border-bottom: 1px solid #e2e8f0; padding-bottom: 24px; }
 .btn-back { background: transparent; border: 1px solid #e2e8f0; color: #64748b; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 16px; font-weight: 500; transition: 0.2s; }
 .btn-back:hover { background: #f1f5f9; color: #0f172a; }
@@ -110,7 +110,7 @@ const goBackToDashboard = () => {
 .font-bold { font-weight: 600; }
 .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
 .status-badge.active { background: #dcfce7; color: #166534; }
-.status-badge.inactive { background: #f1f5f9; color: #475569; }
+.status-badge.inactive { background: #f1f5f9; color: #c41616; }
 
 .actions-cell { text-align: right; }
 .btn-action { background: transparent; border: 1px solid #e2e8f0; color: #16a34a; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; }
