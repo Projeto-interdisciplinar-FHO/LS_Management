@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+// A URL do backend vem do ambiente, com o padrao apontando para a maquina
+// local. Estava fixa aqui enquanto os componentes ja liam VITE_API_URL — as
+// duas metades discordavam, e publicar em qualquer lugar que nao fosse
+// 127.0.0.1 quebrava metade das telas em silencio.
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 const apiClient = axios.create({
-  baseURL: 'http://127.0.0.1:8000/', 
+  baseURL: API_URL.replace(/\/$/, '') + '/',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -16,6 +22,21 @@ apiClient.interceptors.request.use(config => {
 }, error => {
   return Promise.reject(error);
 });
+
+// Token vence e a tela ficava em branco, sem mensagem: cada chamada dava 401
+// e o erro morria no console. Agora expira a sessao e manda para o login, que
+// e o unico lugar onde a pessoa consegue resolver.
+apiClient.interceptors.response.use(
+  (resposta) => resposta,
+  (erro) => {
+    const rota = window.location.pathname;
+    if (erro.response?.status === 401 && rota !== '/login') {
+      localStorage.removeItem('access_token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(erro);
+  }
+);
 
 export default {
   // Funções genéricas expandidas para o CRUD completo

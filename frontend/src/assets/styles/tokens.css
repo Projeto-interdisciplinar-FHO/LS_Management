@@ -1,0 +1,127 @@
+/* =============================================================
+   Tokens — a única fonte de cor, espaço e tipografia do sistema.
+   Trocar um valor aqui muda o app inteiro. Nenhum arquivo .vue
+   deve escrever um hexadecimal.
+   ============================================================= */
+
+:root {
+  /* Superfícies — cinza quente, não azulado. Papel, não tela de LED. */
+  --bg:            #f7f7f5;
+  --surface:       #ffffff;
+  --surface-2:     #fbfbfa;
+  --surface-3:     #f1f1ee;
+  --line:          #e4e4df;
+  --line-strong:   #d2d2cb;
+
+  /* Texto */
+  --text:          #1a1c19;
+  --text-2:        #5c605a;
+  --text-3:        #8a8f87;
+  --text-invert:   #ffffff;
+
+  /* Acento: verde de pasto dessaturado. Um só, usado com parcimônia. */
+  --accent:        #2f6b46;
+  --accent-hover:  #245537;
+  --accent-soft:   #eaf2ec;
+  --accent-line:   #c6dacd;
+
+  --btn-primary-bg:       #2f6b46;
+  --btn-primary-bg-hover: #245537;
+  --btn-primary-fg:       #ffffff;
+
+  /* Semânticos */
+  --danger:        #b42318;
+  --danger-soft:   #fdf1f0;
+  --danger-line:   #f3cfcb;
+  --warn:          #b45309;
+  --warn-soft:     #fdf6ea;
+  --warn-line:     #f0dcbb;
+  --info:          #175cd3;
+  --info-soft:     #eef4fd;
+  --info-line:     #cddffa;
+  --ok:            #2f6b46;
+  --ok-soft:       #eaf2ec;
+  --ok-line:       #c6dacd;
+
+  /* Foco — visível em qualquer superfície */
+  --focus:         #2f6b46;
+  --focus-ring:    0 0 0 3px rgba(47, 107, 70, 0.22);
+
+  /* Elevação: usada só onde algo realmente flutua */
+  --shadow-sm: 0 1px 2px rgba(24, 28, 22, 0.05);
+  --shadow-md: 0 4px 12px rgba(24, 28, 22, 0.08);
+  --shadow-lg: 0 16px 40px rgba(24, 28, 22, 0.16);
+
+  /* Raios — contidos. Nada de pílula gigante em card. */
+  --r-sm: 4px;
+  --r:    6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-full: 999px;
+
+  /* Tipografia */
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, 'Cascadia Mono', Consolas, monospace;
+
+  --fs-xs:  0.75rem;   /* 12 */
+  --fs-sm:  0.8125rem; /* 13 */
+  --fs-md:  0.875rem;  /* 14 — base da interface */
+  --fs-lg:  1rem;      /* 16 */
+  --fs-xl:  1.125rem;  /* 18 */
+  --fs-2xl: 1.375rem;  /* 22 */
+  --fs-3xl: 1.75rem;   /* 28 */
+
+  /* Layout */
+  --header-h: 56px;
+  --page-max: 1180px;
+
+  --dur: 140ms;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg:            #131412;
+  --surface:       #1a1c19;
+  --surface-2:     #1f221e;
+  --surface-3:     #272a25;
+  --line:          #2d302b;
+  --line-strong:   #3c403a;
+
+  --text:          #eceee9;
+  --text-2:        #a4a99f;
+  --text-3:        #7c8278;
+  --text-invert:   #131412;
+
+  --accent:        #7cc396;
+  --accent-hover:  #93d2a9;
+  --accent-soft:   #1c2b21;
+  --accent-line:   #2f4a39;
+
+  --btn-primary-bg:       #4f9e70;
+  --btn-primary-bg-hover: #5eb280;
+  --btn-primary-fg:       #0c1410;
+
+  --danger:        #f28b80;
+  --danger-soft:   #2c1c1a;
+  --danger-line:   #4a2c28;
+  --warn:          #dda455;
+  --warn-soft:     #2a2317;
+  --warn-line:     #453a22;
+  --info:          #8fb5f5;
+  --info-soft:     #1a2233;
+  --info-line:     #2c3a55;
+  --ok:            #7cc396;
+  --ok-soft:       #1c2b21;
+  --ok-line:       #2f4a39;
+
+  --focus:         #7cc396;
+  --focus-ring:    0 0 0 3px rgba(124, 195, 150, 0.25);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.6);
+
+  color-scheme: dark;
+}
