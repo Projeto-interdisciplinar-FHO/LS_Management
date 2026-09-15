@@ -192,14 +192,53 @@ A documentação completa das rotas, autenticação e exemplos de respostas est�
 
 ## Frontend
 
-Os arquivos de interface ficam em [frontend/](frontend). Atualmente existem as telas:
-
-- [frontend/index.html](frontend/index.html)
-- [frontend/login.html](frontend/login.html)
-- [frontend/user_selection.html](frontend/user_selection.html)
+A interface é um app Vue 3 + Vite em [frontend/](frontend). O mapa das pastas está em [frontend/README.md](frontend/README.md).
 
 ## Estrutura do Projeto
 
-- [backend/core/](backend/core) contém configurações globais e URLs principais.
-- Os apps de domínio ficam separados por responsabilidade, como animals, vaccines, feedings e outros.
+```
+LS_Management/
+├── docs/                  documentação da API
+├── frontend/              app Vue (ver frontend/README.md)
+└── backend/
+    ├── manage.py
+    ├── requirements.txt
+    ├── core/              settings, urls, wsgi/asgi e permissões compartilhadas
+    ├── apps/              apps Django agrupados em módulos por área
+    │   ├── accounts/      authentication                                  (contas)
+    │   ├── herd/          animals, species, breeds, purpose_types, quadrants  (rebanho)
+    │   ├── production/    weight_history, milk_production_history         (produção)
+    │   ├── health/        vaccines, vaccination_plans, vaccinations, animal_health, animal_biometrics*  (sanidade)
+    │   ├── nutrition/     foods, feedings, feeding_plans                  (alimentação)
+    │   ├── movements/     movement_types, animal_movements                (movimentação)
+    │   ├── operations/    tasks, notifications                            (operação)
+    │   └── reports/       statistics_api*                                 (relatórios)
+    ├── integrations/
+    │   └── gemini_api/    cliente da API do Gemini
+    └── scripts/           scripts avulsos de carga de dados de teste
+```
+
+\* existem, mas não estão no `INSTALLED_APPS`.
+
+Cada módulo e cada app seguem a mesma anatomia:
+
+```
+apps/<modulo>/
+├── __init__.py          o que o módulo cobre
+├── urls.py              prefixos dos apps do módulo (species/, animals/...)
+└── <app>/
+    ├── apps.py          configuração do app (name = 'apps.<modulo>.<app>')
+    ├── models.py        tabelas
+    ├── serializers.py   entrada/saída da API
+    ├── views.py         endpoints
+    ├── urls.py          rotas do app
+    ├── admin.py         registro no /admin, quando houver
+    └── migrations/
+```
+
+- Cada app continua sendo um app Django independente: o rótulo usado nas migrations e nas tabelas é só o nome final (ex.: `animals`), então agrupar em módulos não mexe no banco.
+- Imports usam sempre o caminho completo, inclusive dentro do próprio app: `from apps.herd.animals.models import Animal`.
+- Rotas em três níveis: [core/urls.py](backend/core/urls.py) liga os módulos → `apps/<modulo>/urls.py` define o prefixo de cada app → `apps/<modulo>/<app>/urls.py` define as rotas.
+- Para criar um app novo: coloque-o no módulo da área, com `name = 'apps.<modulo>.<app>'` no `apps.py`; registre no `INSTALLED_APPS` e no `urls.py` do módulo.
+- [core/settings.py](backend/core/settings.py) tem primeiro a configuração do Django e, no fim, a das bibliotecas (DRF e CORS).
 - A autenticação JWT está concentrada no fluxo de `authentication/token/`.
