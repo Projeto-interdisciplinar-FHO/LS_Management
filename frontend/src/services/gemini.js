@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Colocando a chave diretamente no código para garantir o funcionamento imediato no Front
-const apiKey = "AIzaSyAsSZ2ETkXtmQWXmreIsMZak_EA2P99VUg";
+// A chave vem do frontend/.env (fora do git). Ver .env.example.
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export const askGemini = async (prompt, farmContext = null) => {

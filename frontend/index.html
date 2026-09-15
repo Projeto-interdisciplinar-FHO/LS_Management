@@ -1,10 +1,36 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite App</title>
+    <link rel="icon" href="/favicon.ico">
+    <meta name="description" content="Gestão de rebanho bovino: sanidade, manejo, produção e peso.">
+    <meta name="theme-color" content="#f7f7f5" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#131412" media="(prefers-color-scheme: dark)">
+    <title>L.S Management</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    >
+
+    <script>
+      // Aplica o tema antes do primeiro pixel. Sem isto a página pisca
+      // branca por um quadro antes do Vue montar e trocar para o escuro.
+      (function () {
+        try {
+          var salvo = localStorage.getItem('appTheme');
+          var tema = salvo === 'dark' || salvo === 'light'
+            ? salvo
+            : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme', tema);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

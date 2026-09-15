@@ -10,10 +10,18 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Credenciais vêm do .env (gitignored), não do código: a senha do banco é
+# diferente na máquina de cada um, e fixá-la aqui obriga todo mundo a
+# editar um arquivo versionado para conseguir rodar.
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -41,52 +49,30 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
 
-    # Apps
-    'authentication',
-    'species',
-    'quadrants',
-    'purpose_types',
-    'animals',
-    'breeds',
-    'weight_history',
-    'milk_production_history',
-    'vaccines',
-    'vaccination_plans',
-    'vaccinations',
-    'foods',
-    'feedings',
-    'feeding_plans',
-    'movement_types',
-    'animal_movements',
-    'animal_health',
-    'notifications',
-    'tasks',
+    # Apps do projeto: apps.<modulo>.<app>. O rótulo usado nas migrations e nas
+    # tabelas continua sendo só o nome final (ex.: 'animals').
+    # A ordem é a original de propósito: ela define a ordem em que o Django
+    # carrega os modelos (e, com isso, a das relações reversas e do /admin).
+    'apps.accounts.authentication',
+    'apps.herd.species',
+    'apps.herd.quadrants',
+    'apps.herd.purpose_types',
+    'apps.herd.animals',
+    'apps.herd.breeds',
+    'apps.production.weight_history',
+    'apps.production.milk_production_history',
+    'apps.health.vaccines',
+    'apps.health.vaccination_plans',
+    'apps.health.vaccinations',
+    'apps.nutrition.foods',
+    'apps.nutrition.feedings',
+    'apps.nutrition.feeding_plans',
+    'apps.movements.movement_types',
+    'apps.movements.animal_movements',
+    'apps.health.animal_health',
+    'apps.operations.notifications',
+    'apps.operations.tasks',
 ]
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://124.0.0.1:5173",
-    "http://localhost:8080",
-]
-
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-    'x-source',  # Header customizado para tarefas
-]
-
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
-    ),
-}
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -124,14 +110,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': {
-        # 'ENGINE': 'django.db.backends.sqlite3',
-        # 'NAME': BASE_DIR / 'db.sqlite3',
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'ls_management',
-        'USER': 'postgres',
-        'PASSWORD': 'admin',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.getenv('DB_NAME', BASE_DIR / 'db.sqlite3'),
+        'USER': os.getenv('DB_USER', ''),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', ''),
     }
 }
 
@@ -171,4 +155,49 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+# =============================================================================
+# Bibliotecas de terceiros
+# =============================================================================
+
+# Django REST Framework
+
+REST_FRAMEWORK = {
+    # Sem esta linha o token JWT que o frontend envia NAO era lido: o DRF caia
+    # na autenticacao por sessao, request.user vinha anonimo, e por isso a API
+    # inteira estava com AllowAny — era a unica forma de ela funcionar.
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    # Fechado por padrao. Endpoint que precise ser publico declara AllowAny
+    # explicitamente — esquecer de proteger passa a ser erro visivel (401),
+    # e nao um vazamento silencioso.
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+# CORS (django-cors-headers)
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://124.0.0.1:5173",
+    "http://localhost:8080",
+]
+
+# Com True, qualquer origem é aceita e a lista acima deixa de ter efeito.
 CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-source',  # Header customizado para tarefas
+]

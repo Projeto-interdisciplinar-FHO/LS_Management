@@ -1,0 +1,18 @@
+# Credenciais locais — cada máquina tem a sua.
+.env
+backend/.env
+
+# Ambiente virtual do Python.
+venv/
+.venv/
+
+# Bytecode.
+__pycache__/
+*.pyc
+
+# Dependências do front.
+node_modules/
+frontend/dist/
+
+# Banco local de desenvolvimento.
+*.sqlite3
