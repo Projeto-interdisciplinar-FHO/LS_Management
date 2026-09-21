@@ -14,15 +14,14 @@ src/
 ├── components/
 │   ├── layout/           moldura das telas (AppShell, PageHeader)
 │   ├── ui/               peças genéricas (AppIcon, AppModal, ConfirmDialog)
-│   ├── notifications/    toast, sino e banner de alertas
-│   └── animals/          cartões, gráficos e badges da ficha do animal
-├── services/             chamadas à API, sessão, tema, notificações
+│   └── animals/          componentes da ficha do animal
+├── services/             chamadas à API, sessão e tema
 ├── utils/                funções puras (situação do animal etc.)
 └── views/                uma pasta por área do menu
     ├── public/           início, escolha de perfil, login
     ├── dashboards/       painel do administrador e do operador
     ├── herd/             animais, ficha, consulta, estábulos
-    ├── handling/         pesagem, ordenha, alimentação, tarefas
+    ├── handling/         pesagem, ordenha e alimentação
     ├── health/           saúde, vacinação, veterinário
     ├── registry/         espécies, raças, vacinas, alimentos, usuários
     └── reports/          relatórios e assistente de IA

@@ -44,7 +44,6 @@
 
             <div v-if="!isEditing" class="card__body">
               <div class="kv">
-                <div class="kv__row"><span class="kv__key">Peso atual</span><span class="kv__val mono">{{ animal.weight }} kg</span></div>
                 <div class="kv__row"><span class="kv__key">Data de nascimento</span><span class="kv__val mono">{{ formatDate(animal.birth_date) }}</span></div>
                 <div class="kv__row"><span class="kv__key">Sexo</span><span class="kv__val">{{ animal.sex === 'm' || animal.sex === 'M' ? 'Macho' : 'Fêmea' }}</span></div>
                 <div class="kv__row">
@@ -61,10 +60,6 @@
                 <div class="field">
                   <label class="field__label" for="ed-nome">Nome / apelido</label>
                   <input id="ed-nome" v-model="editData.name" class="input" type="text" required>
-                </div>
-                <div class="field">
-                  <label class="field__label" for="ed-peso">Peso (kg)</label>
-                  <input id="ed-peso" v-model="editData.weight" class="input" type="number" step="0.01" required>
                 </div>
                 <div class="field">
                   <label class="field__label" for="ed-nasc">Data de nascimento</label>
@@ -244,7 +239,6 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
-import { notify } from '@/services/notificationService';
 import { confirmar } from '@/services/confirmService';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -273,7 +267,6 @@ const selectedHealthRecord = ref(null);
 
 const editData = ref({
   name: '',
-  weight: '',
   birth_date: '',
   sex: '',
   status: 'ativo',
@@ -469,9 +462,7 @@ const deleteHealthRecord = async (record) => {
     await api.deleteVeterinaryRecord(record.id);
     healthRecords.value = healthRecords.value.filter(item => item.id !== record.id);
     selectedHealthRecord.value = null;
-    notify('Registro excluído com sucesso.', 'success');
   } catch (error) {
-    notify('Erro ao excluir o registro.', 'error');
   }
 };
 
@@ -490,9 +481,7 @@ const updateAnimalInfo = async () => {
     await api.patch(`animals/${animal.value.id}/`, dados);
     animal.value = { ...animal.value, ...dados };
     isEditing.value = false;
-    notify("Informações atualizadas com sucesso!", 'success');
   } catch (error) {
-    notify("Erro ao salvar alterações.", 'error');
   } finally {
     saving.value = false;
   }
@@ -509,13 +498,11 @@ const deleteAnimal = async () => {
     deleting.value = true;
     try {
       await api.deleteAnimal(animal.value.id);
-      notify('Animal excluído com sucesso.', 'success');
       router.push('/animais');
     } catch (error) {
       // "Erro ao excluir registro" nao dizia nada. O backend devolve o motivo
       // no corpo da resposta; mostrar isso e a diferenca entre a pessoa
       // entender o que houve e abrir um chamado.
-      notify(motivoDoErro(error, 'Não foi possível excluir o animal.'), 'error');
     } finally {
       deleting.value = false;
     }

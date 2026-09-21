@@ -68,7 +68,6 @@
                 <th>Brinco</th>
                 <th>Nome</th>
                 <th>Sexo</th>
-                <th>Peso</th>
                 <th>Situação</th>
                 <th class="cell-actions">Ações</th>
               </tr>
@@ -78,7 +77,6 @@
                 <td class="mono">#{{ animal.register_number }}</td>
                 <td class="cell-strong">{{ animal.name || '—' }}</td>
                 <td>{{ sexo(animal) }}</td>
-                <td class="mono">{{ animal.weight }} kg</td>
                 <td>
                   <span class="badge" :class="badgeSituacao(animal.status)">
                     <span class="badge__dot"></span>

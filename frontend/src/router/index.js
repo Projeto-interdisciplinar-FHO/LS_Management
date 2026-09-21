@@ -22,7 +22,6 @@ import ManejoView from '@/views/handling/ManejoView.vue'
 import PesagemView from '@/views/handling/PesagemView.vue'
 import LancamentoLeiteView from '@/views/handling/LancamentoLeiteView.vue'
 import LancamentoAlimentacaoView from '@/views/handling/LancamentoAlimentacaoView.vue'
-import TasksManagementView from '@/views/handling/TasksManagementView.vue'
 
 // health — Saúde
 import SaudeView from '@/views/health/SaudeView.vue'
@@ -67,8 +66,6 @@ const router = createRouter({
     // Novas rotas do Operador
     { path: '/vaccination-operator', name: 'vaccination-operator', component: VaccinationOperatorView, meta: { requerLogin: true } },
     { path: '/animal-consultation', name: 'animal-consultation', component: AnimalConsultationView, meta: { requerLogin: true } },
-    { path: '/tasks-management', name: 'tasks-management', component: TasksManagementView, meta: { requerLogin: true, soAdmin: true } },
-    { path: '/tarefas', name: 'tarefas', component: TasksManagementView, meta: { requerLogin: true } },
     { path: '/vacinacao', name: 'vacinacao', component: VaccinationOperatorView, meta: { requerLogin: true } },
     { path: '/rebanho', name: 'rebanho', component: AnimalConsultationView, meta: { requerLogin: true } },
     { path: '/estabulos', name: 'estabulos', component: EstabulosView, meta: { requerLogin: true, soAdmin: true } },

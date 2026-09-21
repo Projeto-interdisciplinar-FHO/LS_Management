@@ -169,7 +169,7 @@ const menu = computed(() => {
           { to: '/saude', label: 'Saúde e vacinação', icon: 'stethoscope' },
         ],
       },
-      { label: 'Manejo', children: [...MANEJO, { to: '/tarefas', label: 'Tarefas', icon: 'clipboard' }] },
+      { label: 'Manejo', children: MANEJO },
       {
         label: 'Cadastros',
         children: [
@@ -189,7 +189,6 @@ const menu = computed(() => {
     { label: 'Manejo', children: MANEJO },
     { to: '/rebanho', label: 'Rebanho' },
     { to: '/saude', label: 'Saúde' },
-    { to: '/tarefas', label: 'Tarefas' },
   ];
 });
 

@@ -66,7 +66,7 @@
                 <span class="icon-tile"><AppIcon name="animal" :size="16" /></span>
                 <span>
                   <span class="list__title">{{ animal.name }}</span>
-                  <span class="list__sub mono">#{{ animal.register_number }} · {{ animal.weight }} kg · {{ animal.quadrant_name }}</span>
+                  <span class="list__sub mono">#{{ animal.register_number }} · {{ animal.quadrant_name }}</span>
                 </span>
               </span>
               <span class="badge" :class="badgeStatus(animal.status)">{{ animal.status || '—' }}</span>
@@ -102,7 +102,6 @@
               <div>
                 <h3 class="bloco__titulo">Saúde</h3>
                 <div class="kv">
-                  <div class="kv__row"><span class="kv__key">Peso atual</span><span class="kv__val mono">{{ selectedAnimal.weight }} kg</span></div>
                   <div class="kv__row"><span class="kv__key">Última pesagem</span><span class="kv__val mono">{{ selectedAnimal.last_weighing_date ? formatDate(selectedAnimal.last_weighing_date) : 'Sem registros' }}</span></div>
                   <div class="kv__row"><span class="kv__key">Última vacinação</span><span class="kv__val mono">{{ selectedAnimal.last_vaccination_date ? formatDate(selectedAnimal.last_vaccination_date) : 'Sem registros' }}</span></div>
                   <div class="kv__row"><span class="kv__key">Próxima vacinação</span><span class="kv__val mono">{{ selectedAnimal.next_vaccination_date ? formatDate(selectedAnimal.next_vaccination_date) : 'Sem agendamento' }}</span></div>

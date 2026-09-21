@@ -283,10 +283,7 @@ const handleSelectionChange = async () => {
       milkHistory.value = Array.isArray(milkRes.data.results || milkRes.data) ? (milkRes.data.results || milkRes.data) : []
       weightHistory.value = []
 
-      const totalWeight = animalsList.value.reduce((sum, animal) => sum + (parseFloat(animal.weight) || 0), 0)
-      const avgWeight = animalsList.value.length ? totalWeight / animalsList.value.length : 0
-
-      weightLabel.value = animalsList.value.length ? avgWeight.toFixed(2) : '0.00'
+      weightLabel.value = '0.00'
       vaccineCount.value = String(vaccineHistory.value.length)
       milkCount.value = String(milkHistory.value.length)
       return

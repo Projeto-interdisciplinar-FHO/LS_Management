@@ -34,11 +34,6 @@
             </div>
 
             <div class="field">
-              <label class="field__label" for="peso">Peso (kg)</label>
-              <input id="peso" v-model="formData.weight" class="input" type="number" step="0.01" placeholder="450.00" required>
-            </div>
-
-            <div class="field">
               <label class="field__label" for="sexo">Sexo</label>
               <select id="sexo" v-model="formData.sex" class="select">
                 <option value="m">Macho</option>
@@ -124,7 +119,6 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
-import { notify } from '@/services/notificationService';
 import AppShell from '@/components/layout/AppShell.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import { SITUACOES, ativoPara } from '@/utils/statusUtils';
@@ -141,7 +135,7 @@ const stablesList = ref([]);
 const purposeList = ref([]);
 
 const formData = ref({
-  name: '', register_number: '', birth_date: '', weight: '', sex: 'm',
+  name: '', register_number: '', birth_date: '', sex: 'm',
   status: 'ativo', active: true,
   specie: '', breed: '', quadrant: '', purpose: '' // purpose é obrigatório no backend
 });
@@ -205,7 +199,6 @@ const saveAnimal = async () => {
     router.push('/animais');
   } catch (error) {
     console.error("Erro ao salvar:", error);
-    notify("Falha ao salvar os dados.", 'error');
   } finally {
     loading.value = false;
   }

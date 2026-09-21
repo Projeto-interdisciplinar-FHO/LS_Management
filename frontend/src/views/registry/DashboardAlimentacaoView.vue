@@ -79,7 +79,6 @@
 import { ref, computed, onMounted } from 'vue';
 import api from '@/services/api';
 import { painelDoPapel } from '@/services/auth';
-import { notify } from '@/services/notificationService';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppModal from '@/components/ui/AppModal.vue';
@@ -114,13 +113,11 @@ const submitNewFeed = async () => {
   savingFeed.value = true;
   try {
     await api.post('foods/', newFeedForm.value);
-    notify('Alimento adicionado ao cadastro.', 'success');
     showAddFeedModal.value = false;
     newFeedForm.value = { name: '', description: '' };
     loadFoodsList();
   } catch (error) {
     console.error(error);
-    notify('Erro ao cadastrar novo insumo.', 'error');
   } finally {
     savingFeed.value = false;
   }

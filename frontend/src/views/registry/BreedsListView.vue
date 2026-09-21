@@ -87,7 +87,6 @@
 import { ref, computed, onMounted } from 'vue';
 import api from '@/services/api';
 import { painelDoPapel } from '@/services/auth';
-import { notify } from '@/services/notificationService';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppModal from '@/components/ui/AppModal.vue';
@@ -143,12 +142,10 @@ const submitBreed = async () => {
   saving.value = true;
   try {
     await api.post('breeds/', form.value);
-    notify('Raça cadastrada com sucesso.', 'success');
     showModal.value = false;
     await loadBreeds();
   } catch (error) {
     console.error('Erro ao cadastrar raça:', error);
-    notify('Erro ao cadastrar raça.', 'error');
   } finally {
     saving.value = false;
   }

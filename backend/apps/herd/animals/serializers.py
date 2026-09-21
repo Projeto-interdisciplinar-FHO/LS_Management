@@ -40,8 +40,3 @@ class AnimalSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Sexo deve ser 'm' (Macho) ou 'f' (Fêmea).")
         return value.lower()
     
-    def validate_weight(self, value):
-        """Valida se o peso é positivo"""
-        if value <= 0:
-            raise serializers.ValidationError("Peso deve ser maior que zero.")
-        return value

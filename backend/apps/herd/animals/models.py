@@ -16,7 +16,6 @@ class Animal(models.Model):
     name = models.CharField(max_length=45)
     birth_date = models.DateField()
     register_number = models.IntegerField()
-    weight = models.DecimalField(max_digits=8, decimal_places=2)
     active = models.BooleanField(default=True)  # Mantido para compatibilidade
     status = models.CharField(
         max_length=20, 

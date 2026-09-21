@@ -93,7 +93,6 @@
                     <tr>
                       <th>Brinco</th>
                       <th>Nome</th>
-                      <th>Peso</th>
                       <th class="cell-actions">Manejo</th>
                     </tr>
                   </thead>
@@ -101,7 +100,6 @@
                     <tr v-for="animal in getAnimalsInStable(stable.id)" :key="animal.id">
                       <td class="mono">#{{ animal.register_number }}</td>
                       <td class="cell-strong">{{ animal.name || 'Sem nome' }}</td>
-                      <td class="mono">{{ animal.weight }} kg</td>
                       <td class="cell-actions">
                         <div class="acoes-linha">
                           <select
@@ -187,7 +185,6 @@
 import { ref, computed, onMounted } from 'vue';
 import api from '@/services/api';
 import { painelDoPapel } from '@/services/auth';
-import { notify } from '@/services/notificationService';
 import { confirmar } from '@/services/confirmService';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -296,11 +293,9 @@ const moveAnimal = async (animal, event) => {
 
   try {
     await api.patch(`animals/${animal.id}/`, { quadrant: targetStableId });
-    notify(`Animal ${animal.name || ''} transferido com sucesso!`, 'success');
     loadData();
   } catch (error) {
     console.error(error);
-    notify('Falha ao processar movimentação do animal.', 'error');
   } finally {
     event.target.value = '';
   }
@@ -323,16 +318,13 @@ const saveStable = async () => {
   try {
     if (isEditingStable.value) {
       await api.put(`quadrants/${stableForm.value.id}/`, stableForm.value);
-      notify('Instalação atualizada com sucesso!', 'success');
     } else {
       await api.post('quadrants/', stableForm.value);
-      notify('Novo estábulo cadastrado no sistema!', 'success');
     }
     showModal.value = false;
     loadData();
   } catch (error) {
     console.error(error);
-    notify('Erro ao salvar instalação técnica.', 'error');
   } finally {
     savingStable.value = false;
   }
@@ -347,11 +339,9 @@ const deleteStable = async (stableId) => {
   if (ok) {
     try {
       await api.delete(`quadrants/${stableId}/`);
-      notify('Estábulo excluído com sucesso.', 'success');
       loadData();
     } catch (error) {
       console.error(error);
-      notify('Falha ao excluir estábulo.', 'error');
     }
   }
 };

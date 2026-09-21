@@ -13,6 +13,5 @@ urlpatterns = [
     path('', include('apps.health.urls')),
     path('', include('apps.nutrition.urls')),
     path('', include('apps.movements.urls')),
-    path('', include('apps.operations.urls')),
     path('', include('apps.accounts.urls')),
 ]

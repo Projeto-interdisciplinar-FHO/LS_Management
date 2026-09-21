@@ -1,6 +1,5 @@
 <template>
   <RouterView />
-  <NotificationToast />
   <ConfirmDialog />
 </template>
 
@@ -15,6 +14,5 @@
  * no <html>. Este arquivo voltou a ser o que devia: a raiz que monta a rota
  * e os dois diálogos globais.
  */
-import NotificationToast from '@/components/notifications/NotificationToast.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 </script>

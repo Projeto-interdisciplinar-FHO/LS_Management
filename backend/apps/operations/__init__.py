@@ -1,1 +1,1 @@
-"""Operação: tarefas do dia a dia e notificações para o administrador."""
+"""Ponto de extensão para integrações operacionais do sistema."""

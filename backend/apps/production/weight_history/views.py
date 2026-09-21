@@ -6,7 +6,6 @@ from django.utils import timezone
 from django.db.models import Avg, Max, Min
 from apps.production.weight_history.models import WeightHistory
 from apps.production.weight_history.serializers import WeightHistorySerializer
-from apps.operations.notifications.models import Notification
 from apps.herd.animals.models import Animal
 
 class WeightHistoryCreateListView(generics.ListCreateAPIView):
@@ -14,16 +13,7 @@ class WeightHistoryCreateListView(generics.ListCreateAPIView):
     serializer_class = WeightHistorySerializer
     
     def perform_create(self, serializer):
-        """Cria o registro de peso e registra uma notificação"""
-        weight = serializer.save()
-        
-        # Cria notificação para o administrador
-        message = f"Operador registrou pesagem: {weight.animal.name} (#{weight.animal.register_number}) - {weight.weight}kg"
-        Notification.create_notification(
-            message=message,
-            notification_type='weight',
-            animal=weight.animal
-        )
+        serializer.save()
     
     def create(self, request, *args, **kwargs):
         """Sobrescreve create para melhorar tratamento de erros"""

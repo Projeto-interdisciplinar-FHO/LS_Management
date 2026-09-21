@@ -70,8 +70,6 @@ INSTALLED_APPS = [
     'apps.movements.movement_types',
     'apps.movements.animal_movements',
     'apps.health.animal_health',
-    'apps.operations.notifications',
-    'apps.operations.tasks',
 ]
 
 MIDDLEWARE = [
@@ -199,5 +197,4 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
-    'x-source',  # Header customizado para tarefas
 ]

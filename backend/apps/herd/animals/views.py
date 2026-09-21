@@ -1,4 +1,3 @@
-from django.db import connection
 from rest_framework import generics
 from apps.herd.animals.models import Animal
 from apps.herd.animals.serializers import AnimalSerializer
@@ -24,18 +23,5 @@ class AnimalRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
         instance.weight_history.all().delete()
         instance.milk_production_history.all().delete()
         instance.vaccination_set.all().delete()
-        instance.notifications.all().update(animal=None)
-        instance.tasks.all().update(animal=None)
-
-        # Limpa tabelas antigas que ainda existem no banco e possuem FK para o animal.
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "DELETE FROM animal_biometrics_animalalert WHERE animal_id = %s",
-                [instance.id],
-            )
-            cursor.execute(
-                "DELETE FROM animal_biometrics_biometricreading WHERE animal_id = %s",
-                [instance.id],
-            )
 
         return super().destroy(request, *args, **kwargs)

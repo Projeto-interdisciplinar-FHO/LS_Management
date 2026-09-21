@@ -5,24 +5,11 @@ from django.utils import timezone
 from datetime import timedelta
 from apps.health.vaccinations.models import Vaccination
 from apps.health.vaccinations.serializers import VaccinationSerializer
-from apps.operations.notifications.models import Notification
 
 class VaccinationCreateListView(generics.ListCreateAPIView):
     queryset = Vaccination.objects.all()
     serializer_class = VaccinationSerializer
     
-    def perform_create(self, serializer):
-        """Cria a vacinação e registra uma notificação"""
-        vaccination = serializer.save()
-        
-        # Cria notificação para o administrador
-        message = f"Operador registrou vacinação: {vaccination.animal.name} (#{vaccination.animal.register_number}) recebeu {vaccination.vaccine.name}"
-        Notification.create_notification(
-            message=message,
-            notification_type='vaccination',
-            animal=vaccination.animal
-        )
-
 class VaccinationRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     queryset = Vaccination.objects.all()
     serializer_class = VaccinationSerializer
@@ -160,13 +147,6 @@ def batch_vaccination(request):
                 'name': animal.name,
                 'register_number': animal.register_number
             })
-        
-        # Criar notificação única em lote
-        message = f"Operador aplicou vacinação em lote: {len(vaccinated_animals)} animais do quadrante {quadrant.name} receberam {vaccine.name}"
-        Notification.create_notification(
-            message=message,
-            notification_type='batch_vaccination'
-        )
         
         return Response({
             'success': True,
