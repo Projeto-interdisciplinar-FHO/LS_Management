@@ -68,11 +68,11 @@ export default {
     deleteVeterinaryRecord(id) { return apiClient.delete(`animal_health/${id}`); },
   
   // Produção de Leite
-  getMilkProductionByAnimal(animalId) { return apiClient.get(`milk_production_history/animal/${animalId}/`); },
+  getMilkProductionByAnimal(animalId) { return apiClient.get(`milk_production_history/?animal_id=${animalId}`); },
   registrarProducaoLeite(data) { return apiClient.post('milk_production_history/', data); },
   
   // Histórico de Peso
-  getWeightHistoryByAnimal(animalId) { return apiClient.get(`weight_history/animal/${animalId}/`); },
+  getWeightHistoryByAnimal(animalId) { return apiClient.get(`weight_history/?animal_id=${animalId}`); },
   registrarPeso(data) { return apiClient.post('weight_history/', data); },
 
   // Vacinação (Requisito 6)
@@ -82,7 +82,7 @@ export default {
       // Trazer todas as vacinações
       return apiClient.get('vaccinations/');
     }
-    return apiClient.get(`vaccinations/animal/${animalId}/`);
+    return apiClient.get(`vaccinations/?animal_id=${animalId}`);
   },
   createVaccination(data) { return apiClient.post('vaccinations/', data); },
   updateVaccination(id, data) { return apiClient.put(`vaccinations/${id}/`, data); },

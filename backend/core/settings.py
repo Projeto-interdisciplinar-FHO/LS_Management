@@ -54,14 +54,13 @@ INSTALLED_APPS = [
     # A ordem é a original de propósito: ela define a ordem em que o Django
     # carrega os modelos (e, com isso, a das relações reversas e do /admin).
     'apps.accounts.authentication',
-    'apps.herd.species',
     'apps.herd.quadrants',
-    'apps.herd.purpose_types',
-    'apps.herd.animals',
     'apps.herd.breeds',
+    'apps.herd.cattle',
     'apps.production.weight_history',
     'apps.production.milk_production_history',
     'apps.health.vaccines',
+    'apps.health.vaccination_groups',
     'apps.health.vaccination_plans',
     'apps.health.vaccinations',
     'apps.nutrition.foods',
@@ -70,6 +69,7 @@ INSTALLED_APPS = [
     'apps.movements.movement_types',
     'apps.movements.animal_movements',
     'apps.health.animal_health',
+    'apps.reproduction',
 ]
 
 MIDDLEWARE = [

@@ -29,26 +29,13 @@
             </div>
 
             <div class="field">
-              <label class="field__label" for="nascimento">Data de nascimento</label>
-              <input id="nascimento" v-model="formData.birth_date" class="input" type="date" required>
-            </div>
-
-            <div class="field">
-              <label class="field__label" for="sexo">Sexo</label>
-              <select id="sexo" v-model="formData.sex" class="select">
-                <option value="m">Macho</option>
-                <option value="f">Fêmea</option>
-              </select>
-            </div>
-
-            <div class="field">
               <label class="field__label" for="situacao">Situação</label>
               <select id="situacao" v-model="formData.status" class="select">
-                <option v-for="s in SITUACOES" :key="s.valor" :value="s.valor">{{ s.rotulo }}</option>
+                <option value="active">Ativa</option>
+                <option value="inactive">Inativa</option>
+                <option value="sold">Vendida</option>
+                <option value="deceased">Óbito</option>
               </select>
-              <span class="field__hint">
-                Vendido, óbito e inativo tiram o animal das rotinas de manejo, mas preservam o histórico.
-              </span>
             </div>
           </div>
         </section>
@@ -63,16 +50,6 @@
 
           <div class="card__body grid grid--2">
             <div class="field">
-              <label class="field__label" for="especie">Espécie</label>
-              <select id="especie" v-model="formData.specie" class="select" required>
-                <option value="" disabled>Selecione uma espécie...</option>
-                <option v-for="specie in speciesList" :key="specie.id" :value="specie.id">
-                  {{ specie.name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="field">
               <label class="field__label" for="raca">Raça</label>
               <select id="raca" v-model="formData.breed" class="select" required>
                 <option value="" disabled>Selecione uma raça...</option>
@@ -83,22 +60,15 @@
             </div>
 
             <div class="field">
-              <label class="field__label" for="estabulo">Estábulo</label>
-              <select id="estabulo" v-model="formData.quadrant" class="select" required>
-                <option value="" disabled>Selecione um estábulo...</option>
-                <option v-for="stable in stablesList" :key="stable.id" :value="stable.id">
-                  {{ stable.name || stable.nome_quadrante || `Estábulo ${stable.id}` }}
-                </option>
-              </select>
+              <label class="field__label" for="escore">Escore corporal</label>
+              <input id="escore" v-model.number="formData.score" class="input" type="number" min="0" step="0.01">
             </div>
 
             <div class="field">
-              <label class="field__label" for="finalidade">Finalidade</label>
-              <select id="finalidade" v-model="formData.purpose" class="select" required>
-                <option value="" disabled>Selecione a finalidade...</option>
-                <option v-for="purpose in purposeList" :key="purpose.id" :value="purpose.id">
-                  {{ purpose.name || purpose.tipo || `Finalidade ${purpose.id}` }}
-                </option>
+              <label class="field__label" for="reproductive-status">Status reprodutivo</label>
+              <select id="reproductive-status" v-model="formData.reproductive_status" class="select">
+                <option :value="true">Apto</option>
+                <option :value="false">Inapto</option>
               </select>
             </div>
           </div>
@@ -121,7 +91,6 @@ import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
 import AppShell from '@/components/layout/AppShell.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import { SITUACOES, ativoPara } from '@/utils/statusUtils';
 
 const route = useRoute();
 const router = useRouter();
@@ -129,15 +98,11 @@ const router = useRouter();
 const isEdit = ref(false);
 const loading = ref(false);
 
-const speciesList = ref([]);
 const breedsList = ref([]);
-const stablesList = ref([]);
-const purposeList = ref([]);
 
 const formData = ref({
-  name: '', register_number: '', birth_date: '', sex: 'm',
-  status: 'ativo', active: true,
-  specie: '', breed: '', quadrant: '', purpose: '' // purpose é obrigatório no backend
+  name: '', register_number: '', status: 'active', score: 0,
+  reproductive_status: true, breed: '', birth: null
 });
 
 onMounted(async () => {
@@ -157,27 +122,8 @@ onMounted(async () => {
 
 const fetchDropdownData = async () => {
   try {
-    // Estas chamadas assumem que você criará as rotas /species/ e /breeds/ no Django
-    // O catch silencioso garante que a tela não quebre caso a API ainda não exista
-    api.get('species/').then(res => speciesList.value = res.data).catch(() => {
-      // Mock provisório enquanto o backend não tem a rota
-      speciesList.value = [{id: 1, name: 'Bovino'}, {id: 2, name: 'Equino'}];
-    });
-
     api.get('breeds/').then(res => breedsList.value = res.data).catch(() => {
-      breedsList.value = [{id: 1, name: 'Holandês'}, {id: 2, name: 'Nelore'}, {id: 3, name: 'Angus'}];
-    });
-
-    api.get('purpose_types/').then(res => purposeList.value = res.data).catch(() => {
-      purposeList.value = [
-        {id: 1, name: 'Criação'},
-        {id: 2, name: 'Leite'},
-        {id: 3, name: 'Venda'}
-      ];
-    });
-
-    api.get('quadrants/').then(res => stablesList.value = res.data).catch(() => {
-      stablesList.value = [{id: 1, name: 'Estábulo Principal'}, {id: 2, name: 'Estábulo Sul'}];
+      breedsList.value = [];
     });
   } catch (e) {
     console.error(e);
@@ -189,7 +135,7 @@ const saveAnimal = async () => {
   try {
     // O booleano legado `active` sai do `status` — a tela não tem dois
     // controles para a mesma coisa, mas o backend continua recebendo os dois.
-    const dados = { ...formData.value, active: ativoPara(formData.value.status) };
+    const dados = { ...formData.value, register_number: Number(formData.value.register_number) };
 
     if (isEdit.value) {
       await api.put(`animals/${route.params.id}/`, dados);
