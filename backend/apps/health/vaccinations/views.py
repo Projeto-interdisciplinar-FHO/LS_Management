@@ -5,6 +5,9 @@ from django.utils import timezone
 from datetime import timedelta
 from apps.health.vaccinations.models import Vaccination
 from apps.health.vaccinations.serializers import VaccinationSerializer
+from apps.health.vaccinations.facades import VaccinationFacade
+from apps.herd.quadrants.models import Quadrant
+from apps.health.vaccines.models import Vaccine
 
 class VaccinationCreateListView(generics.ListCreateAPIView):
     queryset = Vaccination.objects.all()
@@ -97,10 +100,6 @@ def batch_vaccination(request):
         "message": "6 animais vacinados com sucesso!"
     }
     """
-    from apps.herd.animals.models import Animal
-    from apps.health.vaccines.models import Vaccine
-    from apps.herd.quadrants.models import Quadrant
-    
     try:
         quadrant_id = request.data.get('quadrant_id')
         vaccine_id = request.data.get('vaccine_id')
@@ -115,56 +114,22 @@ def batch_vaccination(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Buscar quadrante e validar
-        quadrant = Quadrant.objects.get(id=quadrant_id)
-        vaccine = Vaccine.objects.get(id=vaccine_id)
-        
-        # Buscar todos os animais ativos do quadrante
-        animals = Animal.objects.filter(
+        result = VaccinationFacade.apply_batch(
             quadrant_id=quadrant_id,
-            status='ativo'
+            vaccine_id=vaccine_id,
+            vaccination_date=vaccination_date,
+            next_vaccination_date=next_vaccination_date,
+            dosage=dosage,
         )
+        return Response(result, status=status.HTTP_201_CREATED)
         
-        if not animals.exists():
-            return Response(
-                {'error': f'Nenhum animal ativo encontrado no quadrante {quadrant.name}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Criar vacinação para cada animal
-        vaccinated_animals = []
-        for animal in animals:
-            vaccination = Vaccination.objects.create(
-                animal=animal,
-                vaccine=vaccine,
-                dosage=dosage,
-                vaccination_date=vaccination_date,
-                next_vaccination_date=next_vaccination_date,
-                vaccination_status=True
-            )
-            vaccinated_animals.append({
-                'id': animal.id,
-                'name': animal.name,
-                'register_number': animal.register_number
-            })
-        
-        return Response({
-            'success': True,
-            'vaccinated_count': len(vaccinated_animals),
-            'animals': vaccinated_animals,
-            'message': f'{len(vaccinated_animals)} animais vacinados com sucesso no quadrante {quadrant.name}!'
-        }, status=status.HTTP_201_CREATED)
-        
-    except Quadrant.DoesNotExist:
+    except (Quadrant.DoesNotExist, Vaccine.DoesNotExist):
         return Response(
-            {'error': 'Quadrante não encontrado'},
+            {'error': 'Quadrante ou vacina não encontrada'},
             status=status.HTTP_404_NOT_FOUND
         )
-    except Vaccine.DoesNotExist:
-        return Response(
-            {'error': 'Vacina não encontrada'},
-            status=status.HTTP_404_NOT_FOUND
-        )
+    except ValueError as error:
+        return Response({'error': str(error)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response(
             {'error': f'Erro ao processar vacinação em lote: {str(e)}'},
