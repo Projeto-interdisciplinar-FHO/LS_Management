@@ -165,6 +165,8 @@ const menu = computed(() => {
         label: 'Rebanho',
         children: [
           { to: '/animais', label: 'Animais', icon: 'animal' },
+          { to: '/nascimento-genealogia', label: 'Nascimento e genealogia', icon: 'dna' },
+          { to: '/desenvolvimento', label: 'Desenvolvimento', icon: 'scale' },
           { to: '/estabulos', label: 'Estábulos', icon: 'barn' },
           { to: '/saude', label: 'Saúde e vacinação', icon: 'stethoscope' },
         ],
@@ -187,7 +189,14 @@ const menu = computed(() => {
   return [
     { to: '/dashboard-op', label: 'Painel' },
     { label: 'Manejo', children: MANEJO },
-    { to: '/rebanho', label: 'Rebanho' },
+    {
+      label: 'Rebanho',
+      children: [
+        { to: '/rebanho', label: 'Consultar rebanho', icon: 'animal' },
+        { to: '/nascimento-genealogia', label: 'Nascimento e genealogia', icon: 'dna' },
+        { to: '/desenvolvimento', label: 'Desenvolvimento', icon: 'scale' },
+      ],
+    },
     { to: '/saude', label: 'Saúde' },
   ];
 });

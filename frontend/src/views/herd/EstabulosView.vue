@@ -15,6 +15,11 @@
         </template>
       </PageHeader>
 
+      <p v-if="erro && stables.length" class="alert alert--danger" role="alert">
+        <AppIcon name="alert" :size="16" />
+        <span>{{ erro }}</span>
+      </p>
+
       <div v-if="loading" class="card">
         <div class="loading">
           <span class="spinner" aria-hidden="true"></span>
@@ -28,7 +33,7 @@
           <p class="empty__title">{{ erro ? 'Não foi possível carregar' : 'Nenhum estábulo cadastrado' }}</p>
           <p class="empty__desc">
             {{ erro
-              ? 'A lista de instalações não chegou do servidor. Verifique a conexão e tente de novo.'
+              ? erro
               : 'Cadastre as instalações da fazenda para alocar o rebanho.' }}
           </p>
           <button v-if="erro" class="btn" @click="loadData">Tentar de novo</button>
@@ -168,12 +173,16 @@
               <option value="Manejo Geral">Manejo geral</option>
             </select>
           </div>
+          <p v-if="formError" class="alert alert--danger" role="alert">
+            <AppIcon name="alert" :size="16" />
+            <span>{{ formError }}</span>
+          </p>
         </form>
 
         <template #rodape>
           <button type="button" class="btn" @click="showModal = false">Cancelar</button>
           <button type="submit" form="form-estabulo" class="btn btn--primary" :disabled="savingStable">
-            {{ savingStable ? 'Processando...' : 'Confirmar instalação' }}
+            {{ savingStable ? 'Salvando...' : 'Confirmar instalação' }}
           </button>
         </template>
       </AppModal>
@@ -190,6 +199,7 @@ import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppModal from '@/components/ui/AppModal.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import { apiErrorMessage } from '@/utils/apiError';
 
 const painel = computed(() => painelDoPapel());
 
@@ -198,10 +208,11 @@ const animals = ref([]);
 const loading = ref(true);
 // Sem isto a tela ficava totalmente em branco quando a API não respondia:
 // o `catch` só escrevia no console e a lista vazia não desenhava nada.
-const erro = ref(false);
+const erro = ref('');
 const showModal = ref(false);
 const isEditingStable = ref(false);
 const savingStable = ref(false);
+const formError = ref('');
 const expandedStables = ref([]);
 
 /*
@@ -228,24 +239,17 @@ onMounted(() => {
 
 const loadData = async () => {
   loading.value = true;
-  erro.value = false;
+  erro.value = '';
   try {
     const stablesRes = await api.get('quadrants/');
     stables.value = stablesRes.data.results || stablesRes.data;
-
-    if (stables.value.length === 0) {
-      stables.value = [
-        { id: 1, name: 'Estábulo Principal A', max_animals: 40, area: '12.50', description: 'Ordenha Higiênica' },
-        { id: 2, name: 'Piquete Sul Maternidade', max_animals: 15, area: '6.00', description: 'Maternidade / Crias' }
-      ];
-    }
 
     const animalsRes = await api.get('animals/');
     animals.value = animalsRes.data.results || animalsRes.data;
 
   } catch (error) {
     console.error("Erro ao sincronizar dados de instalações:", error);
-    erro.value = true;
+    erro.value = apiErrorMessage(error, 'Não foi possível carregar os estábulos e animais.');
   } finally {
     loading.value = false;
   }
@@ -296,6 +300,7 @@ const moveAnimal = async (animal, event) => {
     loadData();
   } catch (error) {
     console.error(error);
+    erro.value = apiErrorMessage(error, 'Não foi possível transferir o animal.');
   } finally {
     event.target.value = '';
   }
@@ -303,18 +308,21 @@ const moveAnimal = async (animal, event) => {
 
 const openCreateModal = () => {
   isEditingStable.value = false;
+  formError.value = '';
   stableForm.value = { id: null, name: '', max_animals: '', area: '', description: '' };
   showModal.value = true;
 };
 
 const editStable = (stable) => {
   isEditingStable.value = true;
+  formError.value = '';
   stableForm.value = { ...stable };
   showModal.value = true;
 };
 
 const saveStable = async () => {
   savingStable.value = true;
+  formError.value = '';
   try {
     if (isEditingStable.value) {
       await api.put(`quadrants/${stableForm.value.id}/`, stableForm.value);
@@ -325,6 +333,7 @@ const saveStable = async () => {
     loadData();
   } catch (error) {
     console.error(error);
+    formError.value = apiErrorMessage(error, 'Não foi possível salvar o estábulo. Confira os dados e tente novamente.');
   } finally {
     savingStable.value = false;
   }

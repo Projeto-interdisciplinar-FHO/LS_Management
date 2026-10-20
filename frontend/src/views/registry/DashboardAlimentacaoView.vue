@@ -15,6 +15,11 @@
         </template>
       </PageHeader>
 
+      <p v-if="errorMessage" class="alert alert--danger" role="alert">
+        <AppIcon name="alert" :size="16" />
+        <span>{{ errorMessage }}</span>
+      </p>
+
       <section class="card">
         <header class="card__head">
           <h2 class="card__title">Cadastrados</h2>
@@ -62,6 +67,10 @@
             <label class="field__label" for="desc-alimento">Fabricante ou composição</label>
             <input id="desc-alimento" v-model="newFeedForm.description" class="input" type="text" placeholder="Ex: Milho e soja com minerais">
           </div>
+          <p v-if="formError" class="alert alert--danger" role="alert">
+            <AppIcon name="alert" :size="16" />
+            <span>{{ formError }}</span>
+          </p>
         </form>
 
         <template #rodape>
@@ -83,12 +92,15 @@ import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppModal from '@/components/ui/AppModal.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import { apiErrorMessage } from '@/utils/apiError';
 
 const painel = computed(() => painelDoPapel());
 
 const loading = ref(true);
 const savingFeed = ref(false);
 const showAddFeedModal = ref(false);
+const errorMessage = ref('');
+const formError = ref('');
 
 const foodsList = ref([]);
 const newFeedForm = ref({ name: '', description: '' });
@@ -99,11 +111,14 @@ onMounted(() => {
 
 const loadFoodsList = async () => {
   loading.value = true;
+  errorMessage.value = '';
   try {
     const historyRes = await api.get('foods/');
     foodsList.value = historyRes.data.results || historyRes.data;
   } catch (error) {
     console.error("Erro ao puxar dados alimentares:", error);
+    foodsList.value = [];
+    errorMessage.value = apiErrorMessage(error, 'Não foi possível carregar os alimentos.');
   } finally {
     loading.value = false;
   }
@@ -111,6 +126,7 @@ const loadFoodsList = async () => {
 
 const submitNewFeed = async () => {
   savingFeed.value = true;
+  formError.value = '';
   try {
     await api.post('foods/', newFeedForm.value);
     showAddFeedModal.value = false;
@@ -118,6 +134,7 @@ const submitNewFeed = async () => {
     loadFoodsList();
   } catch (error) {
     console.error(error);
+    formError.value = apiErrorMessage(error, 'Não foi possível cadastrar o alimento. Confira os dados e tente novamente.');
   } finally {
     savingFeed.value = false;
   }

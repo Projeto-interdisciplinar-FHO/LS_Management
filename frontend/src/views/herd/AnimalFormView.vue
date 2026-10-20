@@ -8,6 +8,15 @@
         voltar-para="/animais"
       />
 
+      <p v-if="optionsError" class="alert alert--danger" role="alert">
+        <AppIcon name="alert" :size="16" />
+        <span>{{ optionsError }}</span>
+      </p>
+      <p v-if="formMessage" class="alert alert--danger" role="alert">
+        <AppIcon name="alert" :size="16" />
+        <span>{{ formMessage }}</span>
+      </p>
+
       <form class="stack-24" @submit.prevent="saveAnimal">
         <section class="card">
           <header class="card__head">
@@ -64,8 +73,8 @@
           <div class="card__body grid grid--2">
             <div class="field">
               <label class="field__label" for="especie">Espécie</label>
-              <select id="especie" v-model="formData.specie" class="select" required>
-                <option value="" disabled>Selecione uma espécie...</option>
+              <select id="especie" v-model="formData.specie" class="select" required :disabled="loadingOptions">
+                <option value="" disabled>{{ loadingOptions ? 'Carregando espécies...' : 'Selecione uma espécie...' }}</option>
                 <option v-for="specie in speciesList" :key="specie.id" :value="specie.id">
                   {{ specie.name }}
                 </option>
@@ -74,8 +83,8 @@
 
             <div class="field">
               <label class="field__label" for="raca">Raça</label>
-              <select id="raca" v-model="formData.breed" class="select" required>
-                <option value="" disabled>Selecione uma raça...</option>
+              <select id="raca" v-model="formData.breed" class="select" required :disabled="loadingOptions">
+                <option value="" disabled>{{ loadingOptions ? 'Carregando raças...' : 'Selecione uma raça...' }}</option>
                 <option v-for="breed in breedsList" :key="breed.id" :value="breed.id">
                   {{ breed.name }}
                 </option>
@@ -84,8 +93,8 @@
 
             <div class="field">
               <label class="field__label" for="estabulo">Estábulo</label>
-              <select id="estabulo" v-model="formData.quadrant" class="select" required>
-                <option value="" disabled>Selecione um estábulo...</option>
+              <select id="estabulo" v-model="formData.quadrant" class="select" required :disabled="loadingOptions">
+                <option value="" disabled>{{ loadingOptions ? 'Carregando estábulos...' : 'Selecione um estábulo...' }}</option>
                 <option v-for="stable in stablesList" :key="stable.id" :value="stable.id">
                   {{ stable.name || stable.nome_quadrante || `Estábulo ${stable.id}` }}
                 </option>
@@ -94,8 +103,8 @@
 
             <div class="field">
               <label class="field__label" for="finalidade">Finalidade</label>
-              <select id="finalidade" v-model="formData.purpose" class="select" required>
-                <option value="" disabled>Selecione a finalidade...</option>
+              <select id="finalidade" v-model="formData.purpose" class="select" required :disabled="loadingOptions">
+                <option value="" disabled>{{ loadingOptions ? 'Carregando finalidades...' : 'Selecione a finalidade...' }}</option>
                 <option v-for="purpose in purposeList" :key="purpose.id" :value="purpose.id">
                   {{ purpose.name || purpose.tipo || `Finalidade ${purpose.id}` }}
                 </option>
@@ -105,8 +114,8 @@
 
           <footer class="card__foot">
             <button type="button" class="btn" @click="$router.back()">Cancelar</button>
-            <button type="submit" class="btn btn--primary" :disabled="loading">
-              {{ loading ? 'Salvando...' : (isEdit ? 'Salvar alterações' : 'Cadastrar animal') }}
+            <button type="submit" class="btn btn--primary" :disabled="loading || loadingOptions || loadingRecord">
+              {{ loading ? 'Salvando...' : loadingRecord ? 'Carregando animal...' : loadingOptions ? 'Carregando cadastros...' : (isEdit ? 'Salvar alterações' : 'Cadastrar animal') }}
             </button>
           </footer>
         </section>
@@ -120,14 +129,20 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
 import AppShell from '@/components/layout/AppShell.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import { SITUACOES, ativoPara } from '@/utils/statusUtils';
+import { apiErrorMessage } from '@/utils/apiError';
 
 const route = useRoute();
 const router = useRouter();
 
 const isEdit = ref(false);
 const loading = ref(false);
+const loadingOptions = ref(true);
+const loadingRecord = ref(false);
+const optionsError = ref('');
+const formMessage = ref('');
 
 const speciesList = ref([]);
 const breedsList = ref([]);
@@ -141,51 +156,62 @@ const formData = ref({
 });
 
 onMounted(async () => {
-  // Carrega as listas dos menus suspensos
   fetchDropdownData();
 
   if (route.params.id) {
     isEdit.value = true;
+    loadingRecord.value = true;
     try {
       const response = await api.get(`animals/${route.params.id}/`);
       formData.value = response.data;
     } catch (error) {
       console.error("Erro ao carregar animal:", error);
+      formMessage.value = apiErrorMessage(error, 'Não foi possível carregar os dados deste animal.');
+    } finally {
+      loadingRecord.value = false;
     }
   }
 });
 
 const fetchDropdownData = async () => {
+  loadingOptions.value = true;
+  optionsError.value = '';
+  const destinations = [speciesList, breedsList, purposeList, stablesList];
+  const labels = ['espécies', 'raças', 'finalidades', 'estábulos'];
+
   try {
-    // Estas chamadas assumem que você criará as rotas /species/ e /breeds/ no Django
-    // O catch silencioso garante que a tela não quebre caso a API ainda não exista
-    api.get('species/').then(res => speciesList.value = res.data).catch(() => {
-      // Mock provisório enquanto o backend não tem a rota
-      speciesList.value = [{id: 1, name: 'Bovino'}, {id: 2, name: 'Equino'}];
+    const responses = await Promise.allSettled([
+      api.get('species/'),
+      api.get('breeds/'),
+      api.get('purpose_types/'),
+      api.get('quadrants/'),
+    ]);
+    const failedLabels = [];
+
+    responses.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const data = result.value.data;
+        destinations[index].value = data?.results || data || [];
+      } else {
+        destinations[index].value = [];
+        failedLabels.push(labels[index]);
+      }
     });
 
-    api.get('breeds/').then(res => breedsList.value = res.data).catch(() => {
-      breedsList.value = [{id: 1, name: 'Holandês'}, {id: 2, name: 'Nelore'}, {id: 3, name: 'Angus'}];
-    });
-
-    api.get('purpose_types/').then(res => purposeList.value = res.data).catch(() => {
-      purposeList.value = [
-        {id: 1, name: 'Criação'},
-        {id: 2, name: 'Leite'},
-        {id: 3, name: 'Venda'}
-      ];
-    });
-
-    api.get('quadrants/').then(res => stablesList.value = res.data).catch(() => {
-      stablesList.value = [{id: 1, name: 'Estábulo Principal'}, {id: 2, name: 'Estábulo Sul'}];
-    });
+    if (failedLabels.length) {
+      optionsError.value = `Não foi possível carregar ${failedLabels.join(', ')}. Verifique a conexão e tente novamente.`;
+    }
   } catch (e) {
     console.error(e);
+    optionsError.value = apiErrorMessage(e, 'Não foi possível carregar os cadastros do formulário.');
+  } finally {
+    loadingOptions.value = false;
   }
 };
 
 const saveAnimal = async () => {
   loading.value = true;
+  formMessage.value = '';
   try {
     // O booleano legado `active` sai do `status` — a tela não tem dois
     // controles para a mesma coisa, mas o backend continua recebendo os dois.
@@ -199,6 +225,7 @@ const saveAnimal = async () => {
     router.push('/animais');
   } catch (error) {
     console.error("Erro ao salvar:", error);
+    formMessage.value = apiErrorMessage(error, 'Confira os dados do animal e tente novamente.');
   } finally {
     loading.value = false;
   }

@@ -26,15 +26,16 @@
                 v-model.number="formData.animal"
                 class="select"
                 required
-                :disabled="femaleAnimals.length === 0"
+                :disabled="loadingAnimals || femaleAnimals.length === 0"
               >
                 <option value="" disabled>
-                  {{ femaleAnimals.length > 0 ? 'Selecione um animal...' : 'Nenhuma fêmea cadastrada disponível' }}
+                  {{ loadingAnimals ? 'Carregando fêmeas...' : femaleAnimals.length > 0 ? 'Selecione um animal...' : 'Nenhuma fêmea cadastrada disponível' }}
                 </option>
                 <option v-for="animal in femaleAnimals" :key="animal.id" :value="animal.id">
                   {{ animal.name || 'Sem nome' }} — brinco #{{ animal.register_number }}
                 </option>
               </select>
+              <span v-if="animalLoadError" class="field__hint" role="alert">{{ animalLoadError }}</span>
             </div>
 
             <div class="field">
@@ -47,14 +48,14 @@
               <input id="data" v-model="formData.production_date" class="input" type="date" required>
             </div>
 
-            <p v-if="message" class="span-2 alert" :class="isSuccess ? 'alert--ok' : 'alert--danger'" role="status">
+            <p v-if="message" class="span-2 alert" :class="isSuccess ? 'alert--ok' : 'alert--danger'" :role="isSuccess ? 'status' : 'alert'">
               <AppIcon :name="isSuccess ? 'check-circle' : 'alert'" :size="16" />
               <span>{{ message }}</span>
             </p>
           </div>
 
           <footer class="card__foot">
-            <button type="submit" class="btn btn--primary" :disabled="loading || femaleAnimals.length === 0">
+            <button type="submit" class="btn btn--primary" :disabled="loading || loadingAnimals || femaleAnimals.length === 0">
               {{ loading ? 'Salvando...' : 'Registrar ordenha' }}
             </button>
           </footer>
@@ -71,12 +72,15 @@ import { painelDoPapel } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import { apiErrorMessage } from '@/utils/apiError';
 
 const painel = computed(() => painelDoPapel());
 
 const loading = ref(false);
+const loadingAnimals = ref(true);
 const message = ref('');
 const isSuccess = ref(false);
+const animalLoadError = ref('');
 const animals = ref([]);
 
 const isFemaleAnimal = (animalData) => String(animalData?.sex || '').toLowerCase() === 'f';
@@ -89,12 +93,17 @@ const formData = ref({
 });
 
 onMounted(async () => {
+  loadingAnimals.value = true;
+  animalLoadError.value = '';
   try {
     const res = await api.get('animals/');
     animals.value = (res.data.results || res.data).filter(isFemaleAnimal);
   } catch (error) {
     console.error('Erro ao carregar animais para ordenha:', error);
     animals.value = [];
+    animalLoadError.value = apiErrorMessage(error, 'Não foi possível carregar as fêmeas do rebanho.');
+  } finally {
+    loadingAnimals.value = false;
   }
 });
 
@@ -117,7 +126,7 @@ const handleSubmit = async () => {
     console.error('Erro ao salvar ordenha:', error);
     console.error('Resposta do servidor:', error.response?.data);
     isSuccess.value = false;
-    message.value = 'Erro ao registrar ordenha. Verifique os dados.';
+    message.value = apiErrorMessage(error, 'Não foi possível registrar a ordenha. Confira os dados informados.');
   } finally {
     loading.value = false;
     setTimeout(() => { message.value = ''; }, 4000);

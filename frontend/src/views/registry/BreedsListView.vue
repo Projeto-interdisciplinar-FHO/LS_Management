@@ -60,22 +60,27 @@
 
           <div class="field">
             <label class="field__label" for="especie-raca">Espécie</label>
-            <select id="especie-raca" v-model="form.specie" class="select" required>
-              <option value="" disabled>Selecione uma espécie...</option>
+            <select id="especie-raca" v-model="form.specie" class="select" required :disabled="loadingSpecies || !species.length">
+              <option value="" disabled>{{ loadingSpecies ? 'Carregando espécies...' : 'Selecione uma espécie...' }}</option>
               <option v-for="specie in species" :key="specie.id" :value="specie.id">
                 {{ specie.name }}
               </option>
             </select>
-            <span v-if="!species.length" class="field__hint">
+            <span v-if="speciesError" class="field__hint" role="alert">{{ speciesError }}</span>
+            <span v-else-if="!loadingSpecies && !species.length" class="field__hint">
               Nenhuma espécie cadastrada ainda — cadastre uma antes de criar a raça.
             </span>
           </div>
+          <p v-if="erroModal" class="alert alert--danger" role="alert">
+            <AppIcon name="alert" :size="16" />
+            <span>{{ erroModal }}</span>
+          </p>
         </form>
 
         <template #rodape>
           <button type="button" class="btn" @click="showModal = false">Cancelar</button>
-          <button type="submit" form="form-raca" class="btn btn--primary" :disabled="saving">
-            {{ saving ? 'Salvando...' : 'Salvar raça' }}
+          <button type="submit" form="form-raca" class="btn btn--primary" :disabled="saving || loadingSpecies || !species.length">
+            {{ saving ? 'Salvando...' : loadingSpecies ? 'Carregando espécies...' : 'Salvar raça' }}
           </button>
         </template>
       </AppModal>
@@ -91,6 +96,7 @@ import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppModal from '@/components/ui/AppModal.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import { apiErrorMessage } from '@/utils/apiError';
 
 const painel = computed(() => painelDoPapel());
 
@@ -99,7 +105,10 @@ const species = ref([]);
 const loading = ref(false);
 const showModal = ref(false);
 const saving = ref(false);
+const loadingSpecies = ref(false);
 const erro = ref('');
+const erroModal = ref('');
+const speciesError = ref('');
 const form = ref({ name: '', specie: '' });
 
 const normalizeList = (response) => {
@@ -123,29 +132,37 @@ const loadBreeds = async () => {
 };
 
 const loadSpecies = async () => {
+  loadingSpecies.value = true;
+  speciesError.value = '';
   try {
     const response = await api.get('species/');
     species.value = normalizeList(response);
   } catch (error) {
     console.error('Erro ao carregar espécies:', error);
     species.value = [];
+    speciesError.value = apiErrorMessage(error, 'Não foi possível carregar as espécies.');
+  } finally {
+    loadingSpecies.value = false;
   }
 };
 
 const openModal = async () => {
   form.value = { name: '', specie: '' };
+  erroModal.value = '';
   await loadSpecies();
   showModal.value = true;
 };
 
 const submitBreed = async () => {
   saving.value = true;
+  erroModal.value = '';
   try {
     await api.post('breeds/', form.value);
     showModal.value = false;
     await loadBreeds();
   } catch (error) {
     console.error('Erro ao cadastrar raça:', error);
+    erroModal.value = apiErrorMessage(error, 'Não foi possível cadastrar a raça. Confira os dados e tente novamente.');
   } finally {
     saving.value = false;
   }

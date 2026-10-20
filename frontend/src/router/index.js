@@ -16,6 +16,8 @@ import AnimalFormView from '@/views/herd/AnimalFormView.vue'
 import AnimalDetailView from '@/views/herd/AnimalDetailView.vue'
 import AnimalConsultationView from '@/views/herd/AnimalConsultationView.vue'
 import EstabulosView from '@/views/herd/EstabulosView.vue'
+import BirthGenealogyView from '@/views/herd/BirthGenealogyView.vue'
+import DevelopmentView from '@/views/herd/DevelopmentView.vue'
 
 // handling — Manejo
 import ManejoView from '@/views/handling/ManejoView.vue'
@@ -53,6 +55,8 @@ const router = createRouter({
     { path: '/animais/novo', name: 'animal-create', component: AnimalFormView, meta: { requerLogin: true, soAdmin: true } }, 
     { path: '/animais/editar/:id', name: 'animal-edit', component: AnimalFormView, meta: { requerLogin: true, soAdmin: true } }, 
     { path: '/animal/:id', name: 'animal-detail', component: AnimalDetailView, meta: { requerLogin: true } },
+    { path: '/nascimento-genealogia', name: 'nascimento-genealogia', component: BirthGenealogyView, meta: { requerLogin: true } },
+    { path: '/desenvolvimento', name: 'desenvolvimento', component: DevelopmentView, meta: { requerLogin: true } },
     
     { path: '/lancamento-leite', name: 'lancamento-leite', component: LancamentoLeiteView, meta: { requerLogin: true } },
     { path: '/pesagem', name: 'pesagem', component: PesagemView, meta: { requerLogin: true } },
