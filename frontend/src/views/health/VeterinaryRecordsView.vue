@@ -24,12 +24,13 @@
             <div class="card__body grid grid--3">
               <div class="field">
                 <label class="field__label" for="vet-animal">Animal</label>
-                <select id="vet-animal" v-model="formData.animal" class="select" required>
-                  <option value="" disabled>Selecione um animal...</option>
+                <select id="vet-animal" v-model="formData.animal" class="select" required :disabled="loadingAnimals || !animalsList.length">
+                  <option value="" disabled>{{ loadingAnimals ? 'Carregando animais...' : 'Selecione um animal...' }}</option>
                   <option v-for="animal in animalsList" :key="animal.id" :value="animal.id">
                     {{ animal.name || 'Sem nome' }} — #{{ animal.register_number }}
                   </option>
                 </select>
+                <span v-if="animalsLoadError" class="field__hint" role="alert">{{ animalsLoadError }}</span>
               </div>
 
               <div class="field">
@@ -52,15 +53,15 @@
                 <textarea id="vet-solucao" v-model="formData.consultation_solution" class="textarea" rows="4" placeholder="Tratamento aplicado, medicação e acompanhamento previsto" required></textarea>
               </div>
 
-              <p v-if="message" class="span-full alert" :class="isSuccess ? 'alert--ok' : 'alert--danger'" role="status">
+              <p v-if="message" class="span-full alert" :class="isSuccess ? 'alert--ok' : 'alert--danger'" :role="isSuccess ? 'status' : 'alert'">
                 <AppIcon :name="isSuccess ? 'check-circle' : 'alert'" :size="16" />
                 <span>{{ message }}</span>
               </p>
             </div>
 
             <footer class="card__foot">
-              <button type="submit" class="btn btn--primary" :disabled="saving">
-                {{ saving ? 'Salvando...' : 'Registrar consulta' }}
+              <button type="submit" class="btn btn--primary" :disabled="saving || loadingAnimals || !animalsList.length">
+                {{ saving ? 'Salvando...' : loadingAnimals ? 'Carregando animais...' : 'Registrar consulta' }}
               </button>
             </footer>
           </form>
@@ -76,6 +77,11 @@
             <span class="spinner" aria-hidden="true"></span>
             Carregando histórico veterinário...
           </div>
+
+          <p v-else-if="recordsLoadError" class="alert alert--danger" role="alert">
+            <AppIcon name="alert" :size="16" />
+            <span>{{ recordsLoadError }}</span>
+          </p>
 
           <div v-else-if="records.length === 0" class="empty">
             <AppIcon name="stethoscope" :size="30" />
@@ -122,15 +128,19 @@ import { painelDoPapel } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import { apiErrorMessage } from '@/utils/apiError';
 
 const painel = computed(() => painelDoPapel());
 
 const loading = ref(true);
 const saving = ref(false);
+const loadingAnimals = ref(true);
 const animalsList = ref([]);
 const records = ref([]);
 const message = ref('');
 const isSuccess = ref(false);
+const animalsLoadError = ref('');
+const recordsLoadError = ref('');
 
 const formData = ref({
   animal: '',
@@ -141,23 +151,30 @@ const formData = ref({
 });
 
 const loadAnimals = async () => {
+  loadingAnimals.value = true;
+  animalsLoadError.value = '';
   try {
     const response = await api.getAnimals();
     animalsList.value = response.data.results || response.data;
   } catch (error) {
     console.error('Erro ao carregar animais:', error);
     animalsList.value = [];
+    animalsLoadError.value = apiErrorMessage(error, 'Não foi possível carregar os animais.');
+  } finally {
+    loadingAnimals.value = false;
   }
 };
 
 const loadRecords = async () => {
   loading.value = true;
+  recordsLoadError.value = '';
   try {
     const response = await api.getVeterinaryRecords();
     records.value = response.data.results || response.data;
   } catch (error) {
     console.error('Erro ao carregar registros veterinários:', error);
     records.value = [];
+    recordsLoadError.value = apiErrorMessage(error, 'Não foi possível carregar o histórico veterinário.');
   } finally {
     loading.value = false;
   }
@@ -181,7 +198,7 @@ const submitRecord = async () => {
   } catch (error) {
     console.error('Erro ao salvar registro:', error);
     isSuccess.value = false;
-    message.value = 'Erro ao salvar consulta veterinária.';
+    message.value = apiErrorMessage(error, 'Não foi possível registrar a consulta veterinária.');
   } finally {
     saving.value = false;
     setTimeout(() => { message.value = ''; }, 5000);

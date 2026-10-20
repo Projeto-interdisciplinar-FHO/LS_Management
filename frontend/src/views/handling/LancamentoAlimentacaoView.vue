@@ -8,6 +8,11 @@
         :voltar-para="painel"
       />
 
+      <p v-if="optionsError" class="alert alert--danger" role="alert">
+        <AppIcon name="alert" :size="16" />
+        <span>{{ optionsError }}</span>
+      </p>
+
       <section class="card">
         <header class="card__head">
           <div>
@@ -21,7 +26,7 @@
           <div class="card__body grid grid--2">
             <div class="field span-2">
               <label class="field__label" for="animal">Animal ou rebanho</label>
-              <select id="animal" v-model="formData.animal" class="select" required>
+              <select id="animal" v-model="formData.animal" class="select" required :disabled="loadingOptions">
                 <option value="" disabled>Escolha um animal ou todo o rebanho...</option>
                 <option value="all">Todo o rebanho</option>
                 <option v-for="animal in animalsList" :key="animal.id" :value="animal.id">
@@ -37,8 +42,8 @@
 
             <div class="field">
               <label class="field__label" for="alimento">Tipo de alimento</label>
-              <select id="alimento" v-model="formData.feed_type_id" class="select" required>
-                <option value="" disabled>Selecione o alimento...</option>
+              <select id="alimento" v-model="formData.feed_type_id" class="select" required :disabled="loadingOptions || !feedTypesList.length">
+                <option value="" disabled>{{ loadingOptions ? 'Carregando alimentos...' : 'Selecione o alimento...' }}</option>
                 <option v-for="feed in feedTypesList" :key="feed.id" :value="feed.id">
                   {{ feed.name }}
                 </option>
@@ -62,8 +67,8 @@
           </div>
 
           <footer class="card__foot">
-            <button type="submit" class="btn btn--primary" :disabled="loading">
-              {{ loading ? 'Salvando...' : 'Confirmar alimentação' }}
+            <button type="submit" class="btn btn--primary" :disabled="loading || loadingOptions || !animalsList.length || !feedTypesList.length">
+              {{ loading ? 'Salvando...' : loadingOptions ? 'Carregando opções...' : 'Confirmar alimentação' }}
             </button>
           </footer>
         </form>
@@ -79,14 +84,17 @@ import { painelDoPapel } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import { apiErrorMessage } from '@/utils/apiError';
 
 const painel = computed(() => painelDoPapel());
 
 const loading = ref(false);
+const loadingOptions = ref(true);
 const animalsList = ref([]);
 const feedTypesList = ref([]);
 const message = ref('');
 const isSuccess = ref(false);
+const optionsError = ref('');
 
 const formData = ref({
   animal: '',
@@ -100,22 +108,37 @@ onMounted(() => {
 });
 
 const fetchData = async () => {
+  loadingOptions.value = true;
+  optionsError.value = '';
   try {
-    // Busca animais cadastrados
-    const animRes = await api.get('animals/');
-    animalsList.value = animRes.data.results || animRes.data;
+    const [animalsResult, feedsResult] = await Promise.allSettled([
+      api.get('animals/'),
+      api.get('foods/'),
+    ]);
+    const failedLists = [];
 
-    // Busca os tipos de alimentos cadastrados no backend
-    const feedRes = await api.get('foods/');
-    feedTypesList.value = feedRes.data.results || feedRes.data;
+    if (animalsResult.status === 'fulfilled') {
+      animalsList.value = animalsResult.value.data.results || animalsResult.value.data;
+    } else {
+      animalsList.value = [];
+      failedLists.push('animais');
+    }
+
+    if (feedsResult.status === 'fulfilled') {
+      feedTypesList.value = feedsResult.value.data.results || feedsResult.value.data;
+    } else {
+      feedTypesList.value = [];
+      failedLists.push('alimentos');
+    }
+
+    if (failedLists.length) {
+      optionsError.value = `Não foi possível carregar ${failedLists.join(' e ')}. Verifique a conexão e tente novamente.`;
+    }
   } catch (error) {
     console.error("Erro ao carregar dados do formulário nutricional:", error);
-    // Fallback de segurança para testes
-    feedTypesList.value = [
-      { id: 1, name: 'Ração Concentrada 22%' },
-      { id: 2, name: 'Silagem de Milho' },
-      { id: 3, name: 'Suplemento Mineral' }
-    ];
+    optionsError.value = apiErrorMessage(error, 'Não foi possível carregar as opções de alimentação.');
+  } finally {
+    loadingOptions.value = false;
   }
 };
 
@@ -129,6 +152,7 @@ const avisar = (texto, sucesso) => {
 
 const handleSubmit = async () => {
   loading.value = true;
+  message.value = '';
   try {
     const selectedAnimalIds = formData.value.animal === 'all'
       ? animalsList.value.map(a => a.id)
@@ -159,7 +183,7 @@ const handleSubmit = async () => {
     formData.value.quantity = '';
   } catch (error) {
     console.error(error);
-    avisar('Erro ao registrar alimentação no servidor.', false);
+    avisar(apiErrorMessage(error, 'Não foi possível registrar a alimentação. Confira os dados informados.'), false);
   } finally {
     loading.value = false;
   }

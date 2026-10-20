@@ -16,6 +16,10 @@
         <AppIcon name="alert" :size="16" />
         <span>{{ erro }}</span>
       </p>
+      <p v-if="optionsError" class="alert alert--danger" role="alert">
+        <AppIcon name="alert" :size="16" />
+        <span>{{ optionsError }}</span>
+      </p>
 
       <div class="grid grid--wide">
         <section class="card">
@@ -67,8 +71,8 @@
               </div>
               <div class="field">
                 <label class="field__label" for="vac-vacina">Vacina aplicada</label>
-                <select id="vac-vacina" v-model="vaccineData.vaccine_id" class="select" required>
-                  <option value="" disabled>Selecione uma vacina...</option>
+                <select id="vac-vacina" v-model="vaccineData.vaccine_id" class="select" required :disabled="loadingOptions || !vaccinesList.length">
+                  <option value="" disabled>{{ loadingOptions ? 'Carregando vacinas...' : 'Selecione uma vacina...' }}</option>
                   <option v-for="vaccine in vaccinesList" :key="vaccine.id" :value="vaccine.id">
                     {{ vaccine.name }}
                   </option>
@@ -76,8 +80,8 @@
               </div>
             </div>
             <footer class="card__foot">
-              <button type="submit" class="btn btn--primary" :disabled="loading">
-                {{ loading ? 'Salvando...' : 'Confirmar vacina' }}
+              <button type="submit" class="btn btn--primary" :disabled="loading || loadingOptions || !vaccinesList.length">
+                {{ loading ? 'Salvando...' : loadingOptions ? 'Carregando opções...' : 'Confirmar vacina' }}
               </button>
             </footer>
           </form>
@@ -98,8 +102,8 @@
             <div class="card__body stack">
               <div class="field">
                 <label class="field__label" for="lote-origem">Quadrante de origem</label>
-                <select id="lote-origem" v-model="batchData.origin_quadrant" class="select" required>
-                  <option value="" disabled>Selecione a origem...</option>
+                <select id="lote-origem" v-model="batchData.origin_quadrant" class="select" required :disabled="loadingOptions || !quadrants.length">
+                  <option value="" disabled>{{ loadingOptions ? 'Carregando quadrantes...' : 'Selecione a origem...' }}</option>
                   <option v-for="quad in quadrants" :key="quad.id" :value="quad.id">
                     {{ quad.name }}
                   </option>
@@ -107,8 +111,8 @@
               </div>
               <div class="field">
                 <label class="field__label" for="lote-destino">Quadrante de destino</label>
-                <select id="lote-destino" v-model="batchData.target_quadrant" class="select" required>
-                  <option value="" disabled>Selecione o destino...</option>
+                <select id="lote-destino" v-model="batchData.target_quadrant" class="select" required :disabled="loadingOptions || !quadrants.length">
+                  <option value="" disabled>{{ loadingOptions ? 'Carregando quadrantes...' : 'Selecione o destino...' }}</option>
                   <option v-for="quad in quadrants" :key="quad.id" :value="quad.id">
                     {{ quad.name }}
                   </option>
@@ -116,8 +120,8 @@
               </div>
             </div>
             <footer class="card__foot">
-              <button type="submit" class="btn btn--primary" :disabled="loading">
-                {{ loading ? 'Salvando...' : 'Mover lote' }}
+              <button type="submit" class="btn btn--primary" :disabled="loading || loadingOptions || !quadrants.length || !movementTypes.length">
+                {{ loading ? 'Salvando...' : loadingOptions ? 'Carregando opções...' : 'Mover lote' }}
               </button>
             </footer>
           </form>
@@ -143,15 +147,18 @@ import { painelDoPapel } from '@/services/auth'
 import AppShell from '@/components/layout/AppShell.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { apiErrorMessage } from '@/utils/apiError'
 
 const painel = computed(() => painelDoPapel())
 
 const loading = ref(false)
+const loadingOptions = ref(true)
 const vaccinesList = ref([])
 const quadrants = ref([])
 const movementTypes = ref([])
 const mensagem = ref('')
 const erro = ref('')
+const optionsError = ref('')
 
 const hoje = () => new Date().toISOString().slice(0, 10)
 
@@ -165,19 +172,6 @@ function avisar(texto, ehErro = false) {
   setTimeout(() => { mensagem.value = ''; erro.value = '' }, 5000)
 }
 
-// O backend devolve o motivo do 400 em JSON; mostrar isso em vez de "Erro ao
-// salvar" e a diferenca entre o operador corrigir sozinho e ligar para o
-// suporte.
-function motivo(err, padrao) {
-  const d = err.response?.data
-  if (!d) return padrao
-  if (typeof d === 'string') return d
-  const campos = Object.entries(d)
-    .map(([campo, msgs]) => `${campo}: ${[].concat(msgs).join(' ')}`)
-    .join(' · ')
-  return campos || padrao
-}
-
 const handleWeight = async () => {
   loading.value = true
   try {
@@ -189,7 +183,7 @@ const handleWeight = async () => {
     avisar('Peso registrado.')
     weightData.value = { animal: '', weight: '' }
   } catch (err) {
-    avisar(motivo(err, 'Nao foi possivel salvar a pesagem.'), true)
+    avisar(apiErrorMessage(err, 'Não foi possível salvar a pesagem.'), true)
   } finally {
     loading.value = false
   }
@@ -207,7 +201,7 @@ const handleVaccine = async () => {
     avisar('Vacinacao registrada.')
     vaccineData.value = { animal: '', vaccine_id: '', dosage: 1 }
   } catch (err) {
-    avisar(motivo(err, 'Nao foi possivel salvar a vacinacao.'), true)
+    avisar(apiErrorMessage(err, 'Não foi possível salvar a vacinação.'), true)
   } finally {
     loading.value = false
   }
@@ -244,13 +238,15 @@ const handleBatchMove = async () => {
     avisar(`${doQuadrante.length} animal(is) movimentado(s).`)
     batchData.value = { origin_quadrant: '', target_quadrant: '' }
   } catch (err) {
-    avisar(motivo(err, 'Nao foi possivel mover o lote.'), true)
+    avisar(apiErrorMessage(err, 'Não foi possível mover o lote.'), true)
   } finally {
     loading.value = false
   }
 }
 
 onMounted(async () => {
+  loadingOptions.value = true
+  optionsError.value = ''
   try {
     const [v, q, t] = await Promise.all([
       api.get('vaccines/'),
@@ -261,7 +257,12 @@ onMounted(async () => {
     quadrants.value = q.data
     movementTypes.value = t.data
   } catch (err) {
-    avisar('Nao foi possivel carregar vacinas e quadrantes.', true)
+    vaccinesList.value = []
+    quadrants.value = []
+    movementTypes.value = []
+    optionsError.value = apiErrorMessage(err, 'Não foi possível carregar vacinas, quadrantes e tipos de movimentação.')
+  } finally {
+    loadingOptions.value = false
   }
 })
 </script>

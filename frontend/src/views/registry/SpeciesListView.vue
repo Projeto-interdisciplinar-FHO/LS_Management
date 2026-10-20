@@ -57,6 +57,10 @@
             <label class="field__label" for="nome-especie">Nome da espécie</label>
             <input id="nome-especie" v-model="form.name" class="input" type="text" placeholder="Ex: Bovino" required>
           </div>
+          <p v-if="erroModal" class="alert alert--danger" role="alert">
+            <AppIcon name="alert" :size="16" />
+            <span>{{ erroModal }}</span>
+          </p>
         </form>
 
         <template #rodape>
@@ -78,6 +82,7 @@ import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppModal from '@/components/ui/AppModal.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import { apiErrorMessage } from '@/utils/apiError';
 
 const painel = computed(() => painelDoPapel());
 
@@ -86,6 +91,7 @@ const loading = ref(false);
 const showModal = ref(false);
 const saving = ref(false);
 const erro = ref('');
+const erroModal = ref('');
 const form = ref({ name: '' });
 
 const normalizeList = (response) => {
@@ -111,17 +117,20 @@ const loadSpecies = async () => {
 
 const openModal = () => {
   form.value = { name: '' };
+  erroModal.value = '';
   showModal.value = true;
 };
 
 const submitSpecie = async () => {
   saving.value = true;
+  erroModal.value = '';
   try {
     await api.post('species/', form.value);
     showModal.value = false;
     await loadSpecies();
   } catch (error) {
     console.error('Erro ao cadastrar espécie:', error);
+    erroModal.value = apiErrorMessage(error, 'Não foi possível cadastrar a espécie. Confira o nome e tente novamente.');
   } finally {
     saving.value = false;
   }

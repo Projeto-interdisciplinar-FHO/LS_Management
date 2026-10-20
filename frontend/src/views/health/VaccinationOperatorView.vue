@@ -8,6 +8,11 @@
         :voltar-para="painel"
       />
 
+      <p v-if="optionsError" class="alert alert--danger" role="alert">
+        <AppIcon name="alert" :size="16" />
+        <span>{{ optionsError }}</span>
+      </p>
+
       <div class="grid grid--wide">
         <section class="card">
           <header class="card__head">
@@ -24,8 +29,8 @@
             <div class="card__body stack">
               <div class="field">
                 <label class="field__label" for="ind-animal">Animal</label>
-                <select id="ind-animal" v-model="individualForm.animal" class="select" required>
-                  <option value="" disabled>Escolha um animal...</option>
+                <select id="ind-animal" v-model="individualForm.animal" class="select" required :disabled="loadingOptions || !animalsList.length">
+                  <option value="" disabled>{{ loadingOptions ? 'Carregando animais...' : 'Escolha um animal...' }}</option>
                   <option v-for="animal in animalsList" :key="animal.id" :value="animal.id">
                     {{ animal.name || 'Sem nome' }} — brinco #{{ animal.register_number }}
                   </option>
@@ -34,8 +39,8 @@
 
               <div class="field">
                 <label class="field__label" for="ind-vacina">Vacina aplicada</label>
-                <select id="ind-vacina" v-model="individualForm.vaccine" class="select" required>
-                  <option value="" disabled>Selecione uma vacina...</option>
+                <select id="ind-vacina" v-model="individualForm.vaccine" class="select" required :disabled="loadingOptions || !vaccinesList.length">
+                  <option value="" disabled>{{ loadingOptions ? 'Carregando vacinas...' : 'Selecione uma vacina...' }}</option>
                   <option v-for="vaccine in vaccinesList" :key="vaccine.id" :value="vaccine.id">
                     {{ vaccine.name }}
                   </option>
@@ -53,15 +58,15 @@
                 </div>
               </div>
 
-              <p v-if="msgInd" class="alert" :class="okInd ? 'alert--ok' : 'alert--danger'" role="status">
+              <p v-if="msgInd" class="alert" :class="okInd ? 'alert--ok' : 'alert--danger'" :role="okInd ? 'status' : 'alert'">
                 <AppIcon :name="okInd ? 'check-circle' : 'alert'" :size="16" />
                 <span>{{ msgInd }}</span>
               </p>
             </div>
 
             <footer class="card__foot">
-              <button type="submit" class="btn btn--primary" :disabled="loadingInd">
-                {{ loadingInd ? 'Salvando...' : 'Registrar vacina' }}
+              <button type="submit" class="btn btn--primary" :disabled="loadingInd || loadingOptions || !animalsList.length || !vaccinesList.length">
+                {{ loadingInd ? 'Salvando...' : loadingOptions ? 'Carregando opções...' : 'Registrar vacina' }}
               </button>
             </footer>
           </form>
@@ -82,8 +87,8 @@
             <div class="card__body stack">
               <div class="field">
                 <label class="field__label" for="lote-estabulo">Estábulo</label>
-                <select id="lote-estabulo" v-model="batchForm.quadrant" class="select" required>
-                  <option value="" disabled>Escolha um estábulo...</option>
+                <select id="lote-estabulo" v-model="batchForm.quadrant" class="select" required :disabled="loadingOptions || !stablesList.length">
+                  <option value="" disabled>{{ loadingOptions ? 'Carregando estábulos...' : 'Escolha um estábulo...' }}</option>
                   <option v-for="stable in stablesList" :key="stable.id" :value="stable.id">
                     {{ stable.name || stable.nome_quadrante || `Estábulo ${stable.id}` }}
                   </option>
@@ -92,8 +97,8 @@
 
               <div class="field">
                 <label class="field__label" for="lote-vacina">Vacina aplicada</label>
-                <select id="lote-vacina" v-model="batchForm.vaccine" class="select" required>
-                  <option value="" disabled>Selecione uma vacina...</option>
+                <select id="lote-vacina" v-model="batchForm.vaccine" class="select" required :disabled="loadingOptions || !vaccinesList.length">
+                  <option value="" disabled>{{ loadingOptions ? 'Carregando vacinas...' : 'Selecione uma vacina...' }}</option>
                   <option v-for="vaccine in vaccinesList" :key="vaccine.id" :value="vaccine.id">
                     {{ vaccine.name }}
                   </option>
@@ -116,15 +121,15 @@
                 <span>O lançamento vale para todos os animais do estábulo escolhido.</span>
               </p>
 
-              <p v-if="msgLote" class="alert" :class="okLote ? 'alert--ok' : 'alert--danger'" role="status">
+              <p v-if="msgLote" class="alert" :class="okLote ? 'alert--ok' : 'alert--danger'" :role="okLote ? 'status' : 'alert'">
                 <AppIcon :name="okLote ? 'check-circle' : 'alert'" :size="16" />
                 <span>{{ msgLote }}</span>
               </p>
             </div>
 
             <footer class="card__foot">
-              <button type="submit" class="btn btn--primary" :disabled="loadingBatch">
-                {{ loadingBatch ? 'Processando lote...' : 'Vacinar lote inteiro' }}
+              <button type="submit" class="btn btn--primary" :disabled="loadingBatch || loadingOptions || !stablesList.length || !vaccinesList.length">
+                {{ loadingBatch ? 'Processando lote...' : loadingOptions ? 'Carregando opções...' : 'Vacinar lote inteiro' }}
               </button>
             </footer>
           </form>
@@ -141,11 +146,14 @@ import { painelDoPapel } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import { apiErrorMessage } from '@/utils/apiError';
 
 const painel = computed(() => painelDoPapel());
 
 const loadingInd = ref(false);
 const loadingBatch = ref(false);
+const loadingOptions = ref(true);
+const optionsError = ref('');
 
 // Cada formulário tem a sua própria resposta, do lado do botão que a produziu.
 // Antes os dois usavam alert(), sem dizer qual dos dois tinha respondido.
@@ -177,36 +185,37 @@ onMounted(() => {
 });
 
 const fetchDropdownData = async () => {
+  loadingOptions.value = true;
+  optionsError.value = '';
+  const setters = [animalsList, vaccinesList, stablesList];
+  const labels = ['animais', 'vacinas', 'estábulos'];
+
   try {
-    // 1. Busca os animais para o novo dropdown
-    api.get('animals/').then(res => {
-      // Trata tanto a resposta paginada do Django quanto a direta
-      animalsList.value = res.data.results || res.data;
-    }).catch(e => console.error("Erro ao carregar animais", e));
+    const responses = await Promise.allSettled([
+      api.get('animals/'),
+      api.get('vaccines/'),
+      api.get('quadrants/'),
+    ]);
+    const failedLabels = [];
 
-    // 2. Busca as vacinas
-    api.get('vaccines/').then(res => {
-      vaccinesList.value = res.data.results || res.data;
-    }).catch(() => {
-      // Mock de segurança caso a rota não exista no backend ainda
-      vaccinesList.value = [
-        { id: 1, name: 'Febre Aftosa' },
-        { id: 2, name: 'Brucelose' },
-        { id: 3, name: 'Raiva' }
-      ];
+    responses.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const data = result.value.data;
+        setters[index].value = data?.results || data || [];
+      } else {
+        setters[index].value = [];
+        failedLabels.push(labels[index]);
+      }
     });
 
-    // 3. Busca os estábulos
-    api.get('quadrants/').then(res => {
-      stablesList.value = res.data.results || res.data;
-    }).catch(() => {
-      stablesList.value = [
-        { id: 1, name: 'Estábulo Principal' },
-        { id: 2, name: 'Estábulo Sul' }
-      ];
-    });
-  } catch (e) {
-    console.error(e);
+    if (failedLabels.length) {
+      optionsError.value = `Não foi possível carregar ${failedLabels.join(', ')}. Verifique a conexão e tente novamente.`;
+    }
+  } catch (error) {
+    console.error(error);
+    optionsError.value = apiErrorMessage(error, 'Não foi possível carregar as opções de vacinação.');
+  } finally {
+    loadingOptions.value = false;
   }
 };
 
@@ -231,7 +240,7 @@ const submitIndividual = async () => {
   } catch (error) {
     console.error(error);
     okInd.value = false;
-    msgInd.value = 'Erro ao registrar a vacina. Verifique a conexão com o servidor.';
+    msgInd.value = apiErrorMessage(error, 'Não foi possível registrar a vacinação individual.');
   } finally {
     loadingInd.value = false;
     setTimeout(() => { msgInd.value = ''; }, 5000);
@@ -259,7 +268,7 @@ const submitBatch = async () => {
   } catch (error) {
     console.error(error);
     okLote.value = false;
-    msgLote.value = 'Erro ao vacinar o lote no servidor.';
+    msgLote.value = apiErrorMessage(error, 'Não foi possível vacinar o lote selecionado.');
   } finally {
     loadingBatch.value = false;
     setTimeout(() => { msgLote.value = ''; }, 5000);

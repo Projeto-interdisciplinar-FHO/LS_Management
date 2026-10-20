@@ -57,6 +57,10 @@
 
             <form v-else @submit.prevent="updateAnimalInfo">
               <div class="card__body stack">
+                <p v-if="editError" class="alert alert--danger" role="alert">
+                  <AppIcon name="alert" :size="16" />
+                  <span>{{ editError }}</span>
+                </p>
                 <div class="field">
                   <label class="field__label" for="ed-nome">Nome / apelido</label>
                   <input id="ed-nome" v-model="editData.name" class="input" type="text" required>
@@ -244,6 +248,7 @@ import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import { SITUACOES, ativoPara, badgeSituacao, rotuloSituacao } from '@/utils/statusUtils';
+import { apiErrorMessage } from '@/utils/apiError';
 
 const route = useRoute();
 const router = useRouter();
@@ -252,6 +257,7 @@ const animal = ref(null);
 const loading = ref(true);
 const saving = ref(false);
 const deleting = ref(false);
+const editError = ref('');
 const activeTab = ref('geral');
 const isEditing = ref(false);
 
@@ -468,6 +474,7 @@ const deleteHealthRecord = async (record) => {
 
 const toggleEdit = () => {
   isEditing.value = !isEditing.value;
+  editError.value = '';
   if (!isEditing.value && animal.value) {
     editData.value = { ...animal.value };
   }
@@ -475,6 +482,7 @@ const toggleEdit = () => {
 
 const updateAnimalInfo = async () => {
   saving.value = true;
+  editError.value = '';
   try {
     // `active` acompanha o `status`, como no cadastro.
     const dados = { ...editData.value, active: ativoPara(editData.value.status) };
@@ -482,6 +490,7 @@ const updateAnimalInfo = async () => {
     animal.value = { ...animal.value, ...dados };
     isEditing.value = false;
   } catch (error) {
+    editError.value = apiErrorMessage(error, 'Não foi possível atualizar os dados do animal. Confira os campos e tente novamente.');
   } finally {
     saving.value = false;
   }

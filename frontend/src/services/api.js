@@ -1,13 +1,15 @@
 import axios from 'axios';
+import { limparSessao } from './auth';
 
 // A URL do backend vem do ambiente, com o padrao apontando para a maquina
 // local. Estava fixa aqui enquanto os componentes ja liam VITE_API_URL — as
 // duas metades discordavam, e publicar em qualquer lugar que nao fosse
 // 127.0.0.1 quebrava metade das telas em silencio.
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+const API_BASE_URL = API_URL.replace(/\/$/, '');
 
 const apiClient = axios.create({
-  baseURL: API_URL.replace(/\/$/, '') + '/',
+  baseURL: `${API_BASE_URL}/`,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -23,18 +25,64 @@ apiClient.interceptors.request.use(config => {
   return Promise.reject(error);
 });
 
-// Token vence e a tela ficava em branco, sem mensagem: cada chamada dava 401
-// e o erro morria no console. Agora expira a sessao e manda para o login, que
-// e o unico lugar onde a pessoa consegue resolver.
+let refreshRequest = null;
+
+const renovarAccessToken = () => {
+  if (!refreshRequest) {
+    const refresh = localStorage.getItem('refresh_token');
+    if (!refresh) return Promise.reject(new Error('Refresh token não encontrado.'));
+
+    refreshRequest = axios
+      .post(`${API_BASE_URL}/api/token/refresh/`, { refresh })
+      .then(({ data }) => {
+        if (!data.access) throw new Error('A renovação não retornou um access token.');
+        localStorage.setItem('access_token', data.access);
+        if (data.refresh) localStorage.setItem('refresh_token', data.refresh);
+        return data.access;
+      })
+      .finally(() => {
+        refreshRequest = null;
+      });
+  }
+
+  return refreshRequest;
+};
+
+const encerrarSessao = () => {
+  limparSessao();
+  if (window.location.pathname !== '/login') window.location.href = '/login';
+};
+
 apiClient.interceptors.response.use(
   (resposta) => resposta,
-  (erro) => {
+  async (erro) => {
     const rota = window.location.pathname;
-    if (erro.response?.status === 401 && rota !== '/login') {
-      localStorage.removeItem('access_token');
-      window.location.href = '/login';
+    const requisicao = erro.config;
+
+    if (
+      erro.response?.status !== 401 ||
+      !requisicao ||
+      rota === '/login' ||
+      requisicao.url?.includes('api/token/')
+    ) {
+      return Promise.reject(erro);
     }
-    return Promise.reject(erro);
+
+    if (requisicao._retry) {
+      encerrarSessao();
+      return Promise.reject(erro);
+    }
+
+    requisicao._retry = true;
+
+    try {
+      const access = await renovarAccessToken();
+      requisicao.headers.Authorization = `Bearer ${access}`;
+      return apiClient(requisicao);
+    } catch (erroRenovacao) {
+      encerrarSessao();
+      return Promise.reject(erroRenovacao);
+    }
   }
 );
 
