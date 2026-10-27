@@ -124,6 +124,8 @@ Authorization: Bearer SEU_TOKEN_AQUI
 | --- | --- |
 | GET, POST | `/animals/` |
 | GET, PUT, PATCH, DELETE | `/animals/<int:pk>` |
+| GET | `/animals/export-fields/` |
+| GET | `/animals/export/` |
 
 #### Exemplo de resposta
 
@@ -142,6 +144,25 @@ Authorization: Bearer SEU_TOKEN_AQUI
   "purpose": 1
 }
 ```
+
+#### Exportação CSV de animais
+
+`GET /animals/export/` retorna um arquivo CSV autenticado. Sem parâmetros,
+exporta todos os animais e todos os campos disponíveis. Para exportar somente
+um estábulo, informe `quadrant_id` (ou `estabulo_id`). Para exportar todos os
+estábulos, use `quadrant_id=all` ou omita o parâmetro.
+
+Os campos podem ser escolhidos pela chave retornada em
+`GET /animals/export-fields/`, separados por vírgula:
+
+```text
+/animals/export/?quadrant_id=3&fields=register_number,name,current_quadrant_name,last_weight
+```
+
+O filtro considera o último movimento registrado de cada animal como seu
+estábulo atual. Campos históricos são exportados de forma agregada por animal
+(por exemplo, quantidade de vacinações e produção de leite acumulada), evitando
+que um animal apareça repetido no CSV.
 
 ### Breeds
 

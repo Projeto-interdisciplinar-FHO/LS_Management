@@ -7,6 +7,7 @@ from apps.health.vaccination_plans.models import VaccinationPlan
 from apps.health.vaccinations.models import Vaccination
 from apps.health.vaccines.models import Vaccine
 from apps.herd.breeds.models import Breed
+from apps.herd.cattle.exports import AnimalExportMixin
 from apps.herd.cattle.models import Bull, CattleClass, Cow
 from apps.herd.quadrants.models import Quadrant
 from apps.movements.animal_movements.models import AnimalMovement
@@ -60,7 +61,7 @@ class BullViewSet(QuerysetViewSet):
     serializer_class = BullSerializer
 
 
-class CowViewSet(QuerysetViewSet):
+class CowViewSet(AnimalExportMixin, QuerysetViewSet):
     queryset = Cow.objects.all()
     serializer_class = CowSerializer
 

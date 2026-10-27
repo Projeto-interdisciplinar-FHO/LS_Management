@@ -52,6 +52,18 @@ python manage.py migrate
 python manage.py runserver
 ```
 
+### 6. Carregar dados de demonstração
+
+Para preencher o banco local com dados variados de teste, execute:
+
+```powershell
+python manage.py shell -c "exec(open('scripts/seed_demo_data.py', encoding='utf-8').read())"
+```
+
+O script é idempotente para os registros de demonstração e cria os usuários
+`admin`/`admin` e `operador_demo`/`operador123`, além de animais, estábulos,
+movimentações, reprodução, vacinação, saúde, alimentação e produção.
+
 ## Autenticação
 
 O backend usa JWT. As rotas de autenticação ficam em `authentication/token/`.
