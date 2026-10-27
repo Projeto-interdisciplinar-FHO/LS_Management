@@ -1,10 +1,10 @@
 from django.db import models
 from django.utils import timezone
-from apps.herd.animals.models import Animal
+from apps.herd.cattle.models import Cow
 from apps.health.vaccines.models import Vaccine
 
 class Vaccination(models.Model):
-    animal = models.ForeignKey(Animal, on_delete=models.CASCADE)
+    animal = models.ForeignKey(Cow, on_delete=models.CASCADE, related_name="vaccine_applications")
     vaccine = models.ForeignKey(Vaccine, on_delete=models.CASCADE)
     vaccination_plan = models.ForeignKey('vaccination_plans.VaccinationPlan', on_delete=models.SET_NULL, null=True, blank=True, related_name='applications')
     dosage = models.DecimalField(max_digits=10, decimal_places=2)
@@ -14,6 +14,9 @@ class Vaccination(models.Model):
     doses_taken = models.IntegerField(null=True, blank=True)
     total_doses = models.IntegerField(null=True, blank=True)
     vaccination_status = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "vaccine_applications"
 
     def __str__(self):
         return f"{self.animal.name} - {self.vaccine.name} ({self.vaccination_date})"

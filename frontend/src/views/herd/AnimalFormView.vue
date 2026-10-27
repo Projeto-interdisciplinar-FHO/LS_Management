@@ -38,26 +38,13 @@
             </div>
 
             <div class="field">
-              <label class="field__label" for="nascimento">Data de nascimento</label>
-              <input id="nascimento" v-model="formData.birth_date" class="input" type="date" required>
-            </div>
-
-            <div class="field">
-              <label class="field__label" for="sexo">Sexo</label>
-              <select id="sexo" v-model="formData.sex" class="select">
-                <option value="m">Macho</option>
-                <option value="f">Fêmea</option>
-              </select>
-            </div>
-
-            <div class="field">
               <label class="field__label" for="situacao">Situação</label>
               <select id="situacao" v-model="formData.status" class="select">
-                <option v-for="s in SITUACOES" :key="s.valor" :value="s.valor">{{ s.rotulo }}</option>
+                <option value="active">Ativa</option>
+                <option value="inactive">Inativa</option>
+                <option value="sold">Vendida</option>
+                <option value="deceased">Óbito</option>
               </select>
-              <span class="field__hint">
-                Vendido, óbito e inativo tiram o animal das rotinas de manejo, mas preservam o histórico.
-              </span>
             </div>
           </div>
         </section>
@@ -110,6 +97,19 @@
                 </option>
               </select>
             </div>
+
+            <div class="field">
+              <label class="field__label" for="escore">Escore corporal</label>
+              <input id="escore" v-model.number="formData.score" class="input" type="number" min="0" step="0.01">
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="reproductive-status">Status reprodutivo</label>
+              <select id="reproductive-status" v-model="formData.reproductive_status" class="select">
+                <option :value="true">Apto</option>
+                <option :value="false">Inapto</option>
+              </select>
+            </div>
           </div>
 
           <footer class="card__foot">
@@ -144,15 +144,11 @@ const loadingRecord = ref(false);
 const optionsError = ref('');
 const formMessage = ref('');
 
-const speciesList = ref([]);
 const breedsList = ref([]);
-const stablesList = ref([]);
-const purposeList = ref([]);
 
 const formData = ref({
-  name: '', register_number: '', birth_date: '', sex: 'm',
-  status: 'ativo', active: true,
-  specie: '', breed: '', quadrant: '', purpose: '' // purpose é obrigatório no backend
+  name: '', register_number: '', status: 'active', score: 0,
+  reproductive_status: true, breed: '', birth: null
 });
 
 onMounted(async () => {
@@ -215,7 +211,7 @@ const saveAnimal = async () => {
   try {
     // O booleano legado `active` sai do `status` — a tela não tem dois
     // controles para a mesma coisa, mas o backend continua recebendo os dois.
-    const dados = { ...formData.value, active: ativoPara(formData.value.status) };
+    const dados = { ...formData.value, register_number: Number(formData.value.register_number) };
 
     if (isEdit.value) {
       await api.put(`animals/${route.params.id}/`, dados);
