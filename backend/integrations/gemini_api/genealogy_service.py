@@ -20,26 +20,49 @@ class GenealogyReproductionService:
 
     def validar_cruzamento(
         self,
-        id_femea: int,
-        id_macho: int,
+        id_femea: Optional[int] = None,
+        id_macho: Optional[int] = None,
+        cow_id: Optional[int] = None,
+        bull_id: Optional[int] = None,
+        mother_id: Optional[int] = None,
+        father_id: Optional[int] = None,
         observacoes: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Executa o processo completo de validação genealógica para reprodução:
+        - Aceita tanto id_femea/id_macho quanto cow_id/bull_id e mother_id/father_id.
         - Consulta o banco de dados real em profundidade (até a 3ª geração: bisavós).
         - Envia a árvore completa ao Gemini para análise de consanguinidade e risco genético.
         - Retorna o veredito estruturado.
         """
-        # Etapa 1: Captura os dados reais do banco de dados externo
+        femea_id = id_femea or cow_id or mother_id
+        macho_id = id_macho or bull_id or father_id
+
+        if not femea_id or not macho_id:
+            return {
+                "apto": False,
+                "status": "ERRO_PARAMETROS",
+                "nivel_risco_consanguinidade": "DESCONHECIDO",
+                "geracao_parentesco_detectada": None,
+                "ancestrais_comuns": [],
+                "analise_genealogica": "É obrigatório fornecer o ID da fêmea (vaca/matriz) e do macho (touro/reprodutor).",
+                "analise_zootecnica_complementar": "",
+                "veredito_final": "Forneça os IDs da vaca e do touro para validação genealógica."
+            }
+
+        # Etapa 1: Captura os dados reais do banco de dados (modelos Cow, Bull, Birth, Insemination)
         dados_arvore = self.extractor.extrair_arvore_completa(
-            id_femea=id_femea,
-            id_macho=id_macho
+            id_femea=int(femea_id),
+            id_macho=int(macho_id)
         )
 
-        # Etapa 2: Executa a validação zootécnica e genealógica via Gemini
+        parentesco_direto = dados_arvore.get("parentesco_direto_detectado")
+
+        # Etapa 2: Executa a validação zootécnica e genealógica via Gemini com fail-safe
         veredito = self.adapter.validar_reproducao(
             dados_femea=dados_arvore.get("femea", {}),
             dados_macho=dados_arvore.get("macho", {}),
+            parentesco_direto=parentesco_direto,
             observacoes=observacoes
         )
 
@@ -52,19 +75,14 @@ class GenealogyReproductionService:
 _reproduction_service = GenealogyReproductionService()
 
 
-def validar_genealogia_reproducao(
-    id_femea: int,
-    id_macho: int,
-    observacoes: Optional[str] = None
-) -> Dict[str, Any]:
+def validar_genealogia_reproducao(*args, **kwargs) -> Dict[str, Any]:
     """
     Função Facade de entrada rápida para ser consumida diretamente pelo sistema.
-    Uso:
-        resultado = validar_genealogia_reproducao(id_femea=10, id_macho=25)
+    Aceita múltiplos formatos de argumentos:
+        validar_genealogia_reproducao(id_femea=2, id_macho=1)
+        validar_genealogia_reproducao(cow_id=2, bull_id=1)
+        validar_genealogia_reproducao(mother_id=2, father_id=1)
     """
-    return _reproduction_service.validar_cruzamento(
-        id_femea=id_femea,
-        id_macho=id_macho,
-        observacoes=observacoes
-    )
-
+    if len(args) == 2:
+        return _reproduction_service.validar_cruzamento(id_femea=args[0], id_macho=args[1], **kwargs)
+    return _reproduction_service.validar_cruzamento(**kwargs)

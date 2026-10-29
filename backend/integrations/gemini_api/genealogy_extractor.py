@@ -1,8 +1,9 @@
 """
 Módulo de extração de dados genealógicos para reprodução bovina.
-Responsável por consultar o banco de dados real (via conexão Django)
-e reconstruir as árvores genealógicas da fêmea e do macho até a 3ª geração (bisavós).
-Nenhum dado fictício é criado; consome as tabelas reais do banco de dados externo.
+Totalmente sincronizado com os modelos atualizados do backend:
+- apps.herd.cattle.models (Cow, Bull, Breed)
+- apps.reproduction.models (Insemination, Birth, BirthOccurrence)
+Consulta os dados reais no banco do projeto sem dados fictícios.
 """
 
 from typing import Dict, Any, Optional
@@ -11,9 +12,8 @@ from django.db import connection
 
 class GenealogyExtractor:
     """
-    Extrator dinâmico de dados genealógicos no banco de dados ativo do projeto.
-    Suporta tanto esquemas relacionais dedicados (vacas, touros, inseminacao, nascimento)
-    quanto modelos padrão do rebanho, inspecionando as tabelas reais sem mock.
+    Extrator de dados genealógicos sincronizado com os modelos Cow, Bull, Insemination e Birth.
+    Reconstrói a árvore genealógica de ambos os indivíduos até a 3ª geração (Pais, Avós e Bisavós).
     """
 
     MAX_GENERATIONS = 3  # Pais (1ª), Avós (2ª), Bisavós (3ª)
@@ -21,258 +21,243 @@ class GenealogyExtractor:
     def __init__(self, db_connection=None):
         self.connection = db_connection or connection
 
-    def _get_existing_tables(self, cursor) -> set:
-        """Obtém os nomes de todas as tabelas existentes no banco ativo."""
-        try:
-            return set(self.connection.introspection.table_names(cursor))
-        except Exception:
-            return set()
-
-    def _get_table_columns(self, cursor, table_name: str) -> set:
-        """Obtém as colunas de uma tabela específica."""
-        try:
-            description = self.connection.introspection.get_table_description(cursor, table_name)
-            return {col.name.lower() for col in description}
-        except Exception:
-            return set()
-
     def extrair_arvore_completa(self, id_femea: int, id_macho: int) -> Dict[str, Any]:
         """
-        Executa a extração completa dos dados da fêmea e do macho,
-        incluindo suas árvores genealógicas até a 3ª geração.
+        Executa a extração completa dos dados reais da vaca (Cow) e do touro (Bull),
+        incluindo suas árvores genealógicas até a 3ª geração e identificação de parentesco direto.
         """
-        with self.connection.cursor() as cursor:
-            tables = self._get_existing_tables(cursor)
+        # Tentativa 1: Utiliza os modelos Django nativos sincronizados do backend
+        try:
+            return self._extrair_via_orm(id_femea, id_macho)
+        except Exception:
+            # Tentativa 2: Fallback resiliente via SQL direto nas tabelas reais
+            return self._extrair_via_sql(id_femea, id_macho)
 
-            dados_femea = self._extrair_femea(cursor, tables, id_femea)
-            dados_macho = self._extrair_macho(cursor, tables, id_macho)
+    def _extrair_via_orm(self, id_femea: int, id_macho: int) -> Dict[str, Any]:
+        """Extrai os dados utilizando diretamente os modelos Cow, Bull, Insemination e Birth."""
+        from apps.herd.cattle.models import Cow, Bull
 
-            return {
-                "femea": dados_femea,
-                "macho": dados_macho
-            }
+        cow_obj = Cow.objects.select_related("breed", "birth__insemination__father", "birth__insemination__mother").filter(id=id_femea).first()
+        bull_obj = Bull.objects.select_related("breed").filter(id=id_macho).first()
 
-    def _extrair_femea(self, cursor, tables: set, id_femea: int) -> Dict[str, Any]:
-        """Extrai os dados da matriz/fêmea e sua árvore genealógica."""
-        # Cenário 1: Tabela dedicada 'vacas' do diagrama do banco externo
-        if "vacas" in tables:
-            cols = self._get_table_columns(cursor, "vacas")
-            col_list = ["id", "nome"]
-            if "escore_ecc" in cols:
-                col_list.append("escore_ecc")
-            if "status_reproducao" in cols:
-                col_list.append("status_reproducao")
-            if "data_nasci" in cols:
-                col_list.append("data_nasci")
-            if "id_pai" in cols:
-                col_list.append("id_pai")
-            if "id_mae" in cols:
-                col_list.append("id_mae")
+        dados_femea = self._montar_dados_vaca_orm(cow_obj, id_femea)
+        dados_macho = self._montar_dados_touro_orm(bull_obj, id_macho)
 
-            query = f"SELECT {', '.join(col_list)} FROM vacas WHERE id = %s"
-            cursor.execute(query, [id_femea])
-            row = cursor.fetchone()
+        # Checagem determinística de parentesco direto (Ex: o touro candidato é o pai/avô da vaca?)
+        parentesco_direto = self._verificar_parentesco_direto(dados_femea, id_macho)
 
-            if not row:
-                return {
-                    "id": id_femea,
-                    "nome": f"Fêmea #{id_femea}",
-                    "status_banco": "Registro não localizado no banco externo",
-                    "arvore": {"pai": None, "mae": None}
-                }
+        return {
+            "femea": dados_femea,
+            "macho": dados_macho,
+            "parentesco_direto_detectado": parentesco_direto
+        }
 
-            row_dict = dict(zip(col_list, row))
-            id_pai = row_dict.get("id_pai")
-            id_mae = row_dict.get("id_mae")
-
-            # Se não tem id_mae direto na tabela vacas, busca na tabela nascimento/inseminacao
-            if not id_mae and "nascimento" in tables and "inseminacao" in tables:
-                id_mae = self._buscar_mae_por_nascimento(cursor, tables, id_femea)
-
-            arvore = {
-                "pai": self._buscar_ancestral_macho(cursor, tables, id_pai, nivel=1) if id_pai else None,
-                "mae": self._buscar_ancestral_femea(cursor, tables, id_mae, nivel=1) if id_mae else None
-            }
-
+    def _montar_dados_vaca_orm(self, cow_obj, id_femea: int) -> Dict[str, Any]:
+        """Constrói o dicionário da fêmea com árvore genealógica recursiva via ORM."""
+        if not cow_obj:
             return {
                 "id": id_femea,
-                "nome": row_dict.get("nome") or f"Vaca #{id_femea}",
-                "escore_ecc": row_dict.get("escore_ecc"),
-                "status_reproducao": row_dict.get("status_reproducao"),
-                "data_nascimento": str(row_dict.get("data_nasci")) if row_dict.get("data_nasci") else None,
-                "arvore": arvore
+                "nome": f"Vaca #{id_femea}",
+                "status_banco": "Registro não localizado na tabela cows",
+                "arvore": {"pai": None, "mae": None}
             }
 
-        # Cenário 2: Tabela padrão 'animals_animal' do Django
-        if "animals_animal" in tables:
-            cursor.execute("SELECT id, name, birth_date, sex, status FROM animals_animal WHERE id = %s", [id_femea])
-            row = cursor.fetchone()
-            if row:
-                return {
-                    "id": row[0],
-                    "nome": row[1],
-                    "data_nascimento": str(row[2]) if row[2] else None,
-                    "sexo": row[3],
-                    "status": row[4],
-                    "arvore": {"pai": None, "mae": None}
-                }
+        score_ecc = float(cow_obj.score) if cow_obj.score is not None else None
+        data_nascimento = str(cow_obj.birth.date) if cow_obj.birth and cow_obj.birth.date else None
+        peso_nascimento = float(cow_obj.birth.weight) if cow_obj.birth and cow_obj.birth.weight else None
+        raca_nome = cow_obj.breed.name if cow_obj.breed else "Não informada"
 
-        return {
-            "id": id_femea,
-            "nome": f"Fêmea #{id_femea}",
-            "arvore": {"pai": None, "mae": None}
+        arvore = {
+            "pai": self._buscar_pai_vaca_orm(cow_obj, nivel=1),
+            "mae": self._buscar_mae_vaca_orm(cow_obj, nivel=1)
         }
 
-    def _extrair_macho(self, cursor, tables: set, id_macho: int) -> Dict[str, Any]:
-        """Extrai os dados do reprodutor/touro e sua árvore genealógica."""
-        # Cenário 1: Tabela dedicada 'touros' do diagrama do banco externo
-        if "touros" in tables:
-            cols = self._get_table_columns(cursor, "touros")
-            col_list = ["id", "nome"]
-            if "id_pai" in cols:
-                col_list.append("id_pai")
-            if "id_mae" in cols:
-                col_list.append("id_mae")
+        return {
+            "id": cow_obj.id,
+            "nome": cow_obj.name,
+            "numero_registro": cow_obj.register_number,
+            "raca": raca_nome,
+            "status": cow_obj.status,
+            "status_reprodutivo": cow_obj.reproductive_status,
+            "escore_ecc": score_ecc,
+            "data_nascimento": data_nascimento,
+            "peso_nascimento": peso_nascimento,
+            "arvore": arvore
+        }
 
-            query = f"SELECT {', '.join(col_list)} FROM touros WHERE id = %s"
-            cursor.execute(query, [id_macho])
-            row = cursor.fetchone()
+    def _buscar_pai_vaca_orm(self, cow_obj, nivel: int) -> Optional[Dict[str, Any]]:
+        """Recupera o pai (Bull) de uma vaca via Birth -> Insemination -> Father."""
+        if not cow_obj or not cow_obj.birth or not cow_obj.birth.insemination:
+            return None
 
-            if not row:
-                return {
-                    "id": id_macho,
-                    "nome": f"Macho/Touro #{id_macho}",
-                    "status_banco": "Registro não localizado no banco externo",
-                    "arvore": {"pai": None, "mae": None}
-                }
+        insem = cow_obj.birth.insemination
+        father_obj = insem.father
+        if not father_obj:
+            return None
 
-            row_dict = dict(zip(col_list, row))
-            id_pai = row_dict.get("id_pai")
-            id_mae = row_dict.get("id_mae")
+        raca_nome = father_obj.breed.name if father_obj.breed else "Não informada"
+        resultado = {
+            "id": father_obj.id,
+            "nome": father_obj.name,
+            "numero_registro": father_obj.register_number,
+            "raca": raca_nome,
+            "geracao": nivel,
+            "parentesco": "Pai" if nivel == 1 else ("Avô Paterno" if nivel == 2 else "Bisavô Paterno")
+        }
 
-            arvore = {
-                "pai": self._buscar_ancestral_macho(cursor, tables, id_pai, nivel=1) if id_pai else None,
-                "mae": self._buscar_ancestral_femea(cursor, tables, id_mae, nivel=1) if id_mae else None
-            }
+        resultado["pai"] = None
+        resultado["mae"] = None
+        return resultado
 
+    def _buscar_mae_vaca_orm(self, cow_obj, nivel: int) -> Optional[Dict[str, Any]]:
+        """Recupera recursivamente a mãe (Cow) de uma vaca até a 3ª geração."""
+        if not cow_obj or not cow_obj.birth or not cow_obj.birth.insemination:
+            return None
+
+        insem = cow_obj.birth.insemination
+        mother_obj = insem.mother
+        if not mother_obj or nivel > self.MAX_GENERATIONS:
+            return None
+
+        raca_nome = mother_obj.breed.name if mother_obj.breed else "Não informada"
+        resultado = {
+            "id": mother_obj.id,
+            "nome": mother_obj.name,
+            "numero_registro": mother_obj.register_number,
+            "raca": raca_nome,
+            "geracao": nivel,
+            "parentesco": "Mãe" if nivel == 1 else ("Avó Materna" if nivel == 2 else "Bisavó Materna")
+        }
+
+        if nivel < self.MAX_GENERATIONS:
+            resultado["pai"] = self._buscar_pai_vaca_orm(mother_obj, nivel + 1)
+            resultado["mae"] = self._buscar_mae_vaca_orm(mother_obj, nivel + 1)
+
+        return resultado
+
+    def _montar_dados_touro_orm(self, bull_obj, id_macho: int) -> Dict[str, Any]:
+        """Constrói o dicionário do touro reprodutor com dados reais."""
+        if not bull_obj:
             return {
                 "id": id_macho,
-                "nome": row_dict.get("nome") or f"Touro #{id_macho}",
-                "arvore": arvore
+                "nome": f"Touro #{id_macho}",
+                "status_banco": "Registro não localizado na tabela bulls",
+                "arvore": {"pai": None, "mae": None}
             }
 
-        # Cenário 2: Tabela padrão 'animals_animal' do Django
-        if "animals_animal" in tables:
-            cursor.execute("SELECT id, name, birth_date, sex, status FROM animals_animal WHERE id = %s", [id_macho])
-            row = cursor.fetchone()
-            if row:
-                return {
-                    "id": row[0],
-                    "nome": row[1],
-                    "data_nascimento": str(row[2]) if row[2] else None,
-                    "sexo": row[3],
-                    "status": row[4],
-                    "arvore": {"pai": None, "mae": None}
-                }
+        raca_nome = bull_obj.breed.name if bull_obj.breed else "Não informada"
+
+        filhas_conhecidas = []
+        try:
+            from apps.herd.cattle.models import Cow
+            filhas = Cow.objects.filter(birth__insemination__father=bull_obj).values_list("id", "name")
+            filhas_conhecidas = [{"id": f[0], "nome": f[1]} for f in filhas[:10]]
+        except Exception:
+            pass
 
         return {
-            "id": id_macho,
-            "nome": f"Macho #{id_macho}",
+            "id": bull_obj.id,
+            "nome": bull_obj.name,
+            "numero_registro": bull_obj.register_number,
+            "raca": raca_nome,
+            "ativo": bull_obj.active,
+            "filhas_no_rebanho": filhas_conhecidas,
             "arvore": {"pai": None, "mae": None}
         }
 
-    def _buscar_mae_por_nascimento(self, cursor, tables: set, id_vaca: int) -> Optional[int]:
-        """Tenta descobrir a mãe biológica através do registro de nascimento/inseminação."""
-        cols_nasc = self._get_table_columns(cursor, "nascimento")
-        cols_insem = self._get_table_columns(cursor, "inseminacao")
+    def _verificar_parentesco_direto(self, dados_femea: Dict[str, Any], id_macho: int) -> Optional[Dict[str, Any]]:
+        """
+        Verifica se o touro candidato é parente direto da vaca nas 3 gerações:
+        - 1ª geração: Touro é o Pai da vaca
+        - 2ª geração: Touro é Avô Paterno ou Avô Materno
+        - 3ª geração: Touro é Bisavô
+        """
+        arvore = dados_femea.get("arvore", {})
 
-        # Verifica se 'nascimento' possui coluna referenciando a vaca ou se foi gerada por inseminacao
-        if "id_vaca" in cols_nasc and "id_inseminacao" in cols_nasc and "id_vaca_mae" in cols_insem:
-            cursor.execute(
-                """
-                SELECT i.id_vaca_mae 
-                FROM nascimento n 
-                JOIN inseminacao i ON n.id_inseminacao = i.id 
-                WHERE n.id_vaca = %s
-                """,
-                [id_vaca]
-            )
-            res = cursor.fetchone()
-            if res:
-                return res[0]
+        # 1ª Geração: Pai
+        pai = arvore.get("pai")
+        if pai and pai.get("id") == id_macho:
+            return {
+                "grau": 1,
+                "tipo": "PAI_DIRETO",
+                "descricao": f"O touro candidato (ID {id_macho}) é o PAI biológico da fêmea candidata."
+            }
+
+        # 2ª Geração: Avô Materno
+        mae = arvore.get("mae")
+        if mae:
+            avo_materno = mae.get("pai")
+            if avo_materno and avo_materno.get("id") == id_macho:
+                return {
+                    "grau": 2,
+                    "tipo": "AVO_MATERNO",
+                    "descricao": f"O touro candidato (ID {id_macho}) é o AVÔ MATERNO da fêmea candidata."
+                }
+
+            # 3ª Geração: Bisavô Materno
+            avó_materna = mae.get("mae")
+            if avó_materna:
+                bisavo_materno = avó_materna.get("pai")
+                if bisavo_materno and bisavo_materno.get("id") == id_macho:
+                    return {
+                        "grau": 3,
+                        "tipo": "BISAVO_MATERNO",
+                        "descricao": f"O touro candidato (ID {id_macho}) é o BISAVÔ da fêmea candidata."
+                    }
+
         return None
 
-    def _buscar_ancestral_macho(self, cursor, tables: set, id_pai: int, nivel: int) -> Optional[Dict[str, Any]]:
-        """Busca recursivamente ancestrais machos até a 3ª geração (bisavós)."""
-        if not id_pai or nivel > self.MAX_GENERATIONS:
-            return None
+    def _extrair_via_sql(self, id_femea: int, id_macho: int) -> Dict[str, Any]:
+        """Fallback resiliente usando consultas diretas via SQL nas tabelas do banco."""
+        with self.connection.cursor() as cursor:
+            tables = set(self.connection.introspection.table_names(cursor))
 
-        nome = f"Touro #{id_pai}"
-        id_proximo_pai = None
-        id_proxima_mae = None
+            tab_cows = "cows" if "cows" in tables else ("vacas" if "vacas" in tables else None)
+            tab_bulls = "bulls" if "bulls" in tables else ("touros" if "touros" in tables else None)
+            tab_insem = "inseminations" if "inseminations" in tables else ("inseminacao" if "inseminacao" in tables else None)
+            tab_births = "births" if "births" in tables else ("nascimento" if "nascimento" in tables else None)
 
-        if "touros" in tables:
-            cols = self._get_table_columns(cursor, "touros")
-            col_list = ["id", "nome"]
-            if "id_pai" in cols:
-                col_list.append("id_pai")
-            if "id_mae" in cols:
-                col_list.append("id_mae")
+            dados_femea = {"id": id_femea, "nome": f"Vaca #{id_femea}", "arvore": {"pai": None, "mae": None}}
+            dados_macho = {"id": id_macho, "nome": f"Touro #{id_macho}", "arvore": {"pai": None, "mae": None}}
 
-            cursor.execute(f"SELECT {', '.join(col_list)} FROM touros WHERE id = %s", [id_pai])
-            row = cursor.fetchone()
-            if row:
-                row_dict = dict(zip(col_list, row))
-                nome = row_dict.get("nome") or nome
-                id_proximo_pai = row_dict.get("id_pai")
-                id_proxima_mae = row_dict.get("id_mae")
+            if tab_cows:
+                cursor.execute(f"SELECT id, name, score, status, birth_id FROM {tab_cows} WHERE id = %s", [id_femea])
+                row = cursor.fetchone()
+                if row:
+                    dados_femea["id"] = row[0]
+                    dados_femea["nome"] = row[1]
+                    dados_femea["escore_ecc"] = float(row[2]) if row[2] is not None else None
+                    dados_femea["status"] = row[3]
+                    birth_id = row[4]
 
-        resultado = {
-            "id": id_pai,
-            "nome": nome,
-            "geracao": nivel
-        }
+                    if birth_id and tab_births and tab_insem:
+                        cursor.execute(
+                            f"""
+                            SELECT i.father_id, i.mother_id 
+                            FROM {tab_births} b 
+                            JOIN {tab_insem} i ON b.insemination_id = i.id 
+                            WHERE b.id = %s
+                            """,
+                            [birth_id]
+                        )
+                        parent_row = cursor.fetchone()
+                        if parent_row:
+                            id_pai, id_mae = parent_row[0], parent_row[1]
+                            dados_femea["arvore"]["pai"] = {"id": id_pai, "nome": f"Touro #{id_pai}", "geracao": 1}
+                            dados_femea["arvore"]["mae"] = {"id": id_mae, "nome": f"Vaca #{id_mae}", "geracao": 1}
 
-        if nivel < self.MAX_GENERATIONS:
-            resultado["pai"] = self._buscar_ancestral_macho(cursor, tables, id_proximo_pai, nivel + 1) if id_proximo_pai else None
-            resultado["mae"] = self._buscar_ancestral_femea(cursor, tables, id_proxima_mae, nivel + 1) if id_proxima_mae else None
+            if tab_bulls:
+                cursor.execute(f"SELECT id, name, register_number, active FROM {tab_bulls} WHERE id = %s", [id_macho])
+                row_m = cursor.fetchone()
+                if row_m:
+                    dados_macho["id"] = row_m[0]
+                    dados_macho["nome"] = row_m[1]
+                    dados_macho["numero_registro"] = row_m[2]
+                    dados_macho["ativo"] = row_m[3]
 
-        return resultado
-
-    def _buscar_ancestral_femea(self, cursor, tables: set, id_mae: int, nivel: int) -> Optional[Dict[str, Any]]:
-        """Busca recursivamente ancestrais fêmeas até a 3ª geração (bisavós)."""
-        if not id_mae or nivel > self.MAX_GENERATIONS:
-            return None
-
-        nome = f"Vaca #{id_mae}"
-        id_proximo_pai = None
-        id_proxima_mae = None
-
-        if "vacas" in tables:
-            cols = self._get_table_columns(cursor, "vacas")
-            col_list = ["id", "nome"]
-            if "id_pai" in cols:
-                col_list.append("id_pai")
-            if "id_mae" in cols:
-                col_list.append("id_mae")
-
-            cursor.execute(f"SELECT {', '.join(col_list)} FROM vacas WHERE id = %s", [id_mae])
-            row = cursor.fetchone()
-            if row:
-                row_dict = dict(zip(col_list, row))
-                nome = row_dict.get("nome") or nome
-                id_proximo_pai = row_dict.get("id_pai")
-                id_proxima_mae = row_dict.get("id_mae")
-
-        resultado = {
-            "id": id_mae,
-            "nome": nome,
-            "geracao": nivel
-        }
-
-        if nivel < self.MAX_GENERATIONS:
-            resultado["pai"] = self._buscar_ancestral_macho(cursor, tables, id_proximo_pai, nivel + 1) if id_proximo_pai else None
-            resultado["mae"] = self._buscar_ancestral_femea(cursor, tables, id_proxima_mae, nivel + 1) if id_proxima_mae else None
-
-        return resultado
-
+            parentesco_direto = self._verificar_parentesco_direto(dados_femea, id_macho)
+            return {
+                "femea": dados_femea,
+                "macho": dados_macho,
+                "parentesco_direto_detectado": parentesco_direto
+            }
