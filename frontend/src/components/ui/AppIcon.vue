@@ -68,6 +68,8 @@ const ICONS = {
   lock:           [['M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z',
                     'M7.5 11V7a4.5 4.5 0 0 1 9 0v4']],
   move:           [['m16 3 4 4-4 4', 'M20 7H4', 'm8 21-4-4 4-4', 'M4 17h16']],
+  upload:         [['M12 16V4', 'm7 9 5-5 5 5', 'M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3']],
+  download:       [['M12 4v12', 'm7 11 5 5 5-5', 'M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3']],
 
   // ---- Domínio: rebanho e manejo ----
   // Vaca de frente: orelhas, cabeça, olhos e focinho.

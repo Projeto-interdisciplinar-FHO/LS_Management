@@ -12,8 +12,16 @@
 -->
 <template>
   <div class="shell">
-    <header class="bar">
-      <RouterLink :to="painel" class="brand">
+    <button
+      v-if="gavetaAberta"
+      type="button"
+      class="sidebar__scrim"
+      aria-label="Fechar menu"
+      @click="gavetaAberta = false"
+    />
+
+    <aside class="sidebar" :class="{ 'sidebar--open': gavetaAberta }">
+      <RouterLink :to="painel" class="brand" @click="gavetaAberta = false">
         <span class="brand__mark" aria-hidden="true">LS</span>
         <span class="brand__text">
           <span class="brand__name">L.S Management</span>
@@ -21,110 +29,116 @@
         </span>
       </RouterLink>
 
-      <nav class="nav" aria-label="Navegação principal">
-        <template v-for="item in menu" :key="item.label">
-          <RouterLink v-if="item.to" :to="item.to" class="nav__link">
-            {{ item.label }}
-          </RouterLink>
-
-          <div v-else class="nav__group" @click.stop>
-            <button
-              class="nav__link nav__trigger"
-              :class="{ 'is-open': aberto === item.label }"
-              :aria-expanded="aberto === item.label"
-              @click="alternar(item.label)"
+      <nav class="sidebar__nav" aria-label="Navegação principal">
+        <section v-for="secao in secoesMenu" :key="secao.label" class="sidebar__section">
+          <p class="sidebar__section-title">{{ secao.label }}</p>
+          <template v-for="item in secao.items" :key="item.label">
+            <RouterLink
+              v-if="item.to"
+              :to="item.to"
+              class="sidebar__link"
+              @click="gavetaAberta = false"
             >
-              {{ item.label }}
-              <AppIcon name="chevron-down" :size="14" />
-            </button>
-
-            <div v-if="aberto === item.label" class="menu" role="menu">
-              <RouterLink
-                v-for="filho in item.children"
-                :key="filho.to"
-                :to="filho.to"
-                class="menu__item"
-                role="menuitem"
-                @click="aberto = null"
+              <AppIcon :name="item.icon" :size="17" />
+              <span>{{ item.label }}</span>
+            </RouterLink>
+            <div v-else class="sidebar__group" @click.stop>
+              <button
+                type="button"
+                class="sidebar__link sidebar__trigger"
+                :class="{ 'is-open': aberto === item.label }"
+                :aria-expanded="aberto === item.label"
+                @click="alternar(item.label)"
               >
-                <AppIcon :name="filho.icon" :size="16" />
-                <span>{{ filho.label }}</span>
-              </RouterLink>
+                <AppIcon :name="item.icon" :size="17" />
+                <span>{{ item.label }}</span>
+                <AppIcon name="chevron-down" :size="14" class="sidebar__chevron" />
+              </button>
+              <div v-if="aberto === item.label" class="sidebar__children">
+                <RouterLink
+                  v-for="filho in item.children"
+                  :key="filho.to"
+                  :to="filho.to"
+                  class="sidebar__link sidebar__link--child"
+                  @click="gavetaAberta = false"
+                >
+                  <AppIcon :name="filho.icon" :size="16" />
+                  <span>{{ filho.label }}</span>
+                </RouterLink>
+              </div>
             </div>
-          </div>
-        </template>
+          </template>
+        </section>
       </nav>
 
-      <div class="bar__end">
-        <button class="btn btn--icon" :title="rotuloTema" :aria-label="rotuloTema" @click="alternarTema">
-          <AppIcon :name="tema === 'dark' ? 'sun' : 'moon'" :size="16" />
-        </button>
-
-        <div class="conta" @click.stop>
-          <button class="conta__botao" :aria-expanded="contaAberta" @click="contaAberta = !contaAberta">
-            <span class="conta__inicial" aria-hidden="true">{{ iniciais }}</span>
-            <span class="conta__nome">{{ nomeExibido }}</span>
-            <AppIcon name="chevron-down" :size="14" />
+      <footer class="sidebar__footer">
+        <div class="sidebar__profile">
+          <span class="conta__inicial" aria-hidden="true">{{ iniciais }}</span>
+          <span class="sidebar__profile-copy">
+            <strong>{{ nomeExibido }}</strong>
+            <small>{{ papelAtual || 'Sessão ativa' }}</small>
+          </span>
+          <button type="button" class="btn btn--icon" aria-label="Encerrar sessão" title="Encerrar sessão" @click="sair">
+            <AppIcon name="logout" :size="15" />
           </button>
-
-          <div v-if="contaAberta" class="menu menu--right" role="menu">
-            <div class="menu__cabecalho">
-              <strong>{{ nomeExibido }}</strong>
-              <span>{{ papelAtual || 'Sessão ativa' }}</span>
-            </div>
-            <button class="menu__item menu__item--acao" role="menuitem" @click="sair">
-              <AppIcon name="logout" :size="16" />
-              <span>Encerrar sessão</span>
-            </button>
-          </div>
         </div>
+        <button class="sidebar__theme" :title="rotuloTema" :aria-label="rotuloTema" @click="alternarTema">
+          <AppIcon :name="tema === 'dark' ? 'sun' : 'moon'" :size="16" />
+          <span>{{ tema === 'dark' ? 'Tema claro' : 'Tema escuro' }}</span>
+        </button>
+      </footer>
+    </aside>
 
+    <div class="shell__main">
+      <header class="bar">
         <button
           class="btn btn--icon bar__hamburguer"
           :aria-label="gavetaAberta ? 'Fechar menu' : 'Abrir menu'"
+          :aria-expanded="gavetaAberta"
           @click.stop="gavetaAberta = !gavetaAberta"
         >
           <AppIcon :name="gavetaAberta ? 'close' : 'menu'" :size="18" />
         </button>
-      </div>
-    </header>
-
-    <!-- No celular a navegação vira uma gaveta plana: sem submenu para caçar. -->
-    <div v-if="gavetaAberta" class="gaveta">
-      <template v-for="item in menu" :key="`g-${item.label}`">
-        <RouterLink v-if="item.to" :to="item.to" class="gaveta__link" @click="gavetaAberta = false">
-          {{ item.label }}
-        </RouterLink>
-        <template v-else>
-          <p class="gaveta__titulo">{{ item.label }}</p>
-          <RouterLink
-            v-for="filho in item.children"
-            :key="`g-${filho.to}`"
-            :to="filho.to"
-            class="gaveta__link"
-            @click="gavetaAberta = false"
-          >
-            <AppIcon :name="filho.icon" :size="16" />
-            <span>{{ filho.label }}</span>
-          </RouterLink>
-        </template>
-      </template>
+        <div class="bar__context">
+          <strong>{{ tituloPagina }}</strong>
+          <span>Gestão integrada do rebanho</span>
+        </div>
+        <div v-if="mostrarExportacaoPainel" class="bar__actions">
+          <div class="dashboard__action-menu" @click.stop>
+            <button
+              type="button"
+              class="btn btn--primary"
+              :aria-expanded="aberto === 'exportar'"
+              @click="alternar('exportar')"
+            >
+              <AppIcon name="download" :size="15" />
+              Exportar
+              <AppIcon name="chevron-down" :size="14" />
+            </button>
+            <div v-if="aberto === 'exportar'" class="dashboard__action-popover dashboard__action-popover--right">
+              <RouterLink to="/exportar-animais?tipo=animais" class="dashboard__action-option" @click="fecharTudo">
+                <AppIcon name="animal" :size="16" /> Animais
+              </RouterLink>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main>
+        <slot />
+      </main>
     </div>
-
-    <main>
-      <slot />
-    </main>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { ehAdministrador, limparSessao, nome, painelDoPapel, papel } from '@/services/auth';
 import { temaAtual, alternarTema as trocarTema } from '@/services/theme';
 
 const router = useRouter();
+const route = useRoute();
 
 const aberto = ref(null);
 const contaAberta = ref(false);
@@ -135,6 +149,9 @@ const rotuloTema = computed(() => (tema.value === 'dark' ? 'Usar tema claro' : '
 const alternarTema = () => trocarTema();
 
 const ehAdmin = computed(() => ehAdministrador());
+const mostrarExportacaoPainel = computed(() =>
+  ehAdmin.value && ['dashboard-adm', 'dashboard-op'].includes(route.name)
+);
 const painel = computed(() => painelDoPapel());
 const papelAtual = computed(() => papel());
 const nomeExibido = computed(() => nome() || (ehAdmin.value ? 'Administrador' : 'Operador'));
@@ -149,66 +166,88 @@ const iniciais = computed(() =>
     .toUpperCase() || 'LS'
 );
 
-const MANEJO = [
-  { to: '/pesagem', label: 'Pesagem', icon: 'scale' },
-  { to: '/lancamento-leite', label: 'Ordenha', icon: 'milk' },
-  { to: '/vacinacao', label: 'Vacinação', icon: 'syringe' },
-  { to: '/lancamento-alimentacao', label: 'Alimentação', icon: 'feed' },
-  { to: '/veterinario', label: 'Veterinário', icon: 'stethoscope' },
-];
+const secaoRebanho = computed(() => [
+  {
+    to: ehAdmin.value ? '/animais' : '/rebanho',
+    label: 'Lista de Animais',
+    icon: 'herd',
+  },
+  { to: '/saude', label: 'Saúde & Vacinas', icon: 'syringe' },
+  {
+    label: 'Reprodução & IA',
+    icon: 'dna',
+    children: [
+      { to: '/inseminacoes', label: 'Inseminações', icon: 'dna' },
+      { to: '/nascimento-genealogia', label: 'Nascimentos & genealogia', icon: 'animal' },
+    ],
+  },
+  { to: '/lancamento-leite', label: 'Ordenha (Produção)', icon: 'milk' },
+  {
+    label: 'Manejo',
+    icon: 'move',
+    children: [
+      { to: '/manejo', label: 'Manejo rápido', icon: 'move' },
+      { to: '/pesagem', label: 'Pesagem', icon: 'scale' },
+      { to: '/desenvolvimento', label: 'Desenvolvimento', icon: 'chart' },
+      { to: '/lancamento-alimentacao', label: 'Alimentação', icon: 'feed' },
+      { to: '/veterinario', label: 'Veterinário', icon: 'stethoscope' },
+    ],
+  },
+]);
 
-const menu = computed(() => {
-  if (ehAdmin.value) {
-    return [
-      { to: '/dashboard-adm', label: 'Painel' },
-      {
-        label: 'Rebanho',
-        children: [
-          { to: '/animais', label: 'Animais', icon: 'animal' },
-          { to: '/nascimento-genealogia', label: 'Nascimento e genealogia', icon: 'dna' },
-          { to: '/desenvolvimento', label: 'Desenvolvimento', icon: 'scale' },
-          { to: '/estabulos', label: 'Estábulos', icon: 'barn' },
-          { to: '/saude', label: 'Saúde e vacinação', icon: 'stethoscope' },
-        ],
-      },
-      { label: 'Manejo', children: MANEJO },
-      {
-        label: 'Cadastros',
-        children: [
-          { to: '/especies', label: 'Espécies', icon: 'dna' },
-          { to: '/racas', label: 'Raças', icon: 'tag' },
-          { to: '/vacinas', label: 'Vacinas', icon: 'syringe' },
-          { to: '/dashboard-alimentacao', label: 'Alimentos', icon: 'feed' },
-          { to: '/usuarios', label: 'Usuários', icon: 'users' },
-        ],
-      },
-      { to: '/relatorios', label: 'Relatórios' },
-    ];
-  }
-
-  return [
-    { to: '/dashboard-op', label: 'Painel' },
-    { label: 'Manejo', children: MANEJO },
+const secoesMenu = computed(() => {
+  const secoes = [
     {
-      label: 'Rebanho',
-      children: [
-        { to: '/rebanho', label: 'Consultar rebanho', icon: 'animal' },
-        { to: '/nascimento-genealogia', label: 'Nascimento e genealogia', icon: 'dna' },
-        { to: '/desenvolvimento', label: 'Desenvolvimento', icon: 'scale' },
-      ],
+      label: 'Visão geral',
+      items: [{ to: painel.value, label: 'Painel Principal', icon: 'chart' }],
     },
-    { to: '/saude', label: 'Saúde' },
+    { label: 'Gestão de rebanho', items: secaoRebanho.value },
   ];
+
+  if (ehAdmin.value) {
+    secoes.push({
+      label: 'Sistema',
+      items: [
+        { to: '/relatorios', label: 'Relatórios', icon: 'report' },
+        {
+          label: 'Cadastros',
+          icon: 'clipboard',
+          children: [
+            { to: '/estabulos', label: 'Estábulos', icon: 'barn' },
+            { to: '/racas', label: 'Raças', icon: 'tag' },
+            { to: '/vacinas', label: 'Vacinas', icon: 'syringe' },
+            { to: '/dashboard-alimentacao', label: 'Alimentos', icon: 'feed' },
+            { to: '/usuarios', label: 'Usuários', icon: 'users' },
+          ],
+        },
+      ],
+    });
+  }
+  return secoes;
 });
+
+const titulosPagina = {
+  'dashboard-adm': 'Painel Principal',
+  'dashboard-op': 'Painel Principal',
+  'animal-list': 'Lista de Animais',
+  'animal-detail': 'Ficha do Animal',
+  'inseminacoes': 'Inseminações',
+  'nascimento-genealogia': 'Nascimentos & genealogia',
+  'lancamento-leite': 'Ordenha (Produção)',
+  'saude': 'Saúde & Vacinas',
+  'manejo': 'Manejo',
+  'pesagem': 'Pesagem',
+  'desenvolvimento': 'Desenvolvimento',
+  'relatorios': 'Relatórios',
+};
+const tituloPagina = computed(() => titulosPagina[route.name] || 'Gestão do Rebanho');
 
 function alternar(rotulo) {
   aberto.value = aberto.value === rotulo ? null : rotulo;
-  contaAberta.value = false;
 }
 
 function fecharTudo() {
   aberto.value = null;
-  contaAberta.value = false;
   gavetaAberta.value = false;
 }
 
@@ -238,18 +277,184 @@ onBeforeUnmount(() => {
   background: var(--bg);
 }
 
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 120;
+  display: flex;
+  width: 236px;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+
+.sidebar > .brand {
+  min-height: 72px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sidebar__nav {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+}
+
+.sidebar__section { margin-bottom: 16px; }
+
+.sidebar__section-title {
+  padding: 8px 8px 6px;
+  color: var(--text-3);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sidebar__group { display: grid; }
+
+.sidebar__link {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.sidebar__link > svg { flex: none; color: var(--text-3); }
+.sidebar__link > span { min-width: 0; flex: 1; }
+.sidebar__link:hover,
+.sidebar__link.router-link-active,
+.sidebar__trigger.is-open {
+  background: var(--accent-soft);
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.sidebar__link:hover > svg,
+.sidebar__link.router-link-active > svg,
+.sidebar__trigger.is-open > svg { color: var(--accent); }
+
+.sidebar__trigger { cursor: pointer; }
+.sidebar__chevron { transition: transform var(--dur) var(--ease); }
+.sidebar__trigger.is-open .sidebar__chevron { transform: rotate(180deg); }
+.sidebar__children { padding: 2px 0 4px 14px; }
+.sidebar__link--child { min-height: 36px; font-size: var(--fs-xs); }
+
+.sidebar__footer {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.sidebar__profile {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  padding: 4px;
+}
+
+.sidebar__profile-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 1px;
+}
+
+.sidebar__profile-copy strong,
+.sidebar__profile-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__profile-copy strong { font-size: var(--fs-sm); font-weight: 600; }
+.sidebar__profile-copy small { color: var(--text-3); font-size: var(--fs-xs); }
+
+.sidebar__theme {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+}
+
+.sidebar__theme:hover { background: var(--surface-3); color: var(--text); }
+
+.shell__main {
+  min-width: 0;
+  min-height: 100vh;
+  margin-left: 236px;
+}
+
 .bar {
   position: sticky;
   top: 0;
   z-index: 100;
   display: flex;
   align-items: center;
-  gap: 20px;
-  height: var(--header-h);
-  padding: 0 20px;
+  gap: 16px;
+  min-height: 72px;
+  padding: 10px 24px;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
+
+.bar__context { display: grid; min-width: 0; gap: 2px; }
+.bar__context strong { font-size: var(--fs-lg); font-weight: 600; }
+.bar__context span { color: var(--text-3); font-size: var(--fs-xs); }
+.bar__actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.bar__actions .dashboard__action-menu { position: relative; }
+.bar__actions .dashboard__action-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 180px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+.bar__actions .dashboard__action-popover--right { right: 0; left: auto; }
+.bar__actions .dashboard__action-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: var(--r);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+}
+.bar__actions .dashboard__action-option:hover {
+  background: var(--surface-3);
+  color: var(--text);
+  text-decoration: none;
+}
+.bar__actions .dashboard__action-option svg { color: var(--accent); }
+.bar__hamburguer { display: none; }
+.sidebar__scrim { display: none; }
 
 /* Marca */
 .brand {
@@ -301,6 +506,7 @@ onBeforeUnmount(() => {
   gap: 2px;
   flex: 1;
   min-width: 0;
+  overflow: visible;
 }
 
 .nav__group { position: relative; }
@@ -443,53 +649,30 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 
-.bar__hamburguer { display: none; }
-
-/* Gaveta do celular */
-.gaveta {
-  position: sticky;
-  top: var(--header-h);
-  z-index: 99;
-  display: none;
-  flex-direction: column;
-  gap: 1px;
-  padding: 8px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
-  box-shadow: var(--shadow-md);
-  max-height: calc(100vh - var(--header-h));
-  overflow-y: auto;
-}
-
-.gaveta__titulo {
-  padding: 12px 10px 5px;
-  color: var(--text-3);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.gaveta__link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border-radius: var(--r);
-  color: var(--text-2);
-  font-size: var(--fs-md);
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.gaveta__link svg { color: var(--text-3); }
-.gaveta__link:hover,
-.gaveta__link.router-link-active { background: var(--surface-3); color: var(--text); text-decoration: none; }
-
 @media (max-width: 940px) {
-  .nav { display: none; }
-  .conta__nome { display: none; }
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--dur) var(--ease);
+  }
+  .sidebar--open { transform: translateX(0); }
+  .sidebar__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 119;
+    display: block;
+    border: 0;
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .shell__main { margin-left: 0; }
   .bar__hamburguer { display: inline-flex; }
-  .gaveta { display: flex; }
+}
+
+@media (max-width: 560px) {
+  .bar { min-height: 62px; gap: 10px; padding: 8px 12px; }
+  .bar__context strong { font-size: var(--fs-md); }
+  .bar__context span { display: none; }
+  .bar__actions { gap: 5px; }
+  .bar__actions .btn { min-height: 34px; padding-inline: 8px; font-size: var(--fs-xs); }
+  .bar__actions .btn svg:last-child { display: none; }
 }
 </style>

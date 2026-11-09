@@ -11,6 +11,7 @@
       <p v-if="optionsError" class="alert alert--danger" role="alert">
         <AppIcon name="alert" :size="16" />
         <span>{{ optionsError }}</span>
+        <button type="button" class="btn btn--sm" @click="fetchDropdownData">Tentar novamente</button>
       </p>
 
       <div class="grid grid--wide">
@@ -35,6 +36,9 @@
                     {{ animal.name || 'Sem nome' }} — brinco #{{ animal.register_number }}
                   </option>
                 </select>
+                <span v-if="!loadingOptions && !animalsList.length && !optionsError" class="field__hint">
+                  Nenhum animal disponível para vacinação.
+                </span>
               </div>
 
               <div class="field">
@@ -45,12 +49,16 @@
                     {{ vaccine.name }}
                   </option>
                 </select>
+                <span v-if="!loadingOptions && !vaccinesList.length && !optionsError" class="field__hint">
+                  Cadastre uma vacina antes de registrar uma aplicação.
+                  <RouterLink to="/vacinas">Cadastrar vacina</RouterLink>
+                </span>
               </div>
 
               <div class="grid grid--2">
                 <div class="field">
                   <label class="field__label" for="ind-dose">Dosagem</label>
-                  <input id="ind-dose" v-model="individualForm.dosage" class="input" type="text" placeholder="Ex: 5 ml" required>
+                  <input id="ind-dose" v-model.number="individualForm.dosage" class="input" type="number" min="0.01" step="0.01" placeholder="5" required>
                 </div>
                 <div class="field">
                   <label class="field__label" for="ind-data">Data de aplicação</label>
@@ -108,7 +116,7 @@
               <div class="grid grid--2">
                 <div class="field">
                   <label class="field__label" for="lote-dose">Dosagem</label>
-                  <input id="lote-dose" v-model="batchForm.dosage" class="input" type="text" placeholder="Ex: 5 ml" required>
+                  <input id="lote-dose" v-model.number="batchForm.dosage" class="input" type="number" min="0.01" step="0.01" placeholder="5" required>
                 </div>
                 <div class="field">
                   <label class="field__label" for="lote-data">Data de aplicação</label>
@@ -147,6 +155,8 @@ import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import { apiErrorMessage } from '@/utils/apiError';
+import { situacao } from '@/utils/statusUtils';
+import { idRelacao, ultimaMovimentacaoPorAnimal } from '@/utils/animalMovementUtils';
 
 const painel = computed(() => painelDoPapel());
 
@@ -164,19 +174,22 @@ const okLote = ref(false);
 
 const vaccinesList = ref([]);
 const stablesList = ref([]);
-const animalsList = ref([]); // Nova lista para o dropdown de animais
+const animalsList = ref([]);
+const movementsList = ref([]);
+const completedBatchAnimalIds = ref(new Set());
+const lastBatchKey = ref('');
 
 const individualForm = ref({
   animal: '',
   vaccine: '',
-  dosage: '',
+  dosage: 1,
   date: new Date().toISOString().split('T')[0]
 });
 
 const batchForm = ref({
   quadrant: '',
   vaccine: '',
-  dosage: '',
+  dosage: 1,
   date: new Date().toISOString().split('T')[0]
 });
 
@@ -187,14 +200,15 @@ onMounted(() => {
 const fetchDropdownData = async () => {
   loadingOptions.value = true;
   optionsError.value = '';
-  const setters = [animalsList, vaccinesList, stablesList];
-  const labels = ['animais', 'vacinas', 'estábulos'];
+  const setters = [animalsList, vaccinesList, stablesList, movementsList];
+  const labels = ['animais', 'vacinas', 'estábulos', 'movimentações'];
 
   try {
     const responses = await Promise.allSettled([
-      api.get('animals/'),
+      api.getAnimals(),
       api.get('vaccines/'),
-      api.get('quadrants/'),
+      api.getQuadrants(),
+      api.get('animal_movements/'),
     ]);
     const failedLabels = [];
 
@@ -227,7 +241,7 @@ const submitIndividual = async () => {
       animal: individualForm.value.animal,
       vaccine: individualForm.value.vaccine,
       vaccination_date: individualForm.value.date,
-      dosage: individualForm.value.dosage
+      dosage: Number(individualForm.value.dosage)
     };
 
     await api.post('vaccinations/', payload);
@@ -236,7 +250,7 @@ const submitIndividual = async () => {
     msgInd.value = 'Vacina registrada com sucesso.';
     individualForm.value.animal = '';
     individualForm.value.vaccine = '';
-    individualForm.value.dosage = '';
+    individualForm.value.dosage = 1;
   } catch (error) {
     console.error(error);
     okInd.value = false;
@@ -251,27 +265,60 @@ const submitBatch = async () => {
   loadingBatch.value = true;
   msgLote.value = '';
   try {
-    const payload = {
-      quadrant_id: batchForm.value.quadrant,
-      vaccine_id: batchForm.value.vaccine,
-      vaccination_date: batchForm.value.date,
-      dosage: batchForm.value.dosage
-    };
-
-    await api.post('vaccinations/batch/', payload);
-
-    okLote.value = true;
-    msgLote.value = 'Lote vacinado com sucesso.';
-    batchForm.value.quadrant = '';
-    batchForm.value.vaccine = '';
-    batchForm.value.dosage = '';
+    const key = [
+      batchForm.value.quadrant,
+      batchForm.value.vaccine,
+      batchForm.value.date,
+      batchForm.value.dosage,
+    ].join('|');
+    if (key !== lastBatchKey.value) {
+      completedBatchAnimalIds.value = new Set();
+      lastBatchKey.value = key;
+    }
+    const latest = ultimaMovimentacaoPorAnimal(movementsList.value);
+    const stableAnimals = animalsList.value.filter((animal) =>
+      String(idRelacao(latest.get(String(animal.id))?.quadrant)) === String(batchForm.value.quadrant)
+      && situacao(animal.status).noRebanho
+      && !completedBatchAnimalIds.value.has(animal.id)
+    );
+    if (!stableAnimals.length) {
+      throw new Error('Não há animais pendentes nesse estábulo para os dados selecionados.');
+    }
+    const results = await Promise.allSettled(stableAnimals.map((animal) =>
+      api.post('vaccinations/', {
+        animal: animal.id,
+        vaccine: Number(batchForm.value.vaccine),
+        vaccination_date: batchForm.value.date,
+        dosage: Number(batchForm.value.dosage),
+      })
+    ));
+    const failed = [];
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        completedBatchAnimalIds.value.add(stableAnimals[index].id);
+      } else {
+        failed.push(stableAnimals[index].name || `#${stableAnimals[index].register_number}`);
+        console.error(`Falha ao vacinar ${stableAnimals[index].name}:`, result.reason);
+      }
+    });
+    const succeeded = results.length - failed.length;
+    okLote.value = failed.length === 0;
+    msgLote.value = failed.length
+      ? `${succeeded} aplicação(ões) registrada(s); falha para: ${failed.join(', ')}. Reenvie para tentar apenas os pendentes.`
+      : `${succeeded} aplicação(ões) registradas.`;
+    if (!failed.length) {
+      batchForm.value.quadrant = '';
+      batchForm.value.vaccine = '';
+      batchForm.value.dosage = 1;
+      completedBatchAnimalIds.value = new Set();
+      lastBatchKey.value = '';
+    }
   } catch (error) {
     console.error(error);
     okLote.value = false;
-    msgLote.value = apiErrorMessage(error, 'Não foi possível vacinar o lote selecionado.');
+    msgLote.value = error?.message || apiErrorMessage(error, 'Não foi possível vacinar o lote selecionado.');
   } finally {
     loadingBatch.value = false;
-    setTimeout(() => { msgLote.value = ''; }, 5000);
   }
 };
 </script>

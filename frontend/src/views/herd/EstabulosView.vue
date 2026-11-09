@@ -110,7 +110,7 @@
                           <select
                             class="select select--inline"
                             title="Transferir animal para outra instalação"
-                            @change="moveAnimal(animal, $event)"
+                            @change="openMoveModal(animal, $event)"
                           >
                             <option value="" disabled selected>Transferir para...</option>
                             <option
@@ -186,6 +186,40 @@
           </button>
         </template>
       </AppModal>
+
+      <AppModal v-if="showMoveModal" titulo="Registrar movimentação" @fechar="showMoveModal = false">
+        <form id="form-movimentacao" class="stack" @submit.prevent="moveAnimal">
+          <p>
+            {{ selectedAnimal?.name }} · #{{ selectedAnimal?.register_number }}
+            para {{ stables.find((stable) => String(stable.id) === String(movementForm.quadrant))?.name }}
+          </p>
+          <div class="field">
+            <label class="field__label" for="tipo-movimentacao">Tipo</label>
+            <select id="tipo-movimentacao" v-model.number="movementForm.movement_type" class="select" required>
+              <option value="" disabled>Selecione um tipo...</option>
+              <option v-for="type in movementTypes" :key="type.id" :value="type.id">{{ type.name }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="data-movimentacao">Data</label>
+            <input id="data-movimentacao" v-model="movementForm.movement_date" class="input" type="date" required>
+          </div>
+          <div class="field">
+            <label class="field__label" for="motivo-movimentacao">Motivo</label>
+            <textarea id="motivo-movimentacao" v-model.trim="movementForm.movement_reason" class="input" rows="3" required></textarea>
+          </div>
+          <p v-if="movementError" class="alert alert--danger" role="alert">
+            <AppIcon name="alert" :size="16" />
+            <span>{{ movementError }}</span>
+          </p>
+        </form>
+        <template #rodape>
+          <button type="button" class="btn" @click="showMoveModal = false">Cancelar</button>
+          <button type="submit" form="form-movimentacao" class="btn btn--primary" :disabled="savingMovement">
+            {{ savingMovement ? 'Registrando...' : 'Confirmar transferência' }}
+          </button>
+        </template>
+      </AppModal>
     </div>
   </AppShell>
 </template>
@@ -200,11 +234,15 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import AppModal from '@/components/ui/AppModal.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import { apiErrorMessage } from '@/utils/apiError';
+import { situacao } from '@/utils/statusUtils';
+import { idRelacao, ultimaMovimentacaoPorAnimal } from '@/utils/animalMovementUtils';
 
 const painel = computed(() => painelDoPapel());
 
 const stables = ref([]);
 const animals = ref([]);
+const movements = ref([]);
+const movementTypes = ref([]);
 const loading = ref(true);
 // Sem isto a tela ficava totalmente em branco quando a API não respondia:
 // o `catch` só escrevia no console e a lista vazia não desenhava nada.
@@ -214,6 +252,11 @@ const isEditingStable = ref(false);
 const savingStable = ref(false);
 const formError = ref('');
 const expandedStables = ref([]);
+const showMoveModal = ref(false);
+const savingMovement = ref(false);
+const movementError = ref('');
+const selectedAnimal = ref(null);
+const movementForm = ref({ quadrant: '', movement_type: '', movement_date: '', movement_reason: '' });
 
 /*
  * Os nomes aqui seguem o modelo Quadrant do backend: `max_animals`, `area` e
@@ -241,11 +284,17 @@ const loadData = async () => {
   loading.value = true;
   erro.value = '';
   try {
-    const stablesRes = await api.get('quadrants/');
-    stables.value = stablesRes.data.results || stablesRes.data;
-
-    const animalsRes = await api.get('animals/');
-    animals.value = animalsRes.data.results || animalsRes.data;
+    const [stablesRes, animalsRes, movementsRes, typesRes] = await Promise.all([
+      api.getQuadrants(),
+      api.getAnimals(),
+      api.get('animal_movements/'),
+      api.get('movement_types/'),
+    ]);
+    const rows = (response) => response.data?.results || response.data || [];
+    stables.value = rows(stablesRes);
+    animals.value = rows(animalsRes);
+    movements.value = rows(movementsRes);
+    movementTypes.value = rows(typesRes);
 
   } catch (error) {
     console.error("Erro ao sincronizar dados de instalações:", error);
@@ -255,15 +304,13 @@ const loadData = async () => {
   }
 };
 
-const getAnimalQuadrantId = (animal) => {
-  if (animal && animal.quadrant && typeof animal.quadrant === 'object') {
-    return animal.quadrant.id || animal.quadrant;
-  }
-  return animal.quadrant;
-};
+const latestMovements = computed(() => ultimaMovimentacaoPorAnimal(movements.value));
 
 const getAnimalsInStable = (stableId) => {
-  return animals.value.filter(animal => String(getAnimalQuadrantId(animal)) === String(stableId));
+  return animals.value.filter((animal) =>
+    situacao(animal.status).noRebanho
+    && String(idRelacao(latestMovements.value.get(String(animal.id))?.quadrant)) === String(stableId)
+  );
 };
 
 const getStableAnimalCount = (stableId) => {
@@ -291,20 +338,47 @@ const toggleStableExpansion = (stableId) => {
   }
 };
 
-const moveAnimal = async (animal, event) => {
+const openMoveModal = (animal, event) => {
   const targetStableId = Number(event.target.value);
+  event.target.value = '';
   if (!targetStableId) return;
+  selectedAnimal.value = animal;
+  movementError.value = '';
+  movementForm.value = {
+    quadrant: targetStableId,
+    movement_type: '',
+    movement_date: todayIso(),
+    movement_reason: `Transferência para ${stables.value.find((item) => item.id === targetStableId)?.name || 'outro estábulo'}`,
+  };
+  showMoveModal.value = true;
+};
 
+const moveAnimal = async () => {
+  if (!selectedAnimal.value) return;
+  savingMovement.value = true;
+  movementError.value = '';
   try {
-    await api.patch(`animals/${animal.id}/`, { quadrant: targetStableId });
-    loadData();
+    await api.post('animal_movements/', {
+      animal: selectedAnimal.value.id,
+      quadrant: Number(movementForm.value.quadrant),
+      movement_type: Number(movementForm.value.movement_type),
+      movement_date: movementForm.value.movement_date,
+      movement_reason: movementForm.value.movement_reason,
+    });
+    showMoveModal.value = false;
+    await loadData();
   } catch (error) {
     console.error(error);
-    erro.value = apiErrorMessage(error, 'Não foi possível transferir o animal.');
+    movementError.value = apiErrorMessage(error, 'Não foi possível registrar a movimentação.');
   } finally {
-    event.target.value = '';
+    savingMovement.value = false;
   }
 };
+
+function todayIso() {
+  const date = new Date();
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
 
 const openCreateModal = () => {
   isEditingStable.value = false;

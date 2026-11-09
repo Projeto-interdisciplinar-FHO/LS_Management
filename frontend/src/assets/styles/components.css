@@ -17,7 +17,7 @@
 
 .page__head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
@@ -42,7 +42,14 @@
 .page__actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .page__head { align-items: flex-start; }
+  .page__actions { justify-content: flex-start; }
 }
 
 /* Aviso solto no topo da página respira do conteúdo que vem abaixo. */
