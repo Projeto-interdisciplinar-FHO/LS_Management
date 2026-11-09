@@ -3,14 +3,14 @@ import api from './api';
 export default {
   // Busca todos os animais do rebanho
   getAnimals() {
-    return api.get('cows/');
+    return api.get('animals/');
   },
   // Busca um animal específico por ID
   getAnimal(id) {
-    return api.get(`cows/${id}/`);
+    return api.get(`animals/${id}/`);
   },
 
-  // Busca as raças cadastradas[cite: 17]
+  // Busca as raças cadastradas
   getBreeds() {
     return api.get('breeds/');
   }

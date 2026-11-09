@@ -6,10 +6,6 @@ import HomeView from '@/views/public/HomeView.vue'
 import UserSelectionView from '@/views/public/UserSelectionView.vue'
 import LoginView from '@/views/public/LoginView.vue'
 
-// dashboards — Painéis
-import DashboardAdm from '@/views/dashboards/DashboardAdm.vue'
-import DashboardOp from '@/views/dashboards/DashboardOp.vue'
-
 // herd — Rebanho
 import AnimalListView from '@/views/herd/AnimalListView.vue'
 import AnimalFormView from '@/views/herd/AnimalFormView.vue'
@@ -18,6 +14,7 @@ import AnimalConsultationView from '@/views/herd/AnimalConsultationView.vue'
 import EstabulosView from '@/views/herd/EstabulosView.vue'
 import BirthGenealogyView from '@/views/herd/BirthGenealogyView.vue'
 import DevelopmentView from '@/views/herd/DevelopmentView.vue'
+import InseminationView from '@/views/herd/InseminationView.vue'
 
 // handling — Manejo
 import ManejoView from '@/views/handling/ManejoView.vue'
@@ -31,7 +28,6 @@ import VaccinationOperatorView from '@/views/health/VaccinationOperatorView.vue'
 import VeterinaryRecordsView from '@/views/health/VeterinaryRecordsView.vue'
 
 // registry — Cadastros
-import SpeciesListView from '@/views/registry/SpeciesListView.vue'
 import BreedsListView from '@/views/registry/BreedsListView.vue'
 import VaccinesListView from '@/views/registry/VaccinesListView.vue'
 import DashboardAlimentacaoView from '@/views/registry/DashboardAlimentacaoView.vue'
@@ -47,8 +43,8 @@ const router = createRouter({
     { path: '/', name: 'home', component: HomeView, meta: { publico: true } },
     { path: '/selection', name: 'selection', component: UserSelectionView, meta: { publico: true } },
     { path: '/login', name: 'login', component: LoginView, meta: { publico: true } },
-    { path: '/dashboard-adm', name: 'dashboard-adm', component: DashboardAdm, meta: { requerLogin: true, soAdmin: true } },
-    { path: '/dashboard-op', name: 'dashboard-op', component: DashboardOp, meta: { requerLogin: true } },
+    { path: '/dashboard-adm', name: 'dashboard-adm', component: () => import('@/views/dashboards/DashboardAdm.vue'), meta: { requerLogin: true, soAdmin: true } },
+    { path: '/dashboard-op', name: 'dashboard-op', component: () => import('@/views/dashboards/DashboardOp.vue'), meta: { requerLogin: true } },
     
     // Rotas de Rebanho (CRUD)
     { path: '/animais', name: 'animal-list', component: AnimalListView, meta: { requerLogin: true } },
@@ -57,13 +53,14 @@ const router = createRouter({
     { path: '/animal/:id', name: 'animal-detail', component: AnimalDetailView, meta: { requerLogin: true } },
     { path: '/nascimento-genealogia', name: 'nascimento-genealogia', component: BirthGenealogyView, meta: { requerLogin: true } },
     { path: '/desenvolvimento', name: 'desenvolvimento', component: DevelopmentView, meta: { requerLogin: true } },
+    { path: '/inseminacoes', name: 'inseminacoes', component: InseminationView, meta: { requerLogin: true } },
     
     { path: '/lancamento-leite', name: 'lancamento-leite', component: LancamentoLeiteView, meta: { requerLogin: true } },
+    { path: '/exportar-animais', name: 'exportar-animais', component: () => import('@/views/handling/ExportarAnimaisView.vue'), meta: { requerLogin: true, soAdmin: true } },
     { path: '/pesagem', name: 'pesagem', component: PesagemView, meta: { requerLogin: true } },
     { path: '/manejo', name: 'manejo', component: ManejoView, meta: { requerLogin: true } },
     { path: '/relatorios', name: 'relatorios', component: RelatoriosView, meta: { requerLogin: true, soAdmin: true } },
     { path: '/saude', name: 'saude', component: SaudeView, meta: { requerLogin: true } },
-    { path: '/especies', name: 'especies', component: SpeciesListView, meta: { requerLogin: true, soAdmin: true } },
     { path: '/racas', name: 'racas', component: BreedsListView, meta: { requerLogin: true, soAdmin: true } },
     { path: '/vacinas', name: 'vacinas', component: VaccinesListView, meta: { requerLogin: true, soAdmin: true } },
     

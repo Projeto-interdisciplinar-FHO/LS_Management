@@ -3,7 +3,7 @@
     <div class="page page--narrow">
       <PageHeader
         titulo="Raças"
-        descricao="Raças registradas e a espécie a que cada uma pertence."
+        descricao="Raças disponíveis para classificação dos bovinos."
         voltar-rotulo="Painel"
         :voltar-para="painel"
       >
@@ -44,7 +44,7 @@
               <span class="icon-tile icon-tile--warn"><AppIcon name="tag" :size="16" /></span>
               <div>
                 <span class="list__title">{{ item.name }}</span>
-                <span class="list__sub">{{ item.specie_name || 'Espécie não informada' }}</span>
+                <span class="list__sub">Raça bovina</span>
               </div>
             </div>
           </article>
@@ -58,19 +58,6 @@
             <input id="nome-raca" v-model="form.name" class="input" type="text" placeholder="Ex: Nelore" required>
           </div>
 
-          <div class="field">
-            <label class="field__label" for="especie-raca">Espécie</label>
-            <select id="especie-raca" v-model="form.specie" class="select" required :disabled="loadingSpecies || !species.length">
-              <option value="" disabled>{{ loadingSpecies ? 'Carregando espécies...' : 'Selecione uma espécie...' }}</option>
-              <option v-for="specie in species" :key="specie.id" :value="specie.id">
-                {{ specie.name }}
-              </option>
-            </select>
-            <span v-if="speciesError" class="field__hint" role="alert">{{ speciesError }}</span>
-            <span v-else-if="!loadingSpecies && !species.length" class="field__hint">
-              Nenhuma espécie cadastrada ainda — cadastre uma antes de criar a raça.
-            </span>
-          </div>
           <p v-if="erroModal" class="alert alert--danger" role="alert">
             <AppIcon name="alert" :size="16" />
             <span>{{ erroModal }}</span>
@@ -79,8 +66,8 @@
 
         <template #rodape>
           <button type="button" class="btn" @click="showModal = false">Cancelar</button>
-          <button type="submit" form="form-raca" class="btn btn--primary" :disabled="saving || loadingSpecies || !species.length">
-            {{ saving ? 'Salvando...' : loadingSpecies ? 'Carregando espécies...' : 'Salvar raça' }}
+          <button type="submit" form="form-raca" class="btn btn--primary" :disabled="saving">
+            {{ saving ? 'Salvando...' : 'Salvar raça' }}
           </button>
         </template>
       </AppModal>
@@ -101,15 +88,12 @@ import { apiErrorMessage } from '@/utils/apiError';
 const painel = computed(() => painelDoPapel());
 
 const breeds = ref([]);
-const species = ref([]);
 const loading = ref(false);
 const showModal = ref(false);
 const saving = ref(false);
-const loadingSpecies = ref(false);
 const erro = ref('');
 const erroModal = ref('');
-const speciesError = ref('');
-const form = ref({ name: '', specie: '' });
+const form = ref({ name: '' });
 
 const normalizeList = (response) => {
   if (Array.isArray(response.data)) return response.data;
@@ -131,25 +115,9 @@ const loadBreeds = async () => {
   }
 };
 
-const loadSpecies = async () => {
-  loadingSpecies.value = true;
-  speciesError.value = '';
-  try {
-    const response = await api.get('species/');
-    species.value = normalizeList(response);
-  } catch (error) {
-    console.error('Erro ao carregar espécies:', error);
-    species.value = [];
-    speciesError.value = apiErrorMessage(error, 'Não foi possível carregar as espécies.');
-  } finally {
-    loadingSpecies.value = false;
-  }
-};
-
-const openModal = async () => {
-  form.value = { name: '', specie: '' };
+const openModal = () => {
+  form.value = { name: '' };
   erroModal.value = '';
-  await loadSpecies();
   showModal.value = true;
 };
 
@@ -170,6 +138,5 @@ const submitBreed = async () => {
 
 onMounted(() => {
   loadBreeds();
-  loadSpecies();
 });
 </script>

@@ -19,8 +19,8 @@ src/
 ├── utils/                funções puras (situação do animal etc.)
 └── views/                uma pasta por área do menu
     ├── public/           início, escolha de perfil, login
-    ├── dashboards/       painel do administrador e do operador
-    ├── herd/             animais, ficha, consulta, estábulos
+    ├── dashboards/       painel principal compartilhado por administrador e operador
+    ├── herd/             animais, ficha, estábulos, desenvolvimento, inseminações e genealogia
     ├── handling/         pesagem, ordenha e alimentação
     ├── health/           saúde, vacinação, veterinário
     ├── registry/         espécies, raças, vacinas, alimentos, usuários
@@ -28,6 +28,8 @@ src/
 ```
 
 Imports usam o atalho `@/` (aponta para `src/`), assim mover um arquivo não quebra caminhos relativos.
+
+O painel apresenta indicadores gerais da fazenda, permite filtrar por estábulo e destaca vacinações pendentes, produção média e animais abaixo da média. A tela de ordenha permite registrar a produção individualmente ou importar vários registros de um arquivo CSV com as colunas `numero_do_brinco`, `litros` e `data`. A exportação de animais continua disponível para administradores.
 
 ## Recommended IDE Setup
 

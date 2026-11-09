@@ -148,6 +148,7 @@ import AppShell from '@/components/layout/AppShell.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { apiErrorMessage } from '@/utils/apiError'
+import { idRelacao, ultimaMovimentacaoPorAnimal } from '@/utils/animalMovementUtils'
 
 const painel = computed(() => painelDoPapel())
 
@@ -160,7 +161,10 @@ const mensagem = ref('')
 const erro = ref('')
 const optionsError = ref('')
 
-const hoje = () => new Date().toISOString().slice(0, 10)
+const hoje = () => {
+  const date = new Date()
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+}
 
 const weightData = ref({ animal: '', weight: '' })
 const vaccineData = ref({ animal: '', vaccine_id: '', dosage: 1 })
@@ -217,26 +221,39 @@ const handleBatchMove = async () => {
 
   loading.value = true
   try {
-    const { data: animais } = await api.get('animals/')
-    const doQuadrante = animais.filter(
-      (a) => String(a.quadrant?.id ?? a.quadrant) === String(origem)
+    const tipo = movementTypes.value[0]?.id
+    if (!tipo) return avisar('Nenhum tipo de movimentação está disponível.', true)
+    const [animalsResponse, movementsResponse] = await Promise.all([
+      api.getAnimals(),
+      api.get('animal_movements/'),
+    ])
+    const animals = animalsResponse.data?.results || animalsResponse.data
+    const movements = movementsResponse.data?.results || movementsResponse.data
+    const latest = ultimaMovimentacaoPorAnimal(movements)
+    const doQuadrante = animals.filter((animal) =>
+      String(idRelacao(latest.get(String(animal.id))?.quadrant)) === String(origem)
     )
     if (!doQuadrante.length) {
       return avisar('Nenhum animal neste quadrante de origem.', true)
     }
 
-    const tipo = movementTypes.value[0]?.id
-    await Promise.all(doQuadrante.map((a) =>
+    const results = await Promise.allSettled(doQuadrante.map((animal) =>
       api.post('animal_movements/', {
-        animal: a.id,
+        animal: animal.id,
         quadrant: Number(destino),
         movement_date: hoje(),
-        movement_reason: 'Movimentacao de lote pela tela de manejo',
+        movement_reason: 'Movimentação de lote pela tela de manejo',
         movement_type: tipo,
       })
     ))
-    avisar(`${doQuadrante.length} animal(is) movimentado(s).`)
-    batchData.value = { origin_quadrant: '', target_quadrant: '' }
+    const successful = results.filter((result) => result.status === 'fulfilled').length
+    const failures = results.length - successful
+    if (failures) {
+      avisar(`${successful} animal(is) movimentado(s); ${failures} falha(s). Confira o histórico e tente novamente apenas para os pendentes.`, true)
+    } else {
+      avisar(`${successful} animal(is) movimentado(s).`)
+      batchData.value = { origin_quadrant: '', target_quadrant: '' }
+    }
   } catch (err) {
     avisar(apiErrorMessage(err, 'Não foi possível mover o lote.'), true)
   } finally {
@@ -253,9 +270,9 @@ onMounted(async () => {
       api.get('quadrants/'),
       api.get('movement_types/'),
     ])
-    vaccinesList.value = v.data
-    quadrants.value = q.data
-    movementTypes.value = t.data
+    vaccinesList.value = v.data?.results || v.data
+    quadrants.value = q.data?.results || q.data
+    movementTypes.value = t.data?.results || t.data
   } catch (err) {
     vaccinesList.value = []
     quadrants.value = []

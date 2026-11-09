@@ -6,7 +6,14 @@
         descricao="Controle de reforços: o que venceu, o que vence na semana e o que está em dia."
         voltar-rotulo="Painel"
         :voltar-para="painel"
-      />
+      >
+        <template #acoes>
+          <RouterLink to="/vacinacao" class="btn btn--primary">
+            <AppIcon name="plus" :size="15" />
+            Registrar vacinação
+          </RouterLink>
+        </template>
+      </PageHeader>
 
       <div v-if="loading" class="card">
         <div class="loading">
@@ -106,6 +113,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import api from '@/services/api';
 import { painelDoPapel } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
@@ -113,10 +121,15 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 
 const painel = computed(() => painelDoPapel());
+const route = useRoute();
 
 const loading = ref(true);
 const vaccinations = ref([]);
-const activeFilter = ref('all');
+const activeFilter = ref(
+  ['overdue', 'upcoming', 'uptodate'].includes(route.query.filter)
+    ? route.query.filter
+    : 'all'
+);
 
 /*
  * O VaccinationSerializer devolve `animal` (o id da chave estrangeira), nao

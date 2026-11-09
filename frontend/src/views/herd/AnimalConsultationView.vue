@@ -3,10 +3,15 @@
     <div class="page">
       <PageHeader
         titulo="Consultar animais"
-        descricao="Busque por brinco, nome ou filtre por quadrante e espécie."
+        descricao="Busque por nome, número de registro, situação e estábulo atual."
         voltar-rotulo="Painel"
         :voltar-para="painel"
       />
+
+      <p v-if="error" class="alert alert--danger" role="alert">
+        <AppIcon name="alert" :size="16" />
+        <span>{{ error }}</span>
+      </p>
 
       <div class="toolbar">
         <label class="search">
@@ -20,24 +25,19 @@
           >
         </label>
 
-        <select v-model="filterStatus" class="select select--filtro" aria-label="Filtrar por status">
+        <select v-model="filterStatus" class="select select--filtro" aria-label="Filtrar por situação">
           <option value="">Todos os status</option>
-          <option value="ativo">Ativo</option>
-          <option value="doente">Doente</option>
-          <option value="vendido">Vendido</option>
-          <option value="obito">Óbito</option>
-          <option value="inativo">Inativo</option>
+          <option value="active">Ativo</option>
+          <option value="inactive">Inativo</option>
+          <option value="sold">Vendido</option>
+          <option value="deceased">Óbito</option>
         </select>
 
-        <select v-model="filterQuadrant" class="select select--filtro" aria-label="Filtrar por quadrante">
-          <option value="">Todos os quadrantes</option>
+        <select v-model="filterQuadrant" class="select select--filtro" aria-label="Filtrar por estábulo">
+          <option value="">Todos os estábulos</option>
           <option v-for="quad in quadrants" :key="quad.id" :value="quad.id">{{ quad.name }}</option>
         </select>
 
-        <select v-model="filterSpecie" class="select select--filtro" aria-label="Filtrar por espécie">
-          <option value="">Todas as espécies</option>
-          <option v-for="sp in species" :key="sp.id" :value="sp.id">{{ sp.name }}</option>
-        </select>
       </div>
 
       <!-- Lista à esquerda, ficha à direita: escolher um animal não faz mais
@@ -69,7 +69,7 @@
                   <span class="list__sub mono">#{{ animal.register_number }} · {{ animal.quadrant_name }}</span>
                 </span>
               </span>
-              <span class="badge" :class="badgeStatus(animal.status)">{{ animal.status || '—' }}</span>
+              <span class="badge" :class="badgeStatus(animal.status)">{{ labelStatus(animal.status) }}</span>
             </button>
           </div>
         </section>
@@ -90,12 +90,10 @@
               <div>
                 <h3 class="bloco__titulo">Dados básicos</h3>
                 <div class="kv">
-                  <div class="kv__row"><span class="kv__key">Sexo</span><span class="kv__val">{{ selectedAnimal.sex === 'M' ? 'Macho' : 'Fêmea' }}</span></div>
-                  <div class="kv__row"><span class="kv__key">Nascimento</span><span class="kv__val mono">{{ formatDate(selectedAnimal.birth_date) }}</span></div>
-                  <div class="kv__row"><span class="kv__key">Espécie</span><span class="kv__val">{{ selectedAnimal.specie_name }}</span></div>
                   <div class="kv__row"><span class="kv__key">Raça</span><span class="kv__val">{{ selectedAnimal.breed_name || 'Não informado' }}</span></div>
-                  <div class="kv__row"><span class="kv__key">Quadrante</span><span class="kv__val">{{ selectedAnimal.quadrant_name }}</span></div>
-                  <div class="kv__row"><span class="kv__key">Propósito</span><span class="kv__val">{{ selectedAnimal.purpose_name || '—' }}</span></div>
+                  <div class="kv__row"><span class="kv__key">Estábulo atual</span><span class="kv__val">{{ selectedAnimal.quadrant_name }}</span></div>
+                  <div class="kv__row"><span class="kv__key">Escore</span><span class="kv__val mono">{{ selectedAnimal.score }}</span></div>
+                  <div class="kv__row"><span class="kv__key">Status reprodutivo</span><span class="kv__val">{{ selectedAnimal.reproductive_status ? 'Ativo' : 'Inativo' }}</span></div>
                 </div>
               </div>
 
@@ -110,11 +108,10 @@
 
               <div>
                 <h3 class="bloco__titulo">Produção</h3>
-                <div v-if="isFemaleAnimal(selectedAnimal)" class="kv">
+                <div class="kv">
                   <div class="kv__row"><span class="kv__key">Última ordenha</span><span class="kv__val mono">{{ selectedAnimal.last_milk_production ? `${selectedAnimal.last_milk_production} L` : 'Sem registros' }}</span></div>
                   <div class="kv__row"><span class="kv__key">Data da coleta</span><span class="kv__val mono">{{ selectedAnimal.last_milk_date ? formatDate(selectedAnimal.last_milk_date) : 'Sem registros' }}</span></div>
                 </div>
-                <p v-else class="text-subtle">Produção de leite disponível apenas para fêmeas.</p>
               </div>
             </div>
 
@@ -145,6 +142,9 @@ import { painelDoPapel } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import { badgeSituacao, rotuloSituacao } from '@/utils/statusUtils';
+import { idRelacao, nomeEstabulo, ultimaMovimentacaoPorAnimal } from '@/utils/animalMovementUtils';
+import { apiErrorMessage } from '@/utils/apiError';
 
 const router = useRouter();
 const painel = computed(() => painelDoPapel());
@@ -152,29 +152,26 @@ const painel = computed(() => painelDoPapel());
 // Dados
 const animals = ref([]);
 const quadrants = ref([]);
-const species = ref([]);
+const error = ref('');
 
 // Filtros
 const searchQuery = ref('');
 const filterStatus = ref('');
 const filterQuadrant = ref('');
-const filterSpecie = ref('');
 const selectedAnimalId = ref(null);
 
 // Computed
 const filteredAnimals = computed(() => {
   return animals.value.filter(animal => {
-    const termo = searchQuery.value.toLowerCase();
-    const matchSearch = !searchQuery.value ||
+    const termo = searchQuery.value.trim().toLowerCase();
+    const matchSearch = !termo ||
       String(animal.name ?? '').toLowerCase().includes(termo) ||
       String(animal.register_number ?? '').includes(searchQuery.value) ||
       String(animal.id ?? '').includes(searchQuery.value);
 
     const matchStatus = !filterStatus.value || animal.status === filterStatus.value;
     const matchQuadrant = !filterQuadrant.value || String(animal.quadrant_id) === String(filterQuadrant.value);
-    const matchSpecie = !filterSpecie.value || String(animal.specie_id) === String(filterSpecie.value);
-
-    return matchSearch && matchStatus && matchQuadrant && matchSpecie;
+    return matchSearch && matchStatus && matchQuadrant;
   });
 });
 
@@ -182,52 +179,68 @@ const selectedAnimal = computed(() => {
   return animals.value.find(a => a.id === selectedAnimalId.value) || null;
 });
 
-const isFemaleAnimal = (animalData) => String(animalData?.sex || '').toLowerCase() === 'f';
-
-const badgeStatus = (status) => {
-  if (status === 'ativo') return 'badge--ok';
-  if (status === 'doente') return 'badge--warn';
-  if (status === 'obito') return 'badge--danger';
-  return '';
-};
+const badgeStatus = badgeSituacao;
+const labelStatus = rotuloSituacao;
 
 // Métodos
 const loadInitialData = async () => {
+  error.value = '';
   try {
-    const [animalsRes, quadrantsRes, speciesRes] = await Promise.all([
-      api.get('animals/?limit=500'),
-      api.get('quadrants/?limit=500'),
-      api.get('species/?limit=500')
+    const [animalsRes, quadrantsRes, breedsRes, movementsRes, weightsRes, milkRes, vaccinesRes] = await Promise.all([
+      api.getAnimals(),
+      api.getQuadrants(),
+      api.get('breeds/'),
+      api.get('animal_movements/'),
+      api.get('weight_history/'),
+      api.get('milk_production_history/'),
+      api.get('vaccinations/'),
     ]);
-
-    animals.value = (animalsRes.data.results || animalsRes.data).map(a => ({
-      ...a,
-      quadrant_id: a.quadrant,
-      specie_id: a.specie
-    }));
-
-    quadrants.value = quadrantsRes.data.results || quadrantsRes.data;
-    species.value = speciesRes.data.results || speciesRes.data;
-
-    // Enriquece dados com nomes
-    enrichAnimalsWithNames();
+    const rows = (response) => {
+      const data = response.data;
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.results)) return data.results;
+      throw new Error('A API retornou um formato de lista inesperado.');
+    };
+    const quadrantList = rows(quadrantsRes);
+    const breedList = rows(breedsRes);
+    quadrants.value = quadrantList;
+    const latestMovements = ultimaMovimentacaoPorAnimal(rows(movementsRes));
+    const latestByAnimal = (records, dateField) => {
+      const latest = new Map();
+      for (const record of records) {
+        const animalId = idRelacao(record.animal);
+        const current = latest.get(String(animalId));
+        if (!current || String(record[dateField]) > String(current[dateField])) {
+          latest.set(String(animalId), record);
+        }
+      }
+      return latest;
+    };
+    const latestWeights = latestByAnimal(rows(weightsRes), 'weighing_date');
+    const latestMilk = latestByAnimal(rows(milkRes), 'production_date');
+    const latestVaccines = latestByAnimal(rows(vaccinesRes), 'vaccination_date');
+    animals.value = rows(animalsRes).map((animal) => {
+      const movement = latestMovements.get(String(animal.id));
+      const weight = latestWeights.get(String(animal.id));
+      const milk = latestMilk.get(String(animal.id));
+      const vaccine = latestVaccines.get(String(animal.id));
+      const breedId = idRelacao(animal.breed);
+      return {
+        ...animal,
+        quadrant_id: movement ? idRelacao(movement.quadrant) : null,
+        quadrant_name: nomeEstabulo(quadrantList, movement?.quadrant),
+        breed_name: breedList.find((breed) => String(breed.id) === String(breedId))?.name || '—',
+        last_weighing_date: weight?.weighing_date || null,
+        last_vaccination_date: vaccine?.vaccination_date || null,
+        next_vaccination_date: vaccine?.next_vaccination_date || null,
+        last_milk_production: milk?.milk_production || null,
+        last_milk_date: milk?.production_date || null,
+      };
+    });
   } catch (err) {
     console.error('Erro ao carregar dados:', err);
+    error.value = apiErrorMessage(err, 'Não foi possível carregar os dados de consulta do rebanho.');
   }
-};
-
-const enrichAnimalsWithNames = () => {
-  animals.value = animals.value.map(animal => {
-    const quadrant = quadrants.value.find(q => q.id === animal.quadrant_id);
-    const specie = species.value.find(s => s.id === animal.specie_id);
-
-    return {
-      ...animal,
-      quadrant_name: quadrant?.name || 'N/A',
-      specie_name: specie?.name || 'N/A',
-      breed_name: animal.breed_name || 'N/A'
-    };
-  });
 };
 
 const selectAnimal = (animal) => {
@@ -235,8 +248,8 @@ const selectAnimal = (animal) => {
 };
 
 const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString('pt-BR');
+  if (!dateString) return 'Sem registros';
+  return new Date(`${dateString}T00:00:00`).toLocaleDateString('pt-BR');
 };
 
 const goToAnimalProfile = () => {
