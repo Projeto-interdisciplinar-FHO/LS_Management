@@ -14,6 +14,9 @@ from dotenv import load_dotenv
 from .reproduction_builder import ReproductionPromptBuilder
 
 load_dotenv()
+_env_path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
+if os.path.exists(_env_path):
+    load_dotenv(_env_path)
 
 
 class GeminiReproductionAdapter:
