@@ -125,3 +125,30 @@
 
   color-scheme: dark;
 }
+
+/* =============================================================
+   Acabamento visual (v2): gradientes, sombras de cartão e movimento.
+   Valores novos; o resto do sistema continua usando os tokens acima.
+   ============================================================= */
+:root {
+  --r-lg: 14px;
+  --r-xl: 20px;
+
+  --grad-accent: linear-gradient(135deg, #3d8559 0%, #2f6b46 55%, #245537 100%);
+  --grad-hero: linear-gradient(100deg, rgba(12, 38, 22, 0.9) 0%, rgba(18, 54, 32, 0.66) 46%, rgba(18, 54, 32, 0.1) 100%);
+  --sun: #e8b931;
+  --sun-ink: #2b2000;
+
+  --shadow-card:  0 1px 2px rgba(24, 28, 22, 0.04), 0 6px 18px -8px rgba(24, 28, 22, 0.12);
+  --shadow-hover: 0 2px 4px rgba(24, 28, 22, 0.05), 0 16px 32px -12px rgba(24, 28, 22, 0.22);
+
+  --dur-fast: 100ms;
+  --dur-slow: 260ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:root[data-theme='dark'] {
+  --grad-accent: linear-gradient(135deg, #5fb083 0%, #4f9e70 100%);
+  --shadow-card:  0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 20px -8px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.4), 0 18px 34px -12px rgba(0, 0, 0, 0.65);
+}

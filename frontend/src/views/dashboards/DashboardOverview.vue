@@ -1,63 +1,129 @@
 <template>
   <AppShell>
     <div class="page page--wide dashboard">
-      <header class="dashboard__head">
-        <div>
-          <p class="dashboard__eyebrow">Visão da fazenda</p>
-          <h1 class="page__title">Painel Principal</h1>
-          <p class="page__desc">Acompanhe primeiro a fazenda, depois os estábulos e, por fim, cada animal.</p>
+      <header class="hero dashboard__hero">
+        <div class="hero__bg" aria-hidden="true">
+          <img :src="heroImage" alt="" class="hero__img">
+          <div class="hero__shade"></div>
         </div>
-        <details class="dashboard__filter-menu">
-          <summary class="btn">
-            <AppIcon name="filter" :size="15" />
-            Filtros
-          </summary>
-          <div class="dashboard__filter-panel">
-            <div class="field">
-              <label class="field__label" for="filtro-estabulo">Estábulo</label>
-              <select id="filtro-estabulo" v-model="quadranteSelecionado" class="select">
-                <option value="todos">Todos os estábulos</option>
-                <option v-for="quadrante in quadrantes" :key="quadrante.id" :value="String(quadrante.id)">
-                  {{ quadrante.name || quadrante.tipo || `Estábulo ${quadrante.id}` }}
-                </option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="field__label" for="filtro-periodo">Período dos gráficos</label>
-              <select id="filtro-periodo" v-model="periodoSelecionado" class="select">
-                <option value="30">Últimos 30 dias</option>
-                <option value="90">Últimos 90 dias</option>
-                <option value="365">Últimos 12 meses</option>
-                <option value="todos">Todo o histórico</option>
-              </select>
-            </div>
+        <div class="hero__content">
+          <div>
+            <p class="hero__eyebrow">{{ dataHoje }}</p>
+            <h1 class="hero__title">{{ saudacao }}!</h1>
           </div>
-        </details>
+          <div class="hero__actions">
+            <RouterLink to="/lancamento-leite" class="btn btn--primary">
+              <AppIcon name="milk" :size="15" />
+              Registrar ordenha
+            </RouterLink>
+          <details class="dashboard__filter-menu">
+            <summary class="btn">
+              <AppIcon name="filter" :size="15" />
+              Filtros
+            </summary>
+            <div class="dashboard__filter-panel">
+              <div class="field">
+                <label class="field__label" for="filtro-estabulo">Estábulo</label>
+                <select id="filtro-estabulo" v-model="quadranteSelecionado" class="select">
+                  <option value="todos">Todos os estábulos</option>
+                  <option v-for="quadrante in quadrantes" :key="quadrante.id" :value="String(quadrante.id)">
+                    {{ quadrante.name || quadrante.tipo || `Estábulo ${quadrante.id}` }}
+                  </option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field__label" for="filtro-periodo">Período dos gráficos</label>
+                <select id="filtro-periodo" v-model="periodoSelecionado" class="select">
+                  <option value="30">Últimos 30 dias</option>
+                  <option value="90">Últimos 90 dias</option>
+                  <option value="365">Últimos 12 meses</option>
+                  <option value="todos">Todo o histórico</option>
+                </select>
+              </div>
+            </div>
+          </details>
+          </div>
+        </div>
       </header>
-
-      <nav class="dashboard__shortcuts" aria-label="Atalhos principais">
-        <RouterLink :to="linkAnimais" class="dashboard__shortcut">
-          <AppIcon name="herd" :size="16" /> Animais
-        </RouterLink>
-        <RouterLink to="/saude" class="dashboard__shortcut">
-          <AppIcon name="syringe" :size="16" /> Saúde & Vacinas
-        </RouterLink>
-        <RouterLink to="/inseminacoes" class="dashboard__shortcut">
-          <AppIcon name="dna" :size="16" /> Inseminações
-        </RouterLink>
-        <RouterLink to="/lancamento-leite" class="dashboard__shortcut">
-          <AppIcon name="milk" :size="16" /> Registrar ordenha
-        </RouterLink>
-        <span v-if="carregando" class="text-muted dashboard__loading" role="status">
-          Atualizando dados...
-        </span>
-      </nav>
 
       <p v-if="erro" class="alert alert--danger" role="alert">
         <AppIcon name="alert" :size="16" />
         <span>{{ erro }}</span>
       </p>
 
+      <div class="dashboard__content">
+      <div class="dashboard__panel">
+      <section class="card dashboard-today" aria-labelledby="dashboard-today-title">
+        <header class="dashboard-today__head">
+          <div>
+            <h2 id="dashboard-today-title" class="dashboard-today__title">Hoje na fazenda</h2>
+            <p class="dashboard-today__desc">O que precisa de atenção agora.</p>
+          </div>
+        </header>
+        <div v-if="carregando" class="loading"><span class="spinner" aria-hidden="true"></span>Carregando tarefas...</div>
+        <ul v-else class="dashboard-today__list">
+          <li v-for="tarefa in tarefasHoje" :key="tarefa.id">
+            <RouterLink
+              :to="tarefa.para"
+              class="dashboard-today__item"
+              :class="[`is-${tarefa.tom}`, { 'dashboard-today__item--active': tarefa.total > 0, 'dashboard-today__item--critical': tarefa.total > 0 && tarefa.critico }]"
+            >
+              <span class="dashboard-today__icon"><AppIcon :name="tarefa.icone" :size="20" /></span>
+              <span class="dashboard-today__text">
+                <strong>{{ tarefa.titulo }}</strong>
+                <small>{{ tarefa.total > 0 ? tarefa.detalhe : tarefa.vazio }}</small>
+              </span>
+              <span class="dashboard-today__count">{{ tarefa.total }}</span>
+            </RouterLink>
+          </li>
+        </ul>
+      </section>
+
+      <section class="card dashboard-alerts" aria-labelledby="dashboard-alerts-title">
+        <header class="dashboard-alerts__head">
+          <span class="dashboard-alerts__icon"><AppIcon name="alert" :size="18" /></span>
+          <div>
+            <h2 id="dashboard-alerts-title">Avisos e ações pendentes</h2>
+            <p>Alertas sanitários e registros clínicos recentes.</p>
+          </div>
+          <RouterLink to="/saude" class="btn btn--sm dashboard-alerts__action">Abrir saúde</RouterLink>
+        </header>
+        <div v-if="carregando" class="loading"><span class="spinner" aria-hidden="true"></span>Carregando avisos...</div>
+        <div v-else-if="!avisosPainel.length" class="empty dashboard-alerts__empty">
+          <AppIcon name="check-circle" :size="26" />
+          <p class="empty__desc">Nenhuma pendência encontrada para o filtro atual.</p>
+        </div>
+        <div v-else class="table-wrap">
+          <table class="table dashboard-alerts__table">
+            <thead>
+              <tr><th>Identificação</th><th>Módulo</th><th>Descrição do alerta</th><th>Ação rápida</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="aviso in avisosPainel" :key="aviso.id">
+                <td class="dashboard-alerts__animal">
+                  <span class="dashboard-alerts__animal-mark">#{{ aviso.animal.register_number }}</span>
+                  <strong>{{ aviso.animal.name || 'Sem nome' }}</strong>
+                </td>
+                <td><span class="dashboard-alerts__module" :class="`dashboard-alerts__module--${aviso.tipo}`">{{ aviso.modulo }}</span></td>
+                <td>
+                  <span class="dashboard-alerts__description" :class="{ 'dashboard-alerts__description--alert': aviso.critico }">
+                    <AppIcon :name="aviso.critico ? 'alert' : 'stethoscope'" :size="15" />
+                    {{ aviso.descricao }}
+                  </span>
+                </td>
+                <td class="dashboard-alerts__action-cell">
+                  <RouterLink :to="aviso.para" class="btn btn--sm">{{ aviso.acao }}</RouterLink>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      </div>
+
+      <div
+        class="dashboard__panel"
+      >
       <section class="dashboard__top-grid" aria-label="Indicadores gerais da fazenda">
         <article class="card dashboard-panel dashboard-panel--health">
           <header class="dashboard-panel__head">
@@ -110,7 +176,7 @@
             <span class="dashboard-panel__icon dashboard-panel__icon--milk"><AppIcon name="milk" :size="18" /></span>
             <div>
               <h2>Produção geral de leite</h2>
-              <p>Fazenda ou estábulo selecionado no período</p>
+              <p>Resumo dos últimos 30 dias · fazenda ou estábulo selecionado</p>
             </div>
           </header>
           <div v-if="carregando" class="loading"><span class="spinner" aria-hidden="true"></span>Carregando ordenhas...</div>
@@ -119,45 +185,62 @@
           </div>
           <div v-else class="milk-summary">
             <div class="milk-summary__overview">
-              <span class="milk-summary__label">Média geral por ordenha</span>
-              <strong class="milk-summary__average">{{ formatarNumero(mediaPorOrdenha) }} <small>L</small></strong>
-              <p class="milk-summary__caption">Média calculada com os registros válidos do período.</p>
+              <span class="milk-summary__label">Média geral por ordenha · 30 dias</span>
+              <strong class="milk-summary__average">{{ formatarNumero(mediaPorOrdenha30d) }} <small>L</small></strong>
+              <p class="milk-summary__caption">Média calculada com as ordenhas válidas dos últimos 30 dias.</p>
               <div class="milk-summary__details">
-                <span><strong>{{ formatarNumero(totalLeite) }} L</strong> no total</span>
-                <span><strong>{{ ordenhasValidas.length }}</strong> registros válidos</span>
+                <span><strong>{{ formatarNumero(totalLeite30d) }} L</strong> nos últimos 30 dias</span>
+                <span><strong>{{ ordenhasValidas30d.length }}</strong> ordenhas válidas</span>
               </div>
             </div>
-            <div class="below-average">
-              <div class="below-average__head">
+            <section class="milk-month-alert" aria-labelledby="milk-month-alert-title">
+              <div class="milk-month-alert__head">
+                <span class="milk-month-alert__icon" :class="{ 'is-alert': animaisAbaixoDaMediaMesAtual.length }">
+                  <AppIcon :name="animaisAbaixoDaMediaMesAtual.length ? 'alert' : 'check-circle'" :size="18" />
+                </span>
                 <div>
-                  <h3>Animais abaixo da média</h3>
-                  <p>{{ animaisAbaixoDaMedia.length }} animal(is) com produção média inferior</p>
+                  <h3 id="milk-month-alert-title">Alerta de produção · mês atual</h3>
+                  <p>Média do rebanho neste mês: {{ formatarNumero(mediaPorOrdenhaMesAtual) }} L por ordenha</p>
                 </div>
-                <button
-                  v-if="animaisAbaixoDaMedia.length > 4"
-                  type="button"
+                <strong class="milk-month-alert__count" :class="{ 'is-alert': animaisAbaixoDaMediaMesAtual.length }">
+                  {{ animaisAbaixoDaMediaMesAtual.length }}
+                </strong>
+                <RouterLink
+                  v-if="animaisAbaixoDaMediaMesAtual.length > 3"
+                  :to="linkAbaixoDaMedia"
                   class="btn btn--sm"
-                  :aria-expanded="exibirTodosAbaixoDaMedia"
-                  @click="exibirTodosAbaixoDaMedia = !exibirTodosAbaixoDaMedia"
                 >
-                  {{ exibirTodosAbaixoDaMedia ? 'Ver menos' : `Ver mais (${animaisAbaixoDaMedia.length - 4})` }}
-                </button>
+                  Ver mais
+                </RouterLink>
               </div>
-              <p v-if="!animaisAbaixoDaMedia.length" class="below-average__empty">
-                {{ ordenhasValidas.length ? 'Nenhum animal está abaixo da média no período.' : 'Sem registros de ordenha para comparar.' }}
+              <p v-if="!animaisAbaixoDaMediaMesAtual.length" class="milk-month-alert__empty">
+                {{ ordenhasValidasMesAtual.length ? 'Nenhum animal está abaixo da média neste mês.' : 'Sem registros de ordenha neste mês para comparar.' }}
               </p>
-              <ul v-else class="below-average__list">
-                <li v-for="item in animaisAbaixoDaMediaVisiveis" :key="item.animal.id">
-                  <RouterLink :to="{ name: 'animal-detail', params: { id: item.animal.id } }">
-                    <span>{{ item.animal.name || 'Sem nome' }} · #{{ item.animal.register_number }}</span>
-                    <strong>{{ formatarNumero(item.media) }} L</strong>
+              <ul v-else class="milk-month-alert__list">
+                <li v-for="item in animaisAbaixoDaMediaVisiveisMesAtual" :key="item.animal.id">
+                  <RouterLink
+                    :to="{ name: 'animal-detail', params: { id: item.animal.id } }"
+                    class="milk-month-alert__animal"
+                  >
+                    <span class="milk-month-alert__animal-head">
+                      <strong>{{ item.animal.name || 'Sem nome' }} · #{{ item.animal.register_number }}</strong>
+                      <strong>{{ formatarNumero(item.media) }} L</strong>
+                    </span>
+                    <span
+                      class="milk-month-alert__meter"
+                      role="progressbar"
+                      :aria-label="`Média de ${item.animal.name || 'animal'} neste mês em relação à média do rebanho`"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      :aria-valuenow="percentualDaMediaMesAtual(item)"
+                    >
+                      <span :style="{ width: `${percentualDaMediaMesAtual(item)}%` }"></span>
+                    </span>
+                    <small>{{ formatarNumero(mediaPorOrdenhaMesAtual - item.media) }} L abaixo da média</small>
                   </RouterLink>
                 </li>
               </ul>
-              <p v-if="!exibirTodosAbaixoDaMedia && animaisAbaixoDaMedia.length > 4" class="below-average__hint">
-                Exibindo 4 de {{ animaisAbaixoDaMedia.length }} animais. Clique em &quot;Ver mais&quot; para conferir os demais.
-              </p>
-            </div>
+            </section>
           </div>
         </article>
       </section>
@@ -201,47 +284,8 @@
           </div>
         </article>
       </section>
-
-      <section class="card dashboard-alerts" aria-labelledby="dashboard-alerts-title">
-        <header class="dashboard-alerts__head">
-          <span class="dashboard-alerts__icon"><AppIcon name="alert" :size="18" /></span>
-          <div>
-            <h2 id="dashboard-alerts-title">Avisos e ações pendentes</h2>
-            <p>Alertas sanitários e registros clínicos recentes.</p>
-          </div>
-          <RouterLink to="/saude" class="btn btn--sm dashboard-alerts__action">Abrir saúde</RouterLink>
-        </header>
-        <div v-if="carregando" class="loading"><span class="spinner" aria-hidden="true"></span>Carregando avisos...</div>
-        <div v-else-if="!avisosPainel.length" class="empty dashboard-alerts__empty">
-          <AppIcon name="check-circle" :size="26" />
-          <p class="empty__desc">Nenhuma pendência encontrada para o filtro atual.</p>
-        </div>
-        <div v-else class="table-wrap">
-          <table class="table dashboard-alerts__table">
-            <thead>
-              <tr><th>Identificação</th><th>Módulo</th><th>Descrição do alerta</th><th>Ação rápida</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="aviso in avisosPainel" :key="aviso.id">
-                <td class="dashboard-alerts__animal">
-                  <span class="dashboard-alerts__animal-mark">#{{ aviso.animal.register_number }}</span>
-                  <strong>{{ aviso.animal.name || 'Sem nome' }}</strong>
-                </td>
-                <td><span class="dashboard-alerts__module" :class="`dashboard-alerts__module--${aviso.tipo}`">{{ aviso.modulo }}</span></td>
-                <td>
-                  <span class="dashboard-alerts__description" :class="{ 'dashboard-alerts__description--alert': aviso.critico }">
-                    <AppIcon :name="aviso.critico ? 'alert' : 'stethoscope'" :size="15" />
-                    {{ aviso.descricao }}
-                  </span>
-                </td>
-                <td class="dashboard-alerts__action-cell">
-                  <RouterLink :to="aviso.para" class="btn btn--sm">{{ aviso.acao }}</RouterLink>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      </div>
+      </div>
     </div>
   </AppShell>
 </template>
@@ -263,7 +307,13 @@ import api from '@/services/api';
 import { ehAdministrador } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import heroImage from '@/assets/images/background_fazenda.jpeg';
 import { idRelacao, ultimaMovimentacaoPorAnimal } from '@/utils/animalMovementUtils';
+import { metricasProducaoPorAnimal, ordenhasDoMesAtual, ordenhasNosUltimosDias } from '@/utils/milkProductionMetrics';
+import {
+  situacaoDaInseminacao,
+  ultimaInseminacaoPorMatriz,
+} from '@/utils/reproducaoUtils';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, LineController, LineElement, PointElement, Tooltip);
 
@@ -278,10 +328,16 @@ const atendimentos = ref([]);
 const vacinacoes = ref([]);
 const quadranteSelecionado = ref('todos');
 const periodoSelecionado = ref('30');
-const exibirTodosAbaixoDaMedia = ref(false);
 
 const ehAdmin = computed(() => ehAdministrador());
 const linkAnimais = computed(() => (ehAdmin.value ? '/animais' : '/rebanho'));
+const linkAbaixoDaMedia = computed(() => ({
+  name: 'animal-list',
+  query: {
+    alert: 'below-average',
+    ...(quadranteSelecionado.value !== 'todos' ? { quadrant: quadranteSelecionado.value } : {}),
+  },
+}));
 const ultimaMovimentacao = computed(() => ultimaMovimentacaoPorAnimal(movimentacoes.value));
 
 function registrosDaResposta(data) {
@@ -407,38 +463,39 @@ const totalLeite = computed(() =>
   ordenhasValidas.value.reduce((total, registro) => total + quantidadeDeLeite(registro), 0)
 );
 
-const mediaPorOrdenha = computed(() =>
-  ordenhasValidas.value.length ? totalLeite.value / ordenhasValidas.value.length : 0
+const ordenhasUltimos30Dias = computed(() => ordenhasNosUltimosDias(ordenhas.value, 30).filter((registro) => {
+  const animalId = idRelacao(registro.animal ?? registro.animal_id);
+  return animaisPorId.value.has(String(animalId));
+}));
+
+const ordenhasValidas30d = computed(() =>
+  ordenhasUltimos30Dias.value.filter((registro) => quantidadeDeLeite(registro) > 0)
 );
 
-const mediasPorAnimal = computed(() => {
-  const totais = new Map();
-  for (const registro of ordenhasValidas.value) {
-    const animalId = idRelacao(registro.animal ?? registro.animal_id);
-    const animal = animaisPorId.value.get(String(animalId));
-    const litros = quantidadeDeLeite(registro);
-    if (!animal || !litros) continue;
-    const item = totais.get(String(animal.id)) || { animal, litros: 0, registros: 0 };
-    item.litros += litros;
-    item.registros += 1;
-    totais.set(String(animal.id), item);
-  }
-  return [...totais.values()].map((item) => ({
-    ...item,
-    media: item.litros / item.registros,
-  }));
-});
+const ordenhasMesAtual = computed(() => ordenhasDoMesAtual(ordenhas.value).filter((registro) => {
+  const animalId = idRelacao(registro.animal ?? registro.animal_id);
+  return animaisPorId.value.has(String(animalId));
+}));
+const ordenhasValidasMesAtual = computed(() =>
+  ordenhasMesAtual.value.filter((registro) => quantidadeDeLeite(registro) > 0)
+);
 
-const animaisAbaixoDaMedia = computed(() =>
-  mediasPorAnimal.value
-    .filter((item) => item.media < mediaPorOrdenha.value)
-    .sort((a, b) => a.media - b.media)
+const metricasProducao30d = computed(() =>
+  metricasProducaoPorAnimal([...animaisPorId.value.values()], ordenhasValidas30d.value)
 );
-const animaisAbaixoDaMediaVisiveis = computed(() =>
-  exibirTodosAbaixoDaMedia.value
-    ? animaisAbaixoDaMedia.value
-    : animaisAbaixoDaMedia.value.slice(0, 4)
+const totalLeite30d = computed(() => metricasProducao30d.value.totalLitros);
+const mediaPorOrdenha30d = computed(() => metricasProducao30d.value.mediaRebanho);
+const metricasProducaoMesAtual = computed(() =>
+  metricasProducaoPorAnimal([...animaisPorId.value.values()], ordenhasValidasMesAtual.value)
 );
+const mediaPorOrdenhaMesAtual = computed(() => metricasProducaoMesAtual.value.mediaRebanho);
+const animaisAbaixoDaMediaMesAtual = computed(() => metricasProducaoMesAtual.value.abaixoDaMedia);
+const animaisAbaixoDaMediaVisiveisMesAtual = computed(() => animaisAbaixoDaMediaMesAtual.value.slice(0, 3));
+
+function percentualDaMediaMesAtual(item) {
+  if (!mediaPorOrdenhaMesAtual.value) return 0;
+  return Math.max(0, Math.min(100, Math.round((item.media / mediaPorOrdenhaMesAtual.value) * 100)));
+}
 
 const producaoLeitePorDia = computed(() => {
   const totaisPorDia = new Map();
@@ -522,6 +579,88 @@ function chartColor(token) {
   return getComputedStyle(document.documentElement).getPropertyValue(token).trim();
 }
 
+const reproducaoPorMatriz = computed(() => {
+  const ultimas = ultimaInseminacaoPorMatriz(inseminacoes.value, idRelacao);
+  const itens = [];
+  for (const registro of ultimas.values()) {
+    const animalId = idRelacao(registro.mother ?? registro.mother_id);
+    const animal = animaisPorId.value.get(String(animalId));
+    const info = situacaoDaInseminacao(registro.date);
+    if (animal && info) itens.push({ registro, animal, info });
+  }
+  return itens;
+});
+
+const ultrassonsPendentes = computed(() =>
+  reproducaoPorMatriz.value
+    .filter((item) => item.info.fase === 'ultrassom')
+    .sort((a, b) => b.info.dias - a.info.dias)
+);
+
+const diagnosticosAtrasados = computed(() =>
+  reproducaoPorMatriz.value
+    .filter((item) => item.info.fase === 'diagnostico-atrasado')
+    .sort((a, b) => b.info.dias - a.info.dias)
+);
+
+const tarefasHoje = computed(() => [
+  {
+    id: 'ultrassom',
+    icone: 'stethoscope',
+    tom: 'warn',
+    titulo: 'Ultrassons a fazer',
+    total: ultrassonsPendentes.value.length,
+    critico: false,
+    detalhe: 'Vacas inseminadas há 30 dias ou mais, sem confirmação.',
+    vazio: 'Nenhuma vaca aguardando ultrassom.',
+    para: '/inseminacoes',
+  },
+  {
+    id: 'diagnosticos',
+    icone: 'clipboard',
+    tom: 'warn',
+    titulo: 'Diagnósticos de prenhez pendentes',
+    total: diagnosticosAtrasados.value.length,
+    critico: false,
+    detalhe: 'Inseminações há mais de 90 dias sem confirmação clínica.',
+    vazio: 'Nenhum diagnóstico atrasado.',
+    para: '/inseminacoes',
+  },
+  {
+    id: 'vacinas',
+    icone: 'syringe',
+    tom: 'danger',
+    titulo: 'Reforços de vacina vencidos',
+    total: vacinasAtrasadas.value.length,
+    critico: true,
+    detalhe: 'Animais com a próxima dose já vencida.',
+    vazio: 'Vacinação em dia.',
+    para: '/saude',
+  },
+  {
+    id: 'producao',
+    icone: 'milk',
+    tom: 'warn',
+    titulo: 'Produção abaixo da média neste mês',
+    total: animaisAbaixoDaMediaMesAtual.value.length,
+    critico: false,
+    detalhe: 'Animais com média abaixo da média do rebanho neste mês.',
+    vazio: 'Nenhum animal abaixo da média neste mês.',
+    para: '/lancamento-leite',
+  },
+]);
+
+const saudacao = computed(() => {
+  const hora = new Date().getHours();
+  if (hora < 12) return 'Bom dia';
+  if (hora < 18) return 'Boa tarde';
+  return 'Boa noite';
+});
+
+const dataHoje = computed(() => new Date().toLocaleDateString('pt-BR', {
+  weekday: 'long', day: 'numeric', month: 'long',
+}));
+
 const avisosPainel = computed(() => {
   const alertasVacina = vacinasAtrasadas.value.map((vacina) => {
     const animalId = idRelacao(vacina.animal ?? vacina.animal_id);
@@ -554,7 +693,29 @@ const avisosPainel = computed(() => {
       acao: 'Ver ficha',
     };
   });
-  return [...alertasVacina, ...alertasClinicos].filter(Boolean).slice(0, 8);
+  const alertasReprodutivos = [
+    ...ultrassonsPendentes.value.map(({ registro, animal, info }) => ({
+      id: `ultrassom-${registro.id}`,
+      animal,
+      tipo: 'health',
+      modulo: 'REPRODUÇÃO',
+      critico: false,
+      descricao: `Ultrassom pendente · inseminada há ${info.dias} dias`,
+      para: '/inseminacoes',
+      acao: 'Ver reprodução',
+    })),
+    ...diagnosticosAtrasados.value.map(({ registro, animal, info }) => ({
+      id: `diagnostico-${registro.id}`,
+      animal,
+      tipo: 'health',
+      modulo: 'REPRODUÇÃO',
+      critico: false,
+      descricao: `Diagnóstico de prenhez pendente · inseminada há ${info.dias} dias`,
+      para: '/inseminacoes',
+      acao: 'Ver reprodução',
+    })),
+  ];
+  return [...alertasVacina, ...alertasReprodutivos, ...alertasClinicos].filter(Boolean).slice(0, 10);
 });
 
 function chartOptions(unit) {
@@ -1110,46 +1271,81 @@ onMounted(async () => {
 .milk-summary__details { display: flex; justify-content: space-between; gap: 10px; color: var(--text-3); font-size: var(--fs-xs); }
 .milk-summary__details strong { color: var(--text); font-size: var(--fs-sm); }
 
-.below-average {
+.milk-month-alert {
   min-width: 0;
   padding: 14px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--warn-line);
   border-radius: var(--r-md);
   background: var(--surface-2);
 }
 
-.below-average__head {
+.milk-month-alert__head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
-.below-average__head h3 { font-size: var(--fs-sm); }
-.below-average__head p,
-.below-average__empty { margin-top: 3px; color: var(--text-3); font-size: var(--fs-xs); }
-.below-average__hint { margin-top: 8px; color: var(--text-3); font-size: var(--fs-xs); }
-.below-average__list {
+.milk-month-alert__icon,
+.milk-month-alert__count {
   display: grid;
-  max-height: 240px;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.milk-month-alert__icon.is-alert,
+.milk-month-alert__count.is-alert {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.milk-month-alert__head > div { min-width: 0; flex: 1; }
+.milk-month-alert__head h3 { font-size: var(--fs-sm); }
+.milk-month-alert__head p,
+.milk-month-alert__empty { margin-top: 3px; color: var(--text-3); font-size: var(--fs-xs); }
+.milk-month-alert__count { font-family: var(--font-mono); font-weight: 700; }
+.milk-month-alert__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  max-height: 340px;
   overflow-y: auto;
   list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 10px;
 }
-.below-average__list li + li { border-top: 1px solid var(--line); }
-.below-average__list a {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 0;
+
+.milk-month-alert__animal {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  height: 100%;
+  padding: 12px;
+  border: 1px solid var(--warn-line);
+  border-radius: var(--r-md);
+  background: var(--surface);
   color: var(--text-2);
   font-size: var(--fs-xs);
   text-decoration: none;
 }
 
-.below-average__list a:hover { color: var(--accent); text-decoration: none; }
-.below-average__list strong { flex: none; color: var(--text); font-family: var(--font-mono); }
+.milk-month-alert__animal:hover {
+  border-color: var(--warn);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.milk-month-alert__animal-head { display: flex; justify-content: space-between; gap: 8px; }
+.milk-month-alert__animal-head strong:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.milk-month-alert__animal-head strong:last-child { flex: none; color: var(--text); font-family: var(--font-mono); }
+.milk-month-alert__meter { display: block; height: 7px; overflow: hidden; border-radius: var(--r-full); background: var(--surface-3); }
+.milk-month-alert__meter > span { display: block; height: 100%; border-radius: inherit; background: var(--warn); transition: width 180ms ease; }
+.milk-month-alert__animal small { color: var(--warn); font-size: var(--fs-xs); font-weight: 600; }
 
 .dashboard__chart-grid {
   display: grid;
@@ -1179,6 +1375,58 @@ onMounted(async () => {
 }
 
 .dashboard-chart { position: relative; height: 250px; padding: 8px 18px 18px; }
+
+.dashboard-today { margin-bottom: 20px; overflow: hidden; }
+.dashboard-today__head { padding: 16px 18px 4px; }
+.dashboard-today__title { margin: 0; font-size: var(--fs-lg); font-weight: 600; color: var(--text); }
+.dashboard-today__desc { margin: 2px 0 0; color: var(--text-3); font-size: var(--fs-sm); }
+.dashboard-today__list {
+  list-style: none;
+  margin: 0;
+  padding: 12px 18px 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+.dashboard-today__list > li { display: flex; min-width: 0; }
+.dashboard-today__item {
+  display: flex;
+  width: 100%;
+  height: 106px;
+  min-height: 106px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text-2);
+  text-decoration: none;
+}
+.dashboard-today__item:hover { border-color: var(--line-strong); background: var(--surface-2); }
+.dashboard-today__item--active { border-color: var(--warn-line); background: var(--warn-soft); color: var(--text); }
+.dashboard-today__item--critical { border-color: var(--danger-line); background: var(--danger-soft); }
+.dashboard-today__count {
+  min-width: 36px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  color: var(--text-3);
+}
+.dashboard-today__item--active .dashboard-today__count { color: var(--warn); }
+.dashboard-today__item--critical .dashboard-today__count { color: var(--danger); }
+.dashboard-today__text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.dashboard-today__text strong { font-size: var(--fs-md); font-weight: 600; color: var(--text); }
+.dashboard-today__text small { font-size: var(--fs-xs); color: var(--text-3); }
+.dashboard-today__text strong,
+.dashboard-today__text small {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
 
 .dashboard-alerts { overflow: hidden; }
 .dashboard-alerts__head {
@@ -1262,4 +1510,40 @@ onMounted(async () => {
   .dashboard-chart-card .card__head { flex-wrap: wrap; }
   .dashboard-chart { height: 230px; padding-inline: 10px; }
 }
+
+/* Acabamento v2 — cartões "Hoje" */
+.dashboard__hero { margin-bottom: 20px; }
+.dashboard-today__item {
+  position: relative;
+  overflow: hidden;
+  gap: 14px;
+  transition: transform var(--dur-slow) var(--ease-out), box-shadow var(--dur-slow) var(--ease-out),
+              border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.dashboard-today__item:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.dashboard-today__item:active { transform: scale(0.98); }
+.dashboard-today__icon {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.dashboard-today__item--active .dashboard-today__icon {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.dashboard-today__item--active.is-warn .dashboard-today__icon { color: var(--warn); }
+.dashboard-today__item--active.is-info .dashboard-today__icon { color: var(--info); }
+.dashboard-today__item--active.is-danger .dashboard-today__icon { color: var(--danger); }
+.dashboard-today__count { min-width: 32px; text-align: right; }
+
+.dashboard__content { display: grid; gap: 20px; }
+.dashboard__panel { display: flex; flex-direction: column; gap: 20px; }
+.dashboard__panel > * { margin-bottom: 0; }
+.hero__actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 </style>

@@ -52,7 +52,7 @@
 
             <div class="field">
               <label class="field__label" for="quantidade">Quantidade fornecida (kg)</label>
-              <input id="quantidade" v-model="formData.quantity" class="input" type="number" step="0.01" placeholder="4.50" required>
+              <input id="quantidade" v-model="formData.quantity" class="input" type="number" inputmode="decimal" step="0.01" placeholder="4.50" required>
             </div>
 
             <div class="field">

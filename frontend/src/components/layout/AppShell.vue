@@ -131,7 +131,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { ehAdministrador, limparSessao, nome, painelDoPapel, papel } from '@/services/auth';
@@ -178,6 +178,7 @@ const secaoRebanho = computed(() => [
     icon: 'dna',
     children: [
       { to: '/inseminacoes', label: 'Inseminações', icon: 'dna' },
+      { to: '/analise-reprodutiva', label: 'Análise reprodutiva & IA', icon: 'chart' },
       { to: '/nascimento-genealogia', label: 'Nascimentos & genealogia', icon: 'animal' },
     ],
   },
@@ -186,7 +187,6 @@ const secaoRebanho = computed(() => [
     label: 'Manejo',
     icon: 'move',
     children: [
-      { to: '/manejo', label: 'Manejo rápido', icon: 'move' },
       { to: '/pesagem', label: 'Pesagem', icon: 'scale' },
       { to: '/desenvolvimento', label: 'Desenvolvimento', icon: 'chart' },
       { to: '/lancamento-alimentacao', label: 'Alimentação', icon: 'feed' },
@@ -226,12 +226,31 @@ const secoesMenu = computed(() => {
   return secoes;
 });
 
+const grupoMenuAtivo = computed(() => {
+  for (const secao of secoesMenu.value) {
+    const grupo = secao.items.find((item) =>
+      item.children?.some((filho) => router.resolve(filho.to).path === route.path)
+    );
+    if (grupo) return grupo.label;
+  }
+  return null;
+});
+
+watch(
+  () => route.path,
+  () => {
+    aberto.value = grupoMenuAtivo.value;
+  },
+  { immediate: true }
+);
+
 const titulosPagina = {
   'dashboard-adm': 'Painel Principal',
   'dashboard-op': 'Painel Principal',
   'animal-list': 'Lista de Animais',
   'animal-detail': 'Ficha do Animal',
   'inseminacoes': 'Inseminações',
+  'analise-reprodutiva': 'Análise reprodutiva & IA',
   'nascimento-genealogia': 'Nascimentos & genealogia',
   'lancamento-leite': 'Ordenha (Produção)',
   'saude': 'Saúde & Vacinas',
@@ -674,5 +693,26 @@ onBeforeUnmount(() => {
   .bar__actions { gap: 5px; }
   .bar__actions .btn { min-height: 34px; padding-inline: 8px; font-size: var(--fs-xs); }
   .bar__actions .btn svg:last-child { display: none; }
+}
+
+/* Acabamento v2 */
+.shell { background: transparent; }
+
+.bar {
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  backdrop-filter: saturate(1.4) blur(10px);
+}
+
+.brand__mark {
+  background: var(--grad-accent);
+  box-shadow: 0 2px 8px rgba(47, 107, 70, 0.35);
+}
+
+.sidebar { box-shadow: 8px 0 28px -20px rgba(24, 28, 22, 0.25); }
+.sidebar__link { position: relative; overflow: hidden; }
+.sidebar__link:active { transform: scale(0.98); }
+.sidebar__link.router-link-active {
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 </style>

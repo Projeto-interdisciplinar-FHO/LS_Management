@@ -15,6 +15,7 @@ import EstabulosView from '@/views/herd/EstabulosView.vue'
 import BirthGenealogyView from '@/views/herd/BirthGenealogyView.vue'
 import DevelopmentView from '@/views/herd/DevelopmentView.vue'
 import InseminationView from '@/views/herd/InseminationView.vue'
+import ReproductiveAnalysisView from '@/views/herd/ReproductiveAnalysisView.vue'
 
 // handling — Manejo
 import ManejoView from '@/views/handling/ManejoView.vue'
@@ -54,6 +55,7 @@ const router = createRouter({
     { path: '/nascimento-genealogia', name: 'nascimento-genealogia', component: BirthGenealogyView, meta: { requerLogin: true } },
     { path: '/desenvolvimento', name: 'desenvolvimento', component: DevelopmentView, meta: { requerLogin: true } },
     { path: '/inseminacoes', name: 'inseminacoes', component: InseminationView, meta: { requerLogin: true } },
+    { path: '/analise-reprodutiva', name: 'analise-reprodutiva', component: ReproductiveAnalysisView, meta: { requerLogin: true } },
     
     { path: '/lancamento-leite', name: 'lancamento-leite', component: LancamentoLeiteView, meta: { requerLogin: true } },
     { path: '/exportar-animais', name: 'exportar-animais', component: () => import('@/views/handling/ExportarAnimaisView.vue'), meta: { requerLogin: true, soAdmin: true } },
