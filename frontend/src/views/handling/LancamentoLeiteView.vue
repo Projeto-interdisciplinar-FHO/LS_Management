@@ -79,6 +79,21 @@
         </article>
       </section>
 
+      <section class="milk-page__averages" aria-label="Médias diárias de produção">
+        <article class="card milk-average">
+          <span class="milk-page__eyebrow">Média diária · últimos 10 dias</span>
+          <strong>{{ mediaDeProducao(10) }} <small>L/dia</small></strong>
+        </article>
+        <article class="card milk-average">
+          <span class="milk-page__eyebrow">Média diária · mês atual</span>
+          <strong>{{ mediaDoMes }} <small>L/dia</small></strong>
+        </article>
+        <article class="card milk-average">
+          <span class="milk-page__eyebrow">Média diária · ano atual</span>
+          <strong>{{ mediaDoAno }} <small>L/dia</small></strong>
+        </article>
+      </section>
+
       <section class="card milk-chart-card" aria-labelledby="milk-chart-title">
         <header class="card__head milk-chart-card__head">
           <div>
@@ -119,6 +134,16 @@
     >
       <form class="milk-form" @submit.prevent="registrarOrdenha">
         <div class="field">
+          <label class="field__label" for="milk-stable">Estábulo (contexto)</label>
+          <select id="milk-stable" v-model="form.quadrant" class="select" :disabled="loadingQuadrants || submitting">
+            <option value="">Não selecionado</option>
+            <option v-for="quadrant in quadrants" :key="quadrant.id" :value="quadrant.id">
+              {{ quadrant.name || quadrant.tipo || `Estábulo ${quadrant.id}` }}
+            </option>
+          </select>
+            <span v-if="quadrantLoadError" class="field__hint" role="alert">{{ quadrantLoadError }}</span>
+        </div>
+        <div class="field">
           <label class="field__label" for="milk-animal">Animal</label>
           <select
             id="milk-animal"
@@ -145,6 +170,7 @@
               v-model="form.milk_production"
               class="input"
               type="number"
+              inputmode="decimal"
               min="0.01"
               step="0.01"
               placeholder="Ex.: 15,5"
@@ -165,6 +191,25 @@
           </div>
         </div>
 
+        <div class="milk-form__row">
+          <div class="field">
+            <label class="field__label" for="milk-start-time">Horário de início</label>
+            <input id="milk-start-time" v-model="form.start_time" class="input" type="time" required :disabled="submitting">
+          </div>
+          <div class="field">
+            <label class="field__label" for="milk-end-time">Horário de término</label>
+            <input id="milk-end-time" v-model="form.end_time" class="input" type="time" required :disabled="submitting">
+          </div>
+        </div>
+
+        <p class="alert alert--warn" role="status">
+          <AppIcon name="info" :size="16" />
+          <span>
+            A API atual não vincula o registro a um estábulo nem informa carência sanitária.
+            O estábulo é apenas contexto; confirme a liberação do animal antes da ordenha.
+          </span>
+        </p>
+
         <p v-if="formMessage" class="alert" :class="formSuccess ? 'alert--ok' : 'alert--danger'" :role="formSuccess ? 'status' : 'alert'">
           <AppIcon :name="formSuccess ? 'check-circle' : 'alert'" :size="16" />
           <span>{{ formMessage }}</span>
@@ -172,7 +217,7 @@
 
         <footer class="milk-form__actions">
           <button type="button" class="btn" :disabled="submitting" @click="fecharModal">Cancelar</button>
-          <button type="submit" class="btn btn--primary" :disabled="submitting || loadingAnimals || !animals.length">
+          <button type="submit" class="btn btn--primary" :disabled="submitting || loadingAnimals || !animals.length || !form.start_time || !form.end_time">
             {{ submitting ? 'Salvando...' : 'Registrar ordenha' }}
           </button>
         </footer>
@@ -294,11 +339,14 @@ const registerMenuElement = ref(null);
 const modal = ref('');
 const loading = ref(true);
 const loadingAnimals = ref(true);
+const loadingQuadrants = ref(true);
 const submitting = ref(false);
 const importing = ref(false);
 const loadError = ref('');
 const animalLoadError = ref('');
 const animals = ref([]);
+const quadrants = ref([]);
+const quadrantLoadError = ref('');
 const registros = ref([]);
 const periodo = ref('30');
 const formMessage = ref('');
@@ -312,8 +360,11 @@ const importProgress = ref(0);
 
 const form = ref({
   animal: '',
+  quadrant: '',
   milk_production: '',
   production_date: dataLocalHoje(),
+  start_time: '',
+  end_time: '',
 });
 
 function dataLocalHoje() {
@@ -376,6 +427,21 @@ async function carregarAnimais() {
   }
 }
 
+async function carregarEstabulos() {
+  loadingQuadrants.value = true;
+  quadrantLoadError.value = '';
+  try {
+    const response = await api.getQuadrants();
+    quadrants.value = listaDaResposta(response.data);
+  } catch (error) {
+    console.error('Erro ao carregar estábulos para a ordenha:', error);
+    quadrants.value = [];
+    quadrantLoadError.value = apiErrorMessage(error, 'Não foi possível carregar os estábulos.');
+  } finally {
+    loadingQuadrants.value = false;
+  }
+}
+
 function dataRegistro(registro) {
   const valor = String(registro.production_date || '').slice(0, 10);
   const data = new Date(`${valor}T00:00:00`);
@@ -401,6 +467,36 @@ const totalPeriodo = computed(() => registrosNoPeriodo.value.reduce(
 const animaisOrdenhados = computed(() => new Set(
   registrosNoPeriodo.value.map((registro) => idAnimal(registro.animal)).filter(Boolean)
 ).size);
+
+function mediaNoIntervalo(inicio, dias) {
+  const registrosNoIntervalo = registros.value.filter((record) => {
+    const date = String(record.production_date || '').slice(0, 10);
+    return date >= inicio && date <= dataLocalHoje();
+  });
+  if (!registrosNoIntervalo.length) return '—';
+  const total = registrosNoIntervalo.reduce((sum, record) => sum + (Number(record.milk_production) || 0), 0);
+  return formatarNumero(total / dias);
+}
+
+function mediaDeProducao(days) {
+  const today = new Date(`${dataLocalHoje()}T00:00:00`);
+  today.setDate(today.getDate() - days + 1);
+  const start = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  return mediaNoIntervalo(start, days);
+}
+
+const mediaDoMes = computed(() => {
+  const today = new Date(`${dataLocalHoje()}T00:00:00`);
+  const start = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+  return mediaNoIntervalo(start, today.getDate());
+});
+
+const mediaDoAno = computed(() => {
+  const today = new Date(`${dataLocalHoje()}T00:00:00`);
+  const start = `${today.getFullYear()}-01-01`;
+  const days = Math.floor((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(today.getFullYear(), 0, 1)) / 86400000) + 1;
+  return mediaNoIntervalo(start, days);
+});
 
 function idAnimal(value) {
   return value && typeof value === 'object' ? value.id : value;
@@ -504,6 +600,11 @@ function aoClicarFora(event) {
 }
 
 async function registrarOrdenha() {
+  if (form.value.end_time <= form.value.start_time) {
+    formSuccess.value = false;
+    formMessage.value = 'O horário de término deve ser posterior ao horário de início.';
+    return;
+  }
   submitting.value = true;
   formMessage.value = '';
   try {
@@ -511,10 +612,12 @@ async function registrarOrdenha() {
       animal: Number(form.value.animal),
       milk_production: Number(form.value.milk_production),
       production_date: form.value.production_date,
+      start_time: new Date(`${form.value.production_date}T${form.value.start_time}:00`).toISOString(),
+      end_time: new Date(`${form.value.production_date}T${form.value.end_time}:00`).toISOString(),
     });
     formSuccess.value = true;
-    formMessage.value = 'Ordenha registrada com sucesso.';
-    form.value = { animal: '', milk_production: '', production_date: dataLocalHoje() };
+    formMessage.value = 'Ordenha registrada. Horários enviados; o vínculo com o estábulo não é armazenado pela API atual.';
+    form.value = { animal: '', quadrant: '', milk_production: '', production_date: dataLocalHoje(), start_time: '', end_time: '' };
     await carregarDados();
     window.setTimeout(() => {
       if (modal.value === 'register') modal.value = '';
@@ -730,6 +833,7 @@ function baixarModelo() {
 onMounted(() => {
   document.addEventListener('pointerdown', aoClicarFora);
   carregarDados();
+  carregarEstabulos();
 });
 
 onBeforeUnmount(() => {
@@ -785,7 +889,11 @@ onBeforeUnmount(() => {
 .milk-page__alert .btn { margin-left: auto; }
 
 .milk-page__metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.milk-metric { display: flex; align-items: center; gap: 13px; padding: 17px; }
+.milk-page__averages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.milk-average { display: grid; justify-items: center; gap: 7px; padding: 16px; text-align: center; }
+.milk-average strong { display: inline-flex; align-items: baseline; justify-content: center; gap: 4px; color: var(--text); font-size: 1.3rem; }
+.milk-average small { color: var(--text-3); font-size: var(--fs-sm); font-weight: 500; }
+.milk-metric { display: grid; justify-items: center; gap: 10px; padding: 17px; text-align: center; }
 .milk-metric__icon {
   display: grid;
   width: 42px;
@@ -797,9 +905,9 @@ onBeforeUnmount(() => {
 .milk-metric__icon--accent { background: var(--accent-soft); color: var(--accent); }
 .milk-metric__icon--blue { background: var(--info-soft); color: var(--info); }
 .milk-metric__icon--green { background: var(--ok-soft); color: var(--ok); }
-.milk-metric > div { display: grid; gap: 4px; min-width: 0; }
+.milk-metric > div { display: grid; justify-items: center; gap: 4px; min-width: 0; }
 .milk-metric__label { color: var(--text-3); font-size: var(--fs-xs); }
-.milk-metric strong { color: var(--text); font-size: 1.35rem; line-height: 1.2; }
+.milk-metric strong { display: inline-flex; align-items: baseline; justify-content: center; gap: 4px; color: var(--text); font-size: 1.35rem; line-height: 1.2; }
 .milk-metric strong small { color: var(--text-3); font-size: var(--fs-sm); font-weight: 500; }
 
 .milk-chart-card { min-width: 0; overflow: hidden; }
@@ -878,6 +986,7 @@ onBeforeUnmount(() => {
   .milk-page__header { align-items: flex-start; }
   .milk-page__header-actions { flex-wrap: wrap; }
   .milk-page__metrics { grid-template-columns: 1fr; gap: 9px; }
+  .milk-page__averages { grid-template-columns: 1fr; gap: 9px; }
   .milk-metric { padding: 13px; }
   .milk-chart-card__plot { height: 260px; padding: 8px 10px 14px; }
   .milk-form__row { grid-template-columns: 1fr; }

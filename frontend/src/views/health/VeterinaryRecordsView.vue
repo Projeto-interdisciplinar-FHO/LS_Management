@@ -45,7 +45,18 @@
 
               <div class="field span-full">
                 <label class="field__label" for="vet-motivo">Motivo da consulta</label>
-                <textarea id="vet-motivo" v-model="formData.consultation_reason" class="textarea" rows="3" placeholder="O que foi observado no animal" required></textarea>
+                <select id="vet-motivo" v-model="formData.occurrence" class="select" required :disabled="loadingOccurrences || !occurrences.length">
+                  <option value="" disabled>
+                    {{ loadingOccurrences ? 'Carregando motivos...' : 'Selecione um motivo...' }}
+                  </option>
+                  <option v-for="item in occurrences" :key="item.id" :value="item.id">
+                    {{ item.description }}
+                  </option>
+                </select>
+                <span v-if="occurrencesError" class="field__hint" role="alert">{{ occurrencesError }}</span>
+                <span v-else-if="!loadingOccurrences && !occurrences.length" class="field__hint">
+                  Nenhum motivo predefinido disponível. A API precisa cadastrar as opções antes do registro.
+                </span>
               </div>
 
               <div class="field span-full">
@@ -60,8 +71,8 @@
             </div>
 
             <footer class="card__foot">
-              <button type="submit" class="btn btn--primary" :disabled="saving || loadingAnimals || !animalsList.length">
-                {{ saving ? 'Salvando...' : loadingAnimals ? 'Carregando animais...' : 'Registrar consulta' }}
+              <button type="submit" class="btn btn--primary" :disabled="saving || loadingAnimals || loadingOccurrences || !animalsList.length || !occurrences.length">
+                {{ saving ? 'Salvando...' : loadingAnimals || loadingOccurrences ? 'Carregando opções...' : 'Registrar consulta' }}
               </button>
             </footer>
           </form>
@@ -137,16 +148,19 @@ const saving = ref(false);
 const loadingAnimals = ref(true);
 const animalsList = ref([]);
 const records = ref([]);
+const occurrences = ref([]);
 const message = ref('');
 const isSuccess = ref(false);
 const animalsLoadError = ref('');
 const recordsLoadError = ref('');
+const occurrencesError = ref('');
+const loadingOccurrences = ref(true);
 
 const formData = ref({
   animal: '',
   veterinarian: '',
   consultation_date: new Date().toISOString().split('T')[0],
-  consultation_reason: '',
+  occurrence: '',
   consultation_solution: ''
 });
 
@@ -180,18 +194,38 @@ const loadRecords = async () => {
   }
 };
 
+const loadOccurrences = async () => {
+  loadingOccurrences.value = true;
+  occurrencesError.value = '';
+  try {
+    const response = await api.get('veterinary_occurrences/');
+    occurrences.value = response.data.results || response.data;
+  } catch (error) {
+    console.error('Erro ao carregar motivos veterinários:', error);
+    occurrences.value = [];
+    occurrencesError.value = apiErrorMessage(error, 'Não foi possível carregar os motivos veterinários.');
+  } finally {
+    loadingOccurrences.value = false;
+  }
+};
+
 const submitRecord = async () => {
+  const occurrence = occurrences.value.find((item) => String(item.id) === String(formData.value.occurrence));
+  if (!occurrence) return;
   saving.value = true;
   message.value = '';
   try {
-    await api.createVeterinaryRecord(formData.value);
+    await api.createVeterinaryRecord({
+      ...formData.value,
+      consultation_reason: occurrence.description,
+    });
     isSuccess.value = true;
     message.value = 'Consulta veterinária registrada com sucesso.';
     formData.value = {
       animal: '',
       veterinarian: '',
       consultation_date: new Date().toISOString().split('T')[0],
-      consultation_reason: '',
+      occurrence: '',
       consultation_solution: ''
     };
     await loadRecords();
@@ -211,6 +245,6 @@ const formatDate = (value) => {
 };
 
 onMounted(async () => {
-  await Promise.all([loadAnimals(), loadRecords()]);
+  await Promise.all([loadAnimals(), loadRecords(), loadOccurrences()]);
 });
 </script>

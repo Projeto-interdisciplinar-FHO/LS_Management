@@ -8,6 +8,9 @@
         :voltar-para="painel"
       />
 
+      <ManejoPesagemTabs />
+
+      <div id="manejo-peso-panel-pesagem" role="tabpanel" aria-labelledby="manejo-peso-tab-pesagem">
       <section class="card">
         <header class="card__head">
           <div>
@@ -35,7 +38,7 @@
 
             <div class="field">
               <label class="field__label" for="peso">Peso (kg)</label>
-              <input id="peso" v-model="formData.weight" class="input" type="number" step="0.1" placeholder="450.5" required>
+              <input id="peso" v-model="formData.weight" class="input" type="number" inputmode="decimal" step="0.1" placeholder="450.5" required>
             </div>
 
             <div class="field">
@@ -56,6 +59,7 @@
           </footer>
         </form>
       </section>
+      </div>
     </div>
   </AppShell>
 </template>
@@ -66,6 +70,7 @@ import api from '@/services/api';
 import { painelDoPapel } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import ManejoPesagemTabs from '@/components/ui/ManejoPesagemTabs.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import { apiErrorMessage } from '@/utils/apiError';
 
