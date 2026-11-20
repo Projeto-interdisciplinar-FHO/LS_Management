@@ -41,7 +41,7 @@
                 <AppIcon name="upload" :size="16" />
                 <span>
                   <strong>Importar uma ordenha</strong>
-                  <small>Carregar vários registros por CSV</small>
+                  <small>Carregar registros por planilha Excel (.xlsx)</small>
                 </span>
               </button>
             </div>
@@ -226,69 +226,79 @@
 
     <AppModal
       v-if="modal === 'import'"
-      titulo="Importar ordenhas por CSV"
+      titulo="Importar ordenhas por planilha Excel (.xlsx)"
       largo
       @fechar="fecharModal"
     >
       <div class="milk-import">
         <div class="milk-import__instructions">
           <div>
-            <strong>Prepare seu arquivo CSV</strong>
-            <p>Use as colunas <code>numero_do_brinco</code>, <code>litros</code> e <code>data</code>. A data pode estar em DD/MM/AAAA ou AAAA-MM-DD.</p>
+            <strong>Planilha oficial de ordenhas</strong>
+            <p>
+              Preencha <code>Número do Brinco</code> (individual) ou <code>Estábulo</code> (lote coletivo),
+              junto com <code>litros</code> e <code>data</code>.
+            </p>
           </div>
           <button type="button" class="btn btn--sm" @click="baixarModelo">
             <AppIcon name="download" :size="14" />
-            Baixar modelo
+            Baixar modelo (XLSX)
           </button>
         </div>
 
-        <label class="milk-import__dropzone" :class="{ 'milk-import__dropzone--loaded': csvFileName }">
-          <input type="file" accept=".csv,text/csv" :disabled="importing" @change="selecionarArquivo">
-          <AppIcon :name="csvFileName ? 'check-circle' : 'upload'" :size="24" />
-          <strong>{{ csvFileName || 'Escolha um arquivo CSV' }}</strong>
+        <label class="milk-import__dropzone" :class="{ 'milk-import__dropzone--loaded': selectedFileName }">
+          <input type="file" accept=".xlsx,.xls,.csv" :disabled="importing" @change="selecionarArquivo">
+          <AppIcon :name="selectedFileName ? 'check-circle' : 'upload'" :size="24" />
+          <strong>{{ selectedFileName || 'Escolha um arquivo Excel (.xlsx) ou CSV' }}</strong>
           <span>Clique para procurar no computador</span>
         </label>
 
-        <p v-if="csvError" class="alert alert--danger" role="alert">
+        <p v-if="importError" class="alert alert--danger" role="alert">
           <AppIcon name="alert" :size="16" />
-          <span>{{ csvError }}</span>
+          <span>{{ importError }}</span>
         </p>
 
-        <template v-if="csvRows.length">
+        <template v-if="importPreview">
           <div class="milk-import__summary">
-            <strong>{{ csvRows.length }} linhas encontradas</strong>
-            <span v-if="csvInvalidRows.length" class="milk-import__invalid">
-              {{ csvInvalidRows.length }} {{ csvInvalidRows.length === 1 ? 'linha precisa' : 'linhas precisam' }} de correção
+            <strong>{{ importPreview.total_linhas_processadas }} linha(s) analisada(s)</strong>
+            <span v-if="importPreview.total_falhas" class="milk-import__invalid">
+              {{ importPreview.total_falhas }} {{ importPreview.total_falhas === 1 ? 'linha precisa' : 'linhas precisam' }} de correção
             </span>
-            <span v-else class="milk-import__valid">Arquivo pronto para importar</span>
+            <span v-else class="milk-import__valid">Pronto para importar</span>
           </div>
-          <div class="milk-import__preview">
+
+          <div v-if="importPreview.exemplos_importados?.length" class="milk-import__preview">
             <table class="table">
               <thead>
-                <tr><th>Linha</th><th>Brinco</th><th>Animal</th><th>Data</th><th>Litros</th><th>Validação</th></tr>
+                <tr><th>Linha</th><th>Tipo</th><th>Identificação</th><th>Data</th><th>Litros</th><th>Horário</th></tr>
               </thead>
               <tbody>
-                <tr v-for="row in csvRows.slice(0, 8)" :key="row.line">
-                  <td>{{ row.line }}</td>
-                  <td>#{{ row.registerNumber }}</td>
-                  <td>{{ row.animal?.name || '—' }}</td>
-                  <td>{{ row.displayDate || '—' }}</td>
-                  <td>{{ row.displayQuantity || '—' }}</td>
-                  <td :class="row.error ? 'milk-import__row-error' : 'milk-import__row-valid'">
-                    {{ row.error || 'Pronta' }}
+                <tr v-for="item in importPreview.exemplos_importados" :key="item.linha">
+                  <td>{{ item.linha }}</td>
+                  <td>
+                    <span class="badge" :class="item.tipo === 'estabulo' ? 'badge--blue' : ''">
+                      {{ item.tipo === 'estabulo' ? 'Estábulo (Lote)' : 'Individual' }}
+                    </span>
                   </td>
+                  <td>
+                    <span v-if="item.tipo === 'estabulo'">{{ item.estabulo }} ({{ item.vacas_atendidas }} vacas)</span>
+                    <span v-else>#{{ item.brinco }} · {{ item.nome_animal }}</span>
+                  </td>
+                  <td>{{ item.data }}</td>
+                  <td>
+                    <span v-if="item.tipo === 'estabulo'">{{ formatarNumero(item.litros_total) }} L ({{ formatarNumero(item.litros_por_vaca) }} L/vaca)</span>
+                    <span v-else>{{ formatarNumero(item.litros) }} L</span>
+                  </td>
+                  <td>{{ item.inicio ? `${item.inicio} - ${item.fim || ''}` : '—' }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <ul v-if="csvInvalidRows.length" class="milk-import__errors" aria-label="Linhas com erro">
-            <li v-for="row in csvInvalidRows.slice(0, 10)" :key="`erro-${row.line}`">
-              Linha {{ row.line }}: {{ row.error }}
+
+          <ul v-if="importPreview.erros?.length" class="milk-import__errors" aria-label="Linhas com erro">
+            <li v-for="err in importPreview.erros" :key="`erro-${err.linha}`">
+              <strong>Linha {{ err.linha }}:</strong> {{ err.erros?.join(' · ') || err.erro }}
             </li>
           </ul>
-          <p v-if="csvRows.length > 8" class="milk-import__more">
-            Mostrando 8 de {{ csvRows.length }} linhas. Todas serão validadas antes da importação.
-          </p>
         </template>
 
         <p v-if="importMessage" class="alert" :class="importSuccess ? 'alert--ok' : 'alert--danger'" :role="importSuccess ? 'status' : 'alert'">
@@ -301,10 +311,10 @@
           <button
             type="button"
             class="btn btn--primary"
-            :disabled="importing || !csvRows.length || csvInvalidRows.length > 0"
+            :disabled="importing || !selectedFile || (importPreview && importPreview.total_importados === 0)"
             @click="importarOrdenhas"
           >
-            {{ importing ? `Importando ${importProgress}/${csvRows.length}...` : `Importar ${csvRows.length || ''} ordenhas` }}
+            {{ importing ? 'Importando ordenhas...' : 'Confirmar importação' }}
           </button>
         </footer>
       </div>
@@ -353,10 +363,10 @@ const formMessage = ref('');
 const formSuccess = ref(false);
 const importMessage = ref('');
 const importSuccess = ref(false);
-const csvFileName = ref('');
-const csvError = ref('');
-const csvRows = ref([]);
-const importProgress = ref(0);
+const selectedFile = ref(null);
+const selectedFileName = ref('');
+const importError = ref('');
+const importPreview = ref(null);
 
 const form = ref({
   animal: '',
@@ -631,131 +641,14 @@ async function registrarOrdenha() {
   }
 }
 
-function parseCsv(text) {
-  const primeiraLinha = text.split(/\r?\n/, 1)[0] || '';
-  const delimitador = (primeiraLinha.match(/;/g) || []).length > (primeiraLinha.match(/,/g) || []).length
-    ? ';'
-    : ',';
-  const rows = [];
-  let row = [];
-  let cell = '';
-  let quoted = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    if (char === '"') {
-      if (quoted && text[index + 1] === '"') {
-        cell += '"';
-        index += 1;
-      } else {
-        quoted = !quoted;
-      }
-    } else if (char === delimitador && !quoted) {
-      row.push(cell);
-      cell = '';
-    } else if ((char === '\n' || char === '\r') && !quoted) {
-      row.push(cell);
-      if (row.some((value) => value.trim())) rows.push(row);
-      row = [];
-      cell = '';
-      if (char === '\r' && text[index + 1] === '\n') index += 1;
-    } else {
-      cell += char;
-    }
-  }
-
-  if (quoted) throw new Error('O CSV tem aspas sem fechamento.');
-  row.push(cell);
-  if (row.some((value) => value.trim())) rows.push(row);
-  return rows;
-}
-
-function normalizarCabecalho(value) {
-  return value
-    .replace(/^\uFEFF/, '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[_\s-]+/g, ' ')
-    .trim();
-}
-
-function dataCsv(value) {
-  const entrada = value.trim();
-  let ano;
-  let mes;
-  let dia;
-  let partes = entrada.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if (partes) {
-    [, ano, mes, dia] = partes;
-  } else {
-    partes = entrada.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (!partes) return null;
-    [, dia, mes, ano] = partes;
-  }
-
-  const iso = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
-  const date = new Date(`${iso}T00:00:00`);
-  const dataValida = !Number.isNaN(date.getTime())
-    && date.getFullYear() === Number(ano)
-    && date.getMonth() + 1 === Number(mes)
-    && date.getDate() === Number(dia);
-  return dataValida ? iso : null;
-}
-
-function quantidadeCsv(value) {
-  const entrada = value.trim().replace(/\s/g, '');
-  const temVirgula = entrada.includes(',');
-  const temPonto = entrada.includes('.');
-  let normalizada = entrada;
-  if (temVirgula && temPonto) {
-    normalizada = entrada.lastIndexOf(',') > entrada.lastIndexOf('.')
-      ? entrada.replace(/\./g, '').replace(',', '.')
-      : entrada.replace(/,/g, '');
-  } else if (temVirgula) {
-    normalizada = entrada.replace(',', '.');
-  }
-  const quantidade = Number(normalizada);
-  return Number.isFinite(quantidade) && quantidade > 0 ? quantidade : null;
-}
-
-function validarCsv(text) {
-  const rows = parseCsv(text);
-  if (rows.length < 2) throw new Error('O arquivo precisa ter cabeçalho e pelo menos uma ordenha.');
-  const headers = rows[0].map(normalizarCabecalho);
-  const indexOfHeader = (names) => headers.findIndex((header) => names.includes(header));
-  const brincoIndex = indexOfHeader(['numero do brinco', 'brinco', 'register number']);
-  const litrosIndex = indexOfHeader(['litros', 'quantidade', 'milk production']);
-  const dataIndex = indexOfHeader(['data', 'date', 'production date']);
-
-  if ([brincoIndex, litrosIndex, dataIndex].some((index) => index < 0)) {
-    throw new Error('Cabeçalhos obrigatórios: numero_do_brinco, litros e data.');
-  }
-
-  return rows.slice(1).map((cells, index) => {
-    const line = index + 2;
-    const registerNumber = cells[brincoIndex]?.trim() || '';
-    const quantity = quantidadeCsv(cells[litrosIndex] || '');
-    const date = dataCsv(cells[dataIndex] || '');
-    const animal = animals.value.find((item) => String(item.register_number) === registerNumber);
-    const issues = [];
-
-    if (!registerNumber) issues.push('Brinco ausente');
-    else if (!animal) issues.push('Animal não encontrado');
-    if (!quantity) issues.push('Litros inválidos');
-    if (!date) issues.push('Data inválida');
-
-    return {
-      line,
-      registerNumber,
-      animal,
-      quantity,
-      date,
-      displayDate: date ? formatarData(date) : cells[dataIndex]?.trim(),
-      displayQuantity: quantity ? `${formatarNumero(quantity)} L` : cells[litrosIndex]?.trim(),
-      error: issues.join(' · '),
-    };
-  });
+function limparImportacao() {
+  selectedFile.value = null;
+  selectedFileName.value = '';
+  importError.value = '';
+  importPreview.value = null;
+  importMessage.value = '';
+  importSuccess.value = false;
+  importing.value = false;
 }
 
 async function selecionarArquivo(event) {
@@ -764,70 +657,60 @@ async function selecionarArquivo(event) {
   limparImportacao();
   if (!file) return;
   input.value = '';
-  csvFileName.value = file.name;
-  if (!/\.csv$/i.test(file.name)) {
-    csvError.value = 'Selecione um arquivo com extensão .csv.';
+  selectedFile.value = file;
+  selectedFileName.value = file.name;
+
+  if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
+    importError.value = 'Selecione um arquivo Excel (.xlsx, .xls) ou CSV.';
     return;
   }
 
   try {
-    csvRows.value = validarCsv(await file.text());
-  } catch (error) {
-    csvError.value = error instanceof Error ? error.message : 'Não foi possível ler o arquivo CSV.';
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('importacao/ordenhas/?dry_run=true', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    importPreview.value = response.data;
+  } catch (err) {
+    console.error('Erro na validação da planilha de ordenhas:', err);
+    importError.value = apiErrorMessage(err, 'Não foi possível validar o arquivo.');
   }
 }
-
-function limparImportacao() {
-  csvFileName.value = '';
-  csvError.value = '';
-  csvRows.value = [];
-  importMessage.value = '';
-  importSuccess.value = false;
-  importProgress.value = 0;
-}
-
-const csvInvalidRows = computed(() => csvRows.value.filter((row) => row.error));
 
 async function importarOrdenhas() {
-  if (!csvRows.value.length || csvInvalidRows.value.length) return;
+  if (!selectedFile.value || importing.value) return;
   importing.value = true;
-  importProgress.value = 0;
-  let importadas = 0;
-  const falhas = [];
+  importMessage.value = '';
+  importError.value = '';
 
-  for (const row of csvRows.value) {
-    try {
-      await api.post('milk_production_history/', {
-        animal: row.animal.id,
-        milk_production: row.quantity,
-        production_date: row.date,
-      });
-      importadas += 1;
-    } catch (error) {
-      console.error(`Erro ao importar ordenha da linha ${row.line}:`, error);
-      falhas.push(row.line);
-    } finally {
-      importProgress.value += 1;
+  try {
+    const formData = new FormData();
+    formData.append('file', selectedFile.value);
+    const response = await api.post('importacao/ordenhas/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    importSuccess.value = response.data.sucesso || response.data.total_importados > 0;
+    importMessage.value = response.data.mensagem || `${response.data.total_importados} ordenha(s) importada(s) com sucesso.`;
+    if (response.data.total_importados > 0) {
+      await carregarDados();
     }
+  } catch (err) {
+    console.error('Erro ao importar ordenhas:', err);
+    importSuccess.value = false;
+    importMessage.value = apiErrorMessage(err, 'Falha ao importar registros de ordenha.');
+  } finally {
+    importing.value = false;
   }
-
-  importSuccess.value = falhas.length === 0;
-  importMessage.value = falhas.length
-    ? `${importadas} de ${csvRows.value.length} registros importados. Falha nas linhas ${falhas.join(', ')}.`
-    : `${importadas} ordenhas importadas com sucesso.`;
-
-  if (importadas) await carregarDados();
-  importing.value = false;
 }
 
 function baixarModelo() {
-  const csv = `\uFEFFnumero_do_brinco,litros,data\r\n1090,15.5,${dataLocalHoje()}\r\n`;
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
-  link.href = url;
-  link.download = 'modelo-ordenhas.csv';
+  link.href = '/modelos/modelo_importacao_ordenhas.xlsx';
+  link.download = 'modelo_importacao_ordenhas.xlsx';
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
 }
 
 onMounted(() => {
