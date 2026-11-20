@@ -45,4 +45,18 @@ urlpatterns = [
     # DESCRIÇÃO DE USO:
     # Rota idêntica à Rota 1 acima, funcionando como um alias direto sem o prefixo '/api/' para dar
     # flexibilidade total à equipe de Frontend conforme as convenções adotadas no projeto.
+
+    # -------------------------------------------------------------------------
+    # ROTAS DE IMPORTAÇÃO E EXPORTAÇÃO EM PLANILHA XLSX (EXCEL)
+    # -------------------------------------------------------------------------
+
+    # Rotas padrão com prefixo /api/
+    # - POST /api/importacao/vacas/      -> Importa planilha XLSX de vacas
+    # - GET  /api/importacao/vacas/      -> Baixa modelo padrão XLSX de vacas (?exportar=true para exportar dados)
+    # - POST /api/importacao/ordenhas/   -> Importa planilha XLSX de ordenhas
+    # - GET  /api/importacao/ordenhas/   -> Baixa modelo padrão XLSX de ordenhas (?exportar=true para exportar dados)
+    path('api/importacao/', include('apps.importacao.urls')),
+
+    # Atalhos diretos sem prefixo /api/ (flexibilidade para qualquer convenção)
+    path('importacao/', include('apps.importacao.urls')),
 ]
