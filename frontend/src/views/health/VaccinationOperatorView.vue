@@ -14,8 +14,54 @@
         <button type="button" class="btn btn--sm" @click="fetchDropdownData">Tentar novamente</button>
       </p>
 
-      <div class="grid grid--wide">
-        <section class="card">
+      <p class="alert alert--warn" role="status">
+        <AppIcon name="info" :size="16" />
+        <span>
+          O cadastro atual de vacinações não informa período de carência nem data de liberação para ordenha.
+          Consulte a orientação veterinária antes de considerar um animal liberado.
+        </span>
+      </p>
+
+      <div class="segmented" role="tablist" aria-label="Tipo de registro de vacinação">
+        <button
+          id="individual-tab"
+          ref="individualTab"
+          type="button"
+          role="tab"
+          class="segmented__item"
+          :class="{ 'is-active': activeMode === 'individual' }"
+          :aria-selected="activeMode === 'individual'"
+          :tabindex="activeMode === 'individual' ? 0 : -1"
+          aria-controls="individual-panel"
+          @click="activeMode = 'individual'"
+          @keydown="navegarAbas"
+        >
+          Individual
+        </button>
+        <button
+          id="stable-tab"
+          ref="stableTab"
+          type="button"
+          role="tab"
+          class="segmented__item"
+          :class="{ 'is-active': activeMode === 'stable' }"
+          :aria-selected="activeMode === 'stable'"
+          :tabindex="activeMode === 'stable' ? 0 : -1"
+          aria-controls="stable-panel"
+          @click="activeMode = 'stable'"
+          @keydown="navegarAbas"
+        >
+          Por estábulo
+        </button>
+      </div>
+
+      <section
+        v-show="activeMode === 'individual'"
+        id="individual-panel"
+        class="card"
+        role="tabpanel"
+        aria-labelledby="individual-tab"
+      >
           <header class="card__head">
             <div class="list__main">
               <span class="icon-tile icon-tile--accent"><AppIcon name="syringe" :size="17" /></span>
@@ -80,7 +126,13 @@
           </form>
         </section>
 
-        <section class="card">
+      <section
+        v-show="activeMode === 'stable'"
+        id="stable-panel"
+        class="card"
+        role="tabpanel"
+        aria-labelledby="stable-tab"
+      >
           <header class="card__head">
             <div class="list__main">
               <span class="icon-tile icon-tile--warn"><AppIcon name="herd" :size="17" /></span>
@@ -141,14 +193,13 @@
               </button>
             </footer>
           </form>
-        </section>
-      </div>
+      </section>
     </div>
   </AppShell>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import api from '@/services/api';
 import { painelDoPapel } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
@@ -164,6 +215,19 @@ const loadingInd = ref(false);
 const loadingBatch = ref(false);
 const loadingOptions = ref(true);
 const optionsError = ref('');
+const activeMode = ref('individual');
+const individualTab = ref(null);
+const stableTab = ref(null);
+
+function navegarAbas(event) {
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+  event.preventDefault();
+  activeMode.value = activeMode.value === 'individual' ? 'stable' : 'individual';
+  nextTick(() => {
+    const abaAtiva = activeMode.value === 'individual' ? individualTab.value : stableTab.value;
+    abaAtiva?.focus();
+  });
+}
 
 // Cada formulário tem a sua própria resposta, do lado do botão que a produziu.
 // Antes os dois usavam alert(), sem dizer qual dos dois tinha respondido.

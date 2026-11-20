@@ -3,7 +3,7 @@
     <div class="page page--wide animal-list-page">
       <PageHeader
         titulo="Animais"
-        descricao="Consulte e filtre os bovinos do rebanho."
+        :descricao="alertaProducao ? 'Animais com produção abaixo da média no mês atual.' : 'Consulte e filtre os bovinos do rebanho.'"
         voltar-rotulo="Painel"
         voltar-para="/dashboard-adm"
       >
@@ -14,6 +14,16 @@
           </RouterLink>
         </template>
       </PageHeader>
+
+      <p v-if="alertaProducao" class="alert alert--warn" role="status">
+        <AppIcon name="alert" :size="16" />
+        <span>A média considera as ordenhas do mês atual. Selecione o alerta ao lado da situação para abrir o gráfico e o histórico.</span>
+      </p>
+      <p v-if="erroProducaoLeite" class="alert alert--danger" role="alert">
+        <AppIcon name="alert" :size="16" />
+        <span>{{ erroProducaoLeite }}</span>
+        <button type="button" class="btn btn--sm" @click="loadMilkHistory">Tentar novamente</button>
+      </p>
 
       <section class="animal-filters card" aria-label="Filtros do rebanho">
         <div class="animal-filters__heading">
@@ -65,7 +75,7 @@
       </section>
 
       <div class="card">
-        <div v-if="loading" class="loading">
+        <div v-if="loading || (alertaProducao && carregandoProducaoLeite)" class="loading">
           <span class="spinner" aria-hidden="true"></span>
           Buscando registros...
         </div>
@@ -82,7 +92,9 @@
         <div v-else-if="visiveis.length === 0" class="empty">
           <AppIcon name="search" :size="30" />
           <p class="empty__title">Nada encontrado</p>
-          <p class="empty__desc">Nenhum animal corresponde a esta busca ou filtro.</p>
+          <p class="empty__desc">
+            {{ alertaProducao ? 'Nenhum animal abaixo da média corresponde aos filtros atuais.' : 'Nenhum animal corresponde a esta busca ou filtro.' }}
+          </p>
           <button class="btn" @click="limparFiltros">Limpar filtros</button>
         </div>
 
@@ -103,10 +115,23 @@
                 <td class="cell-strong">{{ animal.name || '—' }}</td>
                 <td>{{ estabuloAtual(animal.id) }}</td>
                 <td>
-                  <span class="badge" :class="badgeSituacao(animal.status)">
-                    <span class="badge__dot"></span>
-                    {{ rotuloSituacao(animal.status) }}
-                  </span>
+                  <div class="animal-list__status">
+                    <span class="badge" :class="badgeSituacao(animal.status)">
+                      <span class="badge__dot"></span>
+                      {{ rotuloSituacao(animal.status) }}
+                    </span>
+                    <button
+                      v-if="abaixoDaMedia(animal)"
+                      type="button"
+                      class="badge badge--warn animal-list__production-alert"
+                      :aria-label="`Produção abaixo da média para ${animal.name || 'animal'} #${animal.register_number}. Abrir histórico de ordenha.`"
+                      title="Ver gráfico e histórico de ordenha"
+                      @click="viewMilkDetails(animal.id)"
+                    >
+                      <AppIcon name="alert" :size="13" />
+                      Abaixo da média
+                    </button>
+                  </div>
                 </td>
                 <td class="cell-actions">
                   <button class="btn btn--sm" @click="viewDetails(animal.id)">Ver ficha</button>
@@ -133,12 +158,17 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import { badgeSituacao, rotuloSituacao, situacao } from '@/utils/statusUtils';
 import { idRelacao, ultimaMovimentacaoPorAnimal, nomeEstabulo } from '@/utils/animalMovementUtils';
+import { apiErrorMessage } from '@/utils/apiError';
+import { metricasProducaoPorAnimal, ordenhasDoMesAtual } from '@/utils/milkProductionMetrics';
 
 const router = useRouter();
 const route = useRoute();
 const animals = ref([]);
 const quadrantes = ref([]);
 const movimentacoes = ref([]);
+const ordenhas = ref([]);
+const erroProducaoLeite = ref('');
+const carregandoProducaoLeite = ref(true);
 const loading = ref(true);
 
 const busca = ref('');
@@ -154,6 +184,7 @@ const filtroReprodutivo = computed(() => (
     : ''
 ));
 const filtroNascimento = computed(() => route.query.with_birth === 'true');
+const alertaProducao = computed(() => route.query.alert === 'below-average');
 
 const filtros = [
   { valor: 'todos', rotulo: 'Todos' },
@@ -184,12 +215,25 @@ const porQuadrante = (lista) => quadrante.value === 'todos'
     ultimaMovimentacao.value.get(String(animal.id))?.quadrant
   )) === quadrante.value);
 
+const animaisNoEstabulo = computed(() => porQuadrante(animals.value));
+const ordenhasDoMes = computed(() => ordenhasDoMesAtual(ordenhas.value));
+const metricasDeProducao = computed(() =>
+  metricasProducaoPorAnimal(animaisNoEstabulo.value, ordenhasDoMes.value)
+);
+const animaisAbaixoDaMedia = computed(() => new Set(
+  metricasDeProducao.value.abaixoDaMedia.map((item) => String(item.animal.id))
+));
+const abaixoDaMedia = (animal) => animaisAbaixoDaMedia.value.has(String(animal.id));
+
 const porIndicadores = (lista) => lista.filter((animal) => {
   if (filtroReprodutivo.value && String(Boolean(animal.reproductive_status)) !== filtroReprodutivo.value) return false;
   return !filtroNascimento.value || Boolean(idRelacao(animal.birth));
 });
 
-const contar = (valor) => porSituacao(porIndicadores(porQuadrante(animals.value)), valor).length;
+const contar = (valor) => {
+  const lista = porSituacao(porIndicadores(porQuadrante(animals.value)), valor);
+  return alertaProducao.value ? lista.filter(abaixoDaMedia).length : lista.length;
+};
 
 const linkFiltro = (valor) => ({
   name: 'animal-list',
@@ -198,18 +242,20 @@ const linkFiltro = (valor) => ({
     ...(quadrante.value !== 'todos' ? { quadrant: quadrante.value } : {}),
     ...(filtroReprodutivo.value ? { reproductive_status: filtroReprodutivo.value } : {}),
     ...(filtroNascimento.value ? { with_birth: 'true' } : {}),
+    ...(alertaProducao.value ? { alert: 'below-average' } : {}),
   },
 });
 
 const visiveis = computed(() => {
   const termo = busca.value.trim().toLowerCase();
-  return porSituacao(porIndicadores(porQuadrante(animals.value)), filtro.value).filter((animal) => {
+  const lista = porSituacao(porIndicadores(porQuadrante(animals.value)), filtro.value).filter((animal) => {
     if (!termo) return true;
     return (
       String(animal.register_number ?? '').includes(termo) ||
       String(animal.name ?? '').toLowerCase().includes(termo)
     );
   });
+  return alertaProducao.value ? lista.filter(abaixoDaMedia) : lista;
 });
 
 const limparFiltros = () => {
@@ -268,14 +314,45 @@ const loadMovements = async () => {
   }
 };
 
+const loadMilkHistory = async () => {
+  carregandoProducaoLeite.value = true;
+  erroProducaoLeite.value = '';
+  try {
+    const records = [];
+    const visited = new Set();
+    let url = 'milk_production_history/';
+    while (url) {
+      if (visited.has(url)) throw new Error('A paginação das ordenhas retornou uma página repetida.');
+      visited.add(url);
+      const response = await api.get(url);
+      const data = response.data;
+      const rows = Array.isArray(data) ? data : data?.results;
+      if (!Array.isArray(rows)) throw new Error('A API retornou um formato inesperado para o histórico de ordenha.');
+      records.push(...rows);
+      url = Array.isArray(data) ? null : data.next || null;
+    }
+    ordenhas.value = records;
+  } catch (error) {
+    console.error('Erro ao carregar ordenhas para os alertas de produção:', error);
+    erroProducaoLeite.value = apiErrorMessage(error, 'Não foi possível carregar as médias de produção dos animais.');
+  } finally {
+    carregandoProducaoLeite.value = false;
+  }
+};
+
 onMounted(() => {
   loadAnimals();
   loadQuadrants();
   loadMovements();
+  loadMilkHistory();
 });
 
 const viewDetails = (id) => {
   router.push({ name: 'animal-detail', params: { id } });
+};
+
+const viewMilkDetails = (id) => {
+  router.push({ name: 'animal-detail', params: { id }, query: { tab: 'leite' } });
 };
 </script>
 
@@ -357,6 +434,22 @@ const viewDetails = (id) => {
 }
 
 .animal-list__quadrant { width: min(250px, 100%); }
+
+.animal-list__status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.animal-list__production-alert {
+  padding: 4px 8px;
+  border: 1px solid var(--warn-line);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  white-space: nowrap;
+}
 
 .animal-list-toolbar__count {
   margin-left: auto;

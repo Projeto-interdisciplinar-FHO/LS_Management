@@ -78,6 +78,74 @@
             </details>
             <p v-if="!visibleGroups.length" class="text-muted">Nenhum campo corresponde à busca.</p>
           </div>
+
+          <section class="export-layout">
+            <header class="export-fields-head">
+              <div>
+                <h2 class="card__title">Ordem e rótulos das colunas</h2>
+                <p class="card__desc">A ordem abaixo será usada no CSV; os rótulos são personalizados neste navegador.</p>
+              </div>
+            </header>
+
+            <div v-if="!selectedFields.length" class="empty">
+              <p class="empty__desc">Selecione campos para organizar as colunas.</p>
+            </div>
+            <ol v-else class="export-layout__fields">
+              <li v-for="(key, index) in selectedFields" :key="key" class="export-layout__field">
+                <span class="export-layout__default">{{ defaultFieldLabel(key) }}</span>
+                <label class="export-layout__label">
+                  <span class="sr-only">Rótulo para {{ defaultFieldLabel(key) }}</span>
+                  <input v-model="customLabels[key]" class="input" type="text" maxlength="80" :placeholder="defaultFieldLabel(key)">
+                </label>
+                <div class="row">
+                  <button type="button" class="btn btn--sm" :disabled="index === 0" :aria-label="`Mover ${defaultFieldLabel(key)} para cima`" @click="moveField(index, -1)">↑</button>
+                  <button type="button" class="btn btn--sm" :disabled="index === selectedFields.length - 1" :aria-label="`Mover ${defaultFieldLabel(key)} para baixo`" @click="moveField(index, 1)">↓</button>
+                </div>
+              </li>
+            </ol>
+
+            <div class="grid grid--2 export-layout__saved">
+              <div class="field">
+                <label class="field__label" for="layout-name">Nome do layout</label>
+                <input id="layout-name" v-model="layoutName" class="input" type="text" maxlength="80" placeholder="Ex.: Rebanho mensal">
+              </div>
+              <div class="field">
+                <label class="field__label" for="saved-layout">Layouts salvos neste navegador</label>
+                <select id="saved-layout" v-model="selectedLayoutId" class="select">
+                  <option value="">Selecione um layout...</option>
+                  <option v-for="layout in layoutsForType" :key="layout.id" :value="layout.id">
+                    {{ layout.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div class="row export-layout__actions">
+              <button type="button" class="btn btn--sm" :disabled="!layoutName.trim() || !selectedFields.length" @click="saveLayout">
+                {{ selectedLayoutId ? 'Atualizar layout' : 'Salvar layout' }}
+              </button>
+              <button type="button" class="btn btn--sm" :disabled="!selectedLayoutId" @click="applyLayout">Aplicar</button>
+              <button type="button" class="btn btn--sm btn--danger" :disabled="!selectedLayoutId" @click="deleteLayout">Excluir</button>
+            </div>
+            <p v-if="layoutError" class="alert alert--danger" role="alert">
+              <AppIcon name="alert" :size="16" />
+              <span>{{ layoutError }}</span>
+            </p>
+
+            <div class="export-preview" aria-label="Prévia do cabeçalho do CSV">
+              <strong>Prévia do cabeçalho</strong>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th v-for="key in selectedFields" :key="key">{{ fieldLabel(key) }}</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td :colspan="selectedFields.length || 1" class="text-muted">Os registros serão carregados na geração do arquivo.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <p class="text-muted">Layouts ficam salvos apenas neste navegador; não são compartilhados nem enviados ao servidor.</p>
+          </section>
         </div>
 
         <footer class="card__foot row--between export-footer">
@@ -96,6 +164,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
+import { confirmar } from '@/services/confirmService';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -113,7 +182,15 @@ const fieldSearch = ref('');
 const selectedFields = ref([]);
 const animalFields = ref([]);
 const selectedType = ref(validType(route.query.tipo));
+const savedLayouts = ref([]);
+const selectedLayoutId = ref('');
+const layoutName = ref('');
+const customLabels = ref({});
+const layoutError = ref('');
+const LAYOUTS_STORAGE_KEY = 'ls-management-export-layouts';
 const tipoLabel = computed(() => ({ animais: 'Animais', ordenha: 'Ordenha', pesagem: 'Pesagem' })[selectedType.value]);
+const layoutsForType = computed(() => savedLayouts.value.filter((layout) => layout.type === selectedType.value));
+const selectedLayout = computed(() => layoutsForType.value.find((layout) => layout.id === selectedLayoutId.value) || null);
 
 const historyFields = {
   ordenha: [
@@ -225,6 +302,9 @@ function selectVisible() {
 
 function changeType() {
   router.replace({ query: { ...route.query, tipo: selectedType.value } });
+  selectedLayoutId.value = '';
+  layoutName.value = '';
+  customLabels.value = {};
   loadOptions(selectedType.value);
 }
 
@@ -253,6 +333,95 @@ function csvValue(value) {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
+function defaultFieldLabel(key) {
+  return fields.value.find((field) => field.key === key)?.label || key;
+}
+
+function fieldLabel(key) {
+  return String(customLabels.value[key] || '').trim() || defaultFieldLabel(key);
+}
+
+function moveField(index, offset) {
+  const nextIndex = index + offset;
+  if (nextIndex < 0 || nextIndex >= selectedFields.value.length) return;
+  const reordered = [...selectedFields.value];
+  [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
+  selectedFields.value = reordered;
+}
+
+function loadLayouts() {
+  layoutError.value = '';
+  try {
+    const stored = localStorage.getItem(LAYOUTS_STORAGE_KEY);
+    const parsed = stored ? JSON.parse(stored) : [];
+    if (!Array.isArray(parsed)) throw new Error('O conteúdo salvo não é uma lista de layouts.');
+    savedLayouts.value = parsed.filter((layout) =>
+      layout && typeof layout.id === 'string' && typeof layout.name === 'string'
+      && Array.isArray(layout.fields) && typeof layout.type === 'string'
+    );
+  } catch (loadError) {
+    console.error('Não foi possível carregar os layouts locais de exportação:', loadError);
+    layoutError.value = 'Não foi possível carregar os layouts deste navegador.';
+  }
+}
+
+function persistLayouts(layouts) {
+  try {
+    localStorage.setItem(LAYOUTS_STORAGE_KEY, JSON.stringify(layouts));
+    savedLayouts.value = layouts;
+    return true;
+  } catch (saveError) {
+    console.error('Não foi possível salvar os layouts locais de exportação:', saveError);
+    layoutError.value = 'Não foi possível salvar o layout neste navegador.';
+    return false;
+  }
+}
+
+function saveLayout() {
+  const name = layoutName.value.trim();
+  if (!name || !selectedFields.value.length) return;
+  layoutError.value = '';
+  const id = selectedLayout.value?.id || `layout-${Date.now()}`;
+  const layout = {
+    id,
+    name,
+    type: selectedType.value,
+    fields: [...selectedFields.value],
+    labels: { ...customLabels.value },
+    quadrantId: quadrantId.value,
+  };
+  const layouts = [
+    ...savedLayouts.value.filter((item) => item.id !== id),
+    layout,
+  ];
+  if (persistLayouts(layouts)) selectedLayoutId.value = id;
+}
+
+function applyLayout() {
+  const layout = selectedLayout.value;
+  if (!layout) return;
+  const validKeys = new Set(fields.value.map((field) => field.key));
+  selectedFields.value = layout.fields.filter((key) => validKeys.has(key));
+  customLabels.value = { ...layout.labels };
+  quadrantId.value = layout.quadrantId || 'all';
+  layoutName.value = layout.name;
+}
+
+async function deleteLayout() {
+  if (!selectedLayout.value) return;
+  const confirmed = await confirmar({
+    titulo: 'Excluir layout de exportação?',
+    texto: `O layout “${selectedLayout.value.name}” será removido deste navegador.`,
+    acao: 'Excluir layout',
+  });
+  if (!confirmed) return;
+  layoutError.value = '';
+  if (persistLayouts(savedLayouts.value.filter((item) => item.id !== selectedLayout.value.id))) {
+    selectedLayoutId.value = '';
+    layoutName.value = '';
+  }
+}
+
 async function exportAnimals() {
   const response = await api.get('animals/export/', {
     params: { quadrant_id: quadrantId.value, fields: selectedFields.value.join(',') },
@@ -260,7 +429,12 @@ async function exportAnimals() {
   });
   const disposition = response.headers['content-disposition'] || '';
   const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'animais.csv';
-  const url = URL.createObjectURL(response.data);
+  const content = await response.data.text();
+  const headerEnd = content.indexOf('\n');
+  const rest = headerEnd >= 0 ? content.slice(headerEnd + 1) : '';
+  const bom = content.startsWith('\uFEFF') ? '\uFEFF' : '';
+  const csv = `${bom}${selectedFields.value.map((key) => csvValue(fieldLabel(key))).join(',')}\r\n${rest}`;
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
@@ -284,7 +458,7 @@ async function exportHistory() {
     const animalId = idRelacao(record.animal);
     return String(idRelacao(latestMovement.get(String(animalId))?.quadrant)) === quadrantId.value;
   });
-  const header = selectedFields.value.map((key) => fields.value.find((field) => field.key === key)?.label || key);
+  const header = selectedFields.value.map(fieldLabel);
   const rows = selectedRecords.map((record) => selectedFields.value.map((key) => {
     const animalId = idRelacao(record.animal);
     const animal = animalById.get(String(animalId));
@@ -324,7 +498,10 @@ async function exportErrorMessage(requestError) {
   return apiErrorMessage(requestError, 'Não foi possível gerar o CSV.');
 }
 
-onMounted(() => loadOptions());
+onMounted(async () => {
+  await loadOptions();
+  loadLayouts();
+});
 </script>
 
 <style scoped>
@@ -390,9 +567,18 @@ onMounted(() => loadOptions());
 }
 
 .export-footer { justify-content: space-between; flex-wrap: wrap; }
+.export-layout { display: grid; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+.export-layout__fields { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.export-layout__field { display: grid; grid-template-columns: minmax(120px, 0.8fr) minmax(180px, 1fr) auto; align-items: center; gap: 10px; }
+.export-layout__default { color: var(--text-2); font-size: var(--fs-sm); }
+.export-layout__label { min-width: 0; }
+.export-layout__actions { flex-wrap: wrap; }
+.export-preview { display: grid; gap: 8px; min-width: 0; }
+.export-preview .table-wrap { max-width: 100%; }
 
 @media (max-width: 720px) {
   .export-group__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .export-layout__field { grid-template-columns: minmax(100px, 1fr) 2fr auto; }
 }
 
 @media (max-width: 520px) {
@@ -400,5 +586,7 @@ onMounted(() => loadOptions());
   .export-tools { align-items: flex-start; flex-direction: column; }
   .export-search { width: 100%; }
   .export-group__fields { grid-template-columns: 1fr; }
+  .export-layout__field { grid-template-columns: 1fr auto; }
+  .export-layout__default { grid-column: 1 / -1; }
 }
 </style>

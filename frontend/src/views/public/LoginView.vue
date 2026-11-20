@@ -276,4 +276,9 @@ const handleLogin = async () => {
   .login { grid-template-columns: 1fr; }
   .login__lateral { display: none; }
 }
+
+/* Acabamento v2 */
+.login__caixa { animation: rise 520ms var(--ease-out) backwards; }
+.login__lateral img { animation: hero-zoom 16s ease-out forwards; }
+.login__lateral-texto { animation: rise 700ms 160ms var(--ease-out) backwards; }
 </style>

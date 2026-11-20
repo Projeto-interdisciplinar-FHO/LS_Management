@@ -8,6 +8,9 @@
         :voltar-para="painel"
       />
 
+      <ManejoPesagemTabs />
+
+      <div id="manejo-peso-panel-desenvolvimento" role="tabpanel" aria-labelledby="manejo-peso-tab-desenvolvimento">
       <p v-if="error" class="alert alert--danger" role="alert">
         <AppIcon name="alert" :size="16" />
         <span>{{ error }}</span>
@@ -63,6 +66,13 @@
           <div v-else class="development__chart">
             <Line :data="chartData" :options="chartOptions" aria-label="Curva de peso do animal" />
           </div>
+          <p class="alert alert--info development__growth-note" role="status">
+            <AppIcon name="info" :size="16" />
+            <span>
+              A curva exibe as pesagens registradas. A classificação de crescimento fora do esperado aguarda limites oficiais da API;
+              nenhum alerta zootécnico é inferido nesta tela.
+            </span>
+          </p>
         </section>
 
         <section class="card development__entry-card">
@@ -102,6 +112,30 @@
         </section>
       </div>
 
+      <section v-if="selectedAnimal" class="card development__milestones">
+        <header class="card__head">
+          <div>
+            <h2 class="card__title">Marcos de desenvolvimento</h2>
+            <p class="card__desc">Referências de 30 e 60 dias calculadas a partir do nascimento.</p>
+          </div>
+        </header>
+        <div class="development__milestone-grid">
+          <article v-for="milestone in milestones" :key="milestone.label" class="development__milestone">
+            <span class="badge">{{ milestone.label }}</span>
+            <strong>{{ milestone.date ? formatDate(milestone.date) : 'Nascimento não informado' }}</strong>
+            <span v-if="milestone.weight" class="text-muted">
+              Pesagem mais próxima: {{ formatNumber(milestone.weight.weight) }} kg · {{ formatDate(milestone.weight.weighing_date) }}
+            </span>
+            <span v-else class="text-muted">Sem pesagem disponível para comparar.</span>
+          </article>
+          <article class="development__milestone">
+            <span class="badge">Desmame</span>
+            <strong>Registro pendente</strong>
+            <span class="text-muted">A API ainda não fornece um marco ou data de desmame.</span>
+          </article>
+        </div>
+      </section>
+
       <section v-if="selectedAnimal" class="card development__history">
         <header class="card__head">
           <div>
@@ -126,6 +160,7 @@
           </table>
         </div>
       </section>
+      </div>
     </div>
   </AppShell>
 </template>
@@ -145,6 +180,7 @@ import { Line } from 'vue-chartjs';
 import api from '@/services/api';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import ManejoPesagemTabs from '@/components/ui/ManejoPesagemTabs.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import { painelDoPapel } from '@/services/auth';
 import { idRelacao } from '@/utils/animalMovementUtils';
@@ -176,6 +212,18 @@ const selectedWeights = computed(() => weights.value
   .sort((a, b) => String(a.weighing_date).localeCompare(String(b.weighing_date)))
 );
 const selectedWeightsNewestFirst = computed(() => [...selectedWeights.value].reverse());
+const milestones = computed(() => [30, 60].map((days) => {
+  const date = birthDate.value ? addDays(birthDate.value, days) : null;
+  const weight = date
+    ? selectedWeights.value.reduce((closest, record) => {
+      if (!closest) return record;
+      return Math.abs(daysBetween(date, record.weighing_date)) < Math.abs(daysBetween(date, closest.weighing_date))
+        ? record
+        : closest;
+    }, null)
+    : null;
+  return { label: `${days} dias`, date, weight };
+}));
 const latestWeight = computed(() => selectedWeightsNewestFirst.value[0] || null);
 const weightChange = computed(() => {
   if (selectedWeights.value.length < 2) return null;
@@ -187,6 +235,20 @@ const weightChange = computed(() => {
 function todayIso() {
   const date = new Date();
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+function addDays(iso, days) {
+  const [year, month, day] = iso.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
+function daysBetween(firstIso, secondIso) {
+  const [firstYear, firstMonth, firstDay] = firstIso.split('-').map(Number);
+  const [secondYear, secondMonth, secondDay] = secondIso.split('-').map(Number);
+  const first = Date.UTC(firstYear, firstMonth - 1, firstDay);
+  const second = Date.UTC(secondYear, secondMonth - 1, secondDay);
+  return Math.round((second - first) / (24 * 60 * 60 * 1000));
 }
 
 function listFromResponse(data) {
@@ -317,6 +379,11 @@ onMounted(loadData);
 .development__entry-card,
 .development__history { min-width: 0; }
 .development__chart { position: relative; height: 320px; padding: 18px; }
+.development__growth-note { margin: 0 16px 16px; }
+.development__milestones { margin-top: 16px; }
+.development__milestone-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 16px; }
+.development__milestone { display: grid; justify-items: start; gap: 8px; min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: var(--r); }
+.development__milestone strong { font-size: var(--fs-sm); }
 .development__history { margin-top: 16px; }
 
 @media (max-width: 900px) {
@@ -329,5 +396,6 @@ onMounted(loadData);
 @media (max-width: 520px) {
   .development__animal-facts { gap: 14px; }
   .development__chart { height: 250px; padding: 12px; }
+  .development__milestone-grid { grid-template-columns: 1fr; }
 }
 </style>

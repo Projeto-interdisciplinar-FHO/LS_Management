@@ -1,5 +1,8 @@
 const fieldLabels = {
   animal: 'Animal',
+  mother: 'Matriz',
+  father: 'Touro',
+  donor: 'Doadora',
   vaccine: 'Vacina',
   sex: 'Sexo',
   specie: 'Espécie',
