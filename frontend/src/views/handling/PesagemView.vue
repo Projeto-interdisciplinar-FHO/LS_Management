@@ -8,8 +8,6 @@
         :voltar-para="painel"
       />
 
-      <ManejoPesagemTabs />
-
       <div id="manejo-peso-panel-pesagem" role="tabpanel" aria-labelledby="manejo-peso-tab-pesagem">
       <section class="card">
         <header class="card__head">
@@ -70,7 +68,6 @@ import api from '@/services/api';
 import { painelDoPapel } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
-import ManejoPesagemTabs from '@/components/ui/ManejoPesagemTabs.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import { apiErrorMessage } from '@/utils/apiError';
 

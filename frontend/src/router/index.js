@@ -13,7 +13,6 @@ import AnimalDetailView from '@/views/herd/AnimalDetailView.vue'
 import AnimalConsultationView from '@/views/herd/AnimalConsultationView.vue'
 import EstabulosView from '@/views/herd/EstabulosView.vue'
 import BirthGenealogyView from '@/views/herd/BirthGenealogyView.vue'
-import DevelopmentView from '@/views/herd/DevelopmentView.vue'
 import InseminationView from '@/views/herd/InseminationView.vue'
 import ReproductiveAnalysisView from '@/views/herd/ReproductiveAnalysisView.vue'
 
@@ -53,7 +52,7 @@ const router = createRouter({
     { path: '/animais/editar/:id', name: 'animal-edit', component: AnimalFormView, meta: { requerLogin: true, soAdmin: true } }, 
     { path: '/animal/:id', name: 'animal-detail', component: AnimalDetailView, meta: { requerLogin: true } },
     { path: '/nascimento-genealogia', name: 'nascimento-genealogia', component: BirthGenealogyView, meta: { requerLogin: true } },
-    { path: '/desenvolvimento', name: 'desenvolvimento', component: DevelopmentView, meta: { requerLogin: true } },
+    { path: '/desenvolvimento', redirect: { name: 'pesagem' } },
     { path: '/inseminacoes', name: 'inseminacoes', component: InseminationView, meta: { requerLogin: true } },
     { path: '/analise-reprodutiva', name: 'analise-reprodutiva', component: ReproductiveAnalysisView, meta: { requerLogin: true } },
     
