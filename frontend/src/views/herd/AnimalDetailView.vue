@@ -296,10 +296,21 @@
             <div class="row--between">
               <h3 class="card__title">Descritivo da consulta</h3>
               <div class="row">
-                <button class="btn btn--sm btn--danger" @click="deleteHealthRecord(selectedHealthRecord)">Excluir</button>
-                <button class="btn btn--sm" @click="selectedHealthRecord = null">Fechar</button>
+                <button
+                  type="button"
+                  class="btn btn--sm btn--danger"
+                  :disabled="deletingHealthRecord"
+                  @click="deleteHealthRecord(selectedHealthRecord)"
+                >
+                  {{ deletingHealthRecord ? 'Excluindo...' : 'Excluir' }}
+                </button>
+                <button type="button" class="btn btn--sm" @click="selectedHealthRecord = null">Fechar</button>
               </div>
             </div>
+            <p v-if="healthDeleteError" class="alert alert--danger" role="alert">
+              <AppIcon name="alert" :size="16" />
+              <span>{{ healthDeleteError }}</span>
+            </p>
             <div class="kv">
               <div class="kv__row"><span class="kv__key">Motivo</span><span class="kv__val">{{ selectedHealthRecord.consultation_reason || '—' }}</span></div>
               <div class="kv__row"><span class="kv__key">Tratativa</span><span class="kv__val">{{ selectedHealthRecord.consultation_solution || '—' }}</span></div>
@@ -396,6 +407,8 @@ const weightHistory = ref([]);
 const feedings = ref([]);
 const healthRecords = ref([]);
 const selectedHealthRecord = ref(null);
+const healthDeleteError = ref('');
+const deletingHealthRecord = ref(false);
 const birthData = ref(null);
 const latestMovement = ref(null);
 const ocorrenciasNascimento = ref([]);
@@ -747,22 +760,29 @@ const loadCompleteAnimalData = async () => {
 };
 
 const selectHealthRecord = (record) => {
+  healthDeleteError.value = '';
   selectedHealthRecord.value = selectedHealthRecord.value === record ? null : record;
 };
 
 const deleteHealthRecord = async (record) => {
-  if (!record?.id) return;
+  if (!record?.id || deletingHealthRecord.value) return;
   const ok = await confirmar({
     titulo: 'Excluir este atendimento?',
     texto: 'O registro sai da ficha do animal e do histórico veterinário.',
     acao: 'Excluir',
   });
   if (!ok) return;
+  deletingHealthRecord.value = true;
+  healthDeleteError.value = '';
   try {
     await api.deleteVeterinaryRecord(record.id);
-    healthRecords.value = healthRecords.value.filter(item => item.id !== record.id);
+    healthRecords.value = healthRecords.value.filter(item => String(item.id) !== String(record.id));
     selectedHealthRecord.value = null;
   } catch (error) {
+    console.error('Erro ao excluir consulta veterinária:', error);
+    healthDeleteError.value = apiErrorMessage(error, 'Não foi possível excluir a consulta veterinária.');
+  } finally {
+    deletingHealthRecord.value = false;
   }
 };
 

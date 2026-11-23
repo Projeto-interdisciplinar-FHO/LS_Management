@@ -114,6 +114,15 @@
         </form>
       </section>
 
+      </div>
+
+      <div
+        v-else-if="aba === 'diagnostico'"
+        id="insem-panel-diagnostico"
+        class="insemination__panel"
+        role="tabpanel"
+        aria-labelledby="insem-tab-diagnostico"
+      >
       <section class="card insemination__diagnosis">
         <header class="card__head">
           <div>
@@ -154,7 +163,6 @@
           <button type="button" class="btn" disabled>Iniciar nascimento pela prenhez</button>
         </form>
       </section>
-
       </div>
 
       <div
@@ -186,24 +194,36 @@
       <section class="card insemination__history">
         <header class="card__head">
           <div>
-            <h2 class="card__title">Histórico reprodutivo</h2>
-            <p class="card__desc">Inseminações cadastradas, da mais recente para a mais antiga.</p>
+            <h2 class="card__title">Consultar inseminações por matriz</h2>
+            <p class="card__desc">Escolha uma matriz para mostrar somente os registros relacionados a ela.</p>
           </div>
-          <span class="badge">{{ inseminations.length }}</span>
         </header>
-        <div v-if="loading" class="loading"><span class="spinner" aria-hidden="true"></span>Carregando inseminações...</div>
-        <div v-else-if="!inseminations.length" class="empty">
-          <AppIcon name="dna" :size="28" />
-          <p class="empty__title">Sem inseminações registradas</p>
-          <p class="empty__desc">Os lançamentos confirmados aparecerão aqui.</p>
-        </div>
-        <div v-else class="table-wrap">
+        <div class="card__body stack">
+          <div class="field">
+            <label class="field__label" for="ultrasound-mother">Matriz</label>
+            <select id="ultrasound-mother" v-model="filtroMatriz" class="select" :disabled="loading || !animals.length">
+              <option value="">Selecione uma matriz para consultar...</option>
+              <option v-for="animal in animals" :key="animal.id" :value="String(animal.id)">
+                {{ animal.name || 'Sem nome' }} · #{{ animal.register_number }}
+              </option>
+            </select>
+          </div>
+          <div v-if="loading" class="loading"><span class="spinner" aria-hidden="true"></span>Carregando inseminações...</div>
+          <div v-else-if="!filtroMatriz" class="empty">
+            <AppIcon name="search" :size="28" />
+            <p class="empty__desc">Selecione uma matriz para consultar os registros.</p>
+          </div>
+          <div v-else-if="!inseminacoesDaMatriz.length" class="empty">
+            <AppIcon name="dna" :size="28" />
+            <p class="empty__desc">Nenhuma inseminação encontrada para esta matriz.</p>
+          </div>
+          <div v-else class="table-wrap">
           <table class="table">
             <thead>
               <tr><th>Data</th><th>Matriz</th><th>Touro</th><th>Acompanhamento</th><th>Diagnóstico</th><th>Ações</th></tr>
             </thead>
             <tbody>
-              <tr v-for="item in orderedInseminations" :key="item.id">
+              <tr v-for="item in inseminacoesDaMatriz" :key="item.id">
                 <td class="mono nowrap">{{ formatDate(item.date) }}</td>
                 <td>
                   <RouterLink :to="{ name: 'animal-detail', params: { id: idRelacao(item.mother) } }" class="insemination__animal">
@@ -220,12 +240,13 @@
                 <td class="text-muted">Sem confirmação clínica</td>
                 <td>
                   <button type="button" class="btn btn--sm" @click="prepararDiagnostico(item)">
-                    Selecionar para diagnóstico
+                    Ver diagnóstico
                   </button>
                 </td>
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       </section>
 
@@ -308,10 +329,14 @@ const donorId = ref('');
 const embryoReference = ref('');
 const diagnosis = ref({ insemination: '', result: '', date: todayIso() });
 const diagnosisSelect = ref(null);
+const filtroMatriz = ref('');
 const drying = ref({ animal: '', date: todayIso(), notes: '' });
 
 const orderedInseminations = computed(() =>
   [...inseminations.value].sort((a, b) => String(b.date).localeCompare(String(a.date)))
+);
+const inseminacoesDaMatriz = computed(() =>
+  orderedInseminations.value.filter((item) => String(idRelacao(item.mother)) === filtroMatriz.value)
 );
 
 const ultimaPorMatriz = computed(() => ultimaInseminacaoPorMatriz(inseminations.value, idRelacao));
@@ -344,14 +369,15 @@ const resumo = computed(() => {
 });
 
 const abas = computed(() => [
-  { id: 'registro', label: 'Registrar e diagnóstico', icon: 'dna' },
+  { id: 'registro', label: 'Registrar', icon: 'dna' },
+  { id: 'diagnostico', label: 'Diagnóstico', icon: 'stethoscope' },
   { id: 'ultrassons', label: 'Ultrassons', icon: 'stethoscope', count: resumo.value.ultrassom, warn: true },
   { id: 'secagem', label: 'Secagem', icon: 'calendar' },
 ]);
 
 async function prepararDiagnostico(item) {
   diagnosis.value.insemination = item.id;
-  aba.value = 'registro';
+  aba.value = 'diagnostico';
   await nextTick();
   diagnosisSelect.value?.focus();
 }

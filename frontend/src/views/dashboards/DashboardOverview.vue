@@ -79,73 +79,33 @@
         </ul>
       </section>
 
-      <section class="card dashboard-alerts" aria-labelledby="dashboard-alerts-title">
-        <header class="dashboard-alerts__head">
-          <span class="dashboard-alerts__icon"><AppIcon name="alert" :size="18" /></span>
-          <div>
-            <h2 id="dashboard-alerts-title">Avisos e ações pendentes</h2>
-            <p>Alertas sanitários e registros clínicos recentes.</p>
-          </div>
-          <RouterLink to="/saude" class="btn btn--sm dashboard-alerts__action">Abrir saúde</RouterLink>
-        </header>
-        <div v-if="carregando" class="loading"><span class="spinner" aria-hidden="true"></span>Carregando avisos...</div>
-        <div v-else-if="!avisosPainel.length" class="empty dashboard-alerts__empty">
-          <AppIcon name="check-circle" :size="26" />
-          <p class="empty__desc">Nenhuma pendência encontrada para o filtro atual.</p>
-        </div>
-        <div v-else class="table-wrap">
-          <table class="table dashboard-alerts__table">
-            <thead>
-              <tr><th>Identificação</th><th>Módulo</th><th>Descrição do alerta</th><th>Ação rápida</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="aviso in avisosPainel" :key="aviso.id">
-                <td class="dashboard-alerts__animal">
-                  <span class="dashboard-alerts__animal-mark">#{{ aviso.animal.register_number }}</span>
-                  <strong>{{ aviso.animal.name || 'Sem nome' }}</strong>
-                </td>
-                <td><span class="dashboard-alerts__module" :class="`dashboard-alerts__module--${aviso.tipo}`">{{ aviso.modulo }}</span></td>
-                <td>
-                  <span class="dashboard-alerts__description" :class="{ 'dashboard-alerts__description--alert': aviso.critico }">
-                    <AppIcon :name="aviso.critico ? 'alert' : 'stethoscope'" :size="15" />
-                    {{ aviso.descricao }}
-                  </span>
-                </td>
-                <td class="dashboard-alerts__action-cell">
-                  <RouterLink :to="aviso.para" class="btn btn--sm">{{ aviso.acao }}</RouterLink>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
       </div>
 
       <div
         class="dashboard__panel"
       >
       <section class="dashboard__top-grid" aria-label="Indicadores gerais da fazenda">
-        <article class="card dashboard-panel dashboard-panel--health">
+        <article class="card dashboard-panel dashboard-panel--reproduction">
           <header class="dashboard-panel__head">
-            <span class="dashboard-panel__icon dashboard-panel__icon--health"><AppIcon name="syringe" :size="18" /></span>
+            <span class="dashboard-panel__icon dashboard-panel__icon--reproduction"><AppIcon name="dna" :size="18" /></span>
             <div>
-              <h2>Sanidade & vacinação</h2>
-              <p>Prioridade de saúde do rebanho</p>
+              <h2>Inseminações</h2>
+              <p>Acompanhamento reprodutivo no recorte atual</p>
             </div>
           </header>
-          <div v-if="carregando" class="loading"><span class="spinner" aria-hidden="true"></span>Carregando dados sanitários...</div>
+          <div v-if="carregando" class="loading"><span class="spinner" aria-hidden="true"></span>Carregando dados reprodutivos...</div>
           <div v-else class="dashboard-health">
-            <RouterLink to="/saude?filter=overdue" class="dashboard-health__metric">
-              <span>Vacinas atrasadas</span>
-              <strong :class="{ 'text-danger': vacinasAtrasadas.length }">{{ vacinasAtrasadas.length }}</strong>
+            <RouterLink to="/inseminacoes" class="dashboard-health__metric">
+              <span>Inseminações no período</span>
+              <strong>{{ inseminacoesFiltradas.length }}</strong>
             </RouterLink>
-            <div class="dashboard-health__bar" aria-hidden="true">
-              <span :style="{ width: `${percentualVacinasAtrasadas}%` }"></span>
-            </div>
-            <p class="dashboard-health__note">{{ animaisFiltrados.length }} animais no recorte atual</p>
-            <RouterLink to="/veterinario" class="dashboard-health__metric dashboard-health__metric--secondary">
-              <span>Ocorrências clínicas recentes</span>
-              <strong>{{ atendimentosRecentes.length }}</strong>
+            <RouterLink to="/inseminacoes" class="dashboard-health__metric dashboard-health__metric--secondary">
+              <span>Ultrassons pendentes</span>
+              <strong>{{ ultrassonsPendentes.length }}</strong>
+            </RouterLink>
+            <RouterLink to="/inseminacoes" class="dashboard-health__metric dashboard-health__metric--secondary">
+              <span>Diagnósticos atrasados</span>
+              <strong>{{ diagnosticosAtrasados.length }}</strong>
             </RouterLink>
           </div>
         </article>
@@ -245,26 +205,7 @@
         </article>
       </section>
 
-      <section class="dashboard__chart-grid" aria-label="Indicadores gerais de produção e reprodução">
-        <article class="card dashboard-chart-card">
-          <header class="card__head">
-            <div>
-              <h2 class="card__title">Ordenha geral</h2>
-              <p class="card__desc">Total de litros registrados por dia para o rebanho selecionado.</p>
-            </div>
-            <span class="dashboard-chart-card__badge">{{ formatarNumero(totalLeite) }} L</span>
-          </header>
-          <div v-if="carregando" class="loading"><span class="spinner" aria-hidden="true"></span>Carregando ordenhas...</div>
-          <div v-else-if="erro" class="empty"><p class="empty__desc">Os dados de ordenha não puderam ser carregados.</p></div>
-          <div v-else-if="!milkChartData.labels.length" class="empty">
-            <AppIcon name="milk" :size="28" />
-            <p class="empty__desc">Sem ordenhas no período selecionado.</p>
-          </div>
-          <div v-else class="dashboard-chart">
-            <Line :data="milkChartData" :options="milkChartOptions" aria-label="Gráfico do total de litros de leite por dia" />
-          </div>
-        </article>
-
+      <section class="dashboard__chart-grid dashboard__chart-grid--single" aria-label="Indicadores de reprodução">
         <article class="card dashboard-chart-card">
           <header class="card__head">
             <div>
@@ -297,12 +238,9 @@ import {
   CategoryScale,
   Chart as ChartJS,
   LinearScale,
-  LineController,
-  LineElement,
-  PointElement,
   Tooltip,
 } from 'chart.js';
-import { Bar, Line } from 'vue-chartjs';
+import { Bar } from 'vue-chartjs';
 import api from '@/services/api';
 import { ehAdministrador } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
@@ -315,7 +253,7 @@ import {
   ultimaInseminacaoPorMatriz,
 } from '@/utils/reproducaoUtils';
 
-ChartJS.register(BarElement, CategoryScale, LinearScale, LineController, LineElement, PointElement, Tooltip);
+ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 
 const carregando = ref(true);
 const erro = ref('');
@@ -324,7 +262,6 @@ const quadrantes = ref([]);
 const movimentacoes = ref([]);
 const ordenhas = ref([]);
 const inseminacoes = ref([]);
-const atendimentos = ref([]);
 const vacinacoes = ref([]);
 const quadranteSelecionado = ref('todos');
 const periodoSelecionado = ref('30');
@@ -395,26 +332,6 @@ const vacinasAtrasadas = computed(() => {
     .sort((a, b) => String(a.next_vaccination_date).localeCompare(String(b.next_vaccination_date)));
 });
 
-const atendimentosRecentes = computed(() =>
-  atendimentos.value
-    .filter((registro) => {
-      const animalId = idRelacao(registro.animal ?? registro.animal_id);
-      return animaisPorId.value.has(String(animalId))
-        && dentroDoPeriodo(dataDoRegistro(registro, ['consultation_date']));
-    })
-    .sort((a, b) => String(b.consultation_date || '').localeCompare(String(a.consultation_date || '')))
-);
-
-const percentualVacinasAtrasadas = computed(() => {
-  if (!animaisFiltrados.value.length) return 0;
-  return Math.min(100, (vacinasAtrasadas.value.length / animaisFiltrados.value.length) * 100);
-});
-
-function formatarData(data) {
-  if (!data) return '—';
-  return new Date(`${String(data).slice(0, 10)}T00:00:00`).toLocaleDateString('pt-BR');
-}
-
 function dataDoRegistro(registro, campos) {
   for (const campo of campos) {
     if (!registro?.[campo]) continue;
@@ -438,12 +355,6 @@ function dentroDoPeriodo(data) {
   return data && (!dataLimite.value || data >= dataLimite.value);
 }
 
-const ordenhasFiltradas = computed(() => ordenhas.value.filter((registro) => {
-  const animalId = idRelacao(registro.animal ?? registro.animal_id);
-  return animaisPorId.value.has(String(animalId))
-    && dentroDoPeriodo(dataDoRegistro(registro, ['production_date', 'date_collected', 'date']));
-}));
-
 const inseminacoesFiltradas = computed(() => inseminacoes.value.filter((registro) => {
   const animalId = idRelacao(registro.mother ?? registro.mother_id);
   return animaisPorId.value.has(String(animalId))
@@ -454,14 +365,6 @@ function quantidadeDeLeite(registro) {
   const quantidade = Number(registro.milk_production ?? registro.milk_quantity ?? registro.quantity);
   return Number.isFinite(quantidade) && quantidade > 0 ? quantidade : 0;
 }
-
-const ordenhasValidas = computed(() =>
-  ordenhasFiltradas.value.filter((registro) => quantidadeDeLeite(registro) > 0)
-);
-
-const totalLeite = computed(() =>
-  ordenhasValidas.value.reduce((total, registro) => total + quantidadeDeLeite(registro), 0)
-);
 
 const ordenhasUltimos30Dias = computed(() => ordenhasNosUltimosDias(ordenhas.value, 30).filter((registro) => {
   const animalId = idRelacao(registro.animal ?? registro.animal_id);
@@ -496,45 +399,6 @@ function percentualDaMediaMesAtual(item) {
   if (!mediaPorOrdenhaMesAtual.value) return 0;
   return Math.max(0, Math.min(100, Math.round((item.media / mediaPorOrdenhaMesAtual.value) * 100)));
 }
-
-const producaoLeitePorDia = computed(() => {
-  const totaisPorDia = new Map();
-
-  for (const registro of ordenhasValidas.value) {
-    const data = dataDoRegistro(registro, ['production_date', 'date_collected', 'date']);
-    if (!data) continue;
-
-    const dia = [
-      data.getFullYear(),
-      String(data.getMonth() + 1).padStart(2, '0'),
-      String(data.getDate()).padStart(2, '0'),
-    ].join('-');
-    totaisPorDia.set(dia, (totaisPorDia.get(dia) || 0) + quantidadeDeLeite(registro));
-  }
-
-  return [...totaisPorDia.entries()]
-    .sort(([diaA], [diaB]) => diaA.localeCompare(diaB))
-    .map(([dia, litros]) => ({
-      rotulo: formatarData(dia),
-      litros,
-    }));
-});
-
-const milkChartData = computed(() => ({
-  labels: producaoLeitePorDia.value.map((item) => item.rotulo),
-  datasets: [{
-    label: 'Produção geral (L)',
-    data: producaoLeitePorDia.value.map((item) => item.litros),
-    borderColor: chartColor('--accent'),
-    backgroundColor: chartColor('--accent'),
-    pointBackgroundColor: chartColor('--accent'),
-    pointRadius: producaoLeitePorDia.value.length > 60 ? 1 : 3,
-    pointHoverRadius: 5,
-    borderWidth: 2,
-    tension: 0.25,
-    spanGaps: false,
-  }],
-}));
 
 const inseminacoesPorIntervalo = computed(() => {
   const agrupadas = new Map();
@@ -661,95 +525,6 @@ const dataHoje = computed(() => new Date().toLocaleDateString('pt-BR', {
   weekday: 'long', day: 'numeric', month: 'long',
 }));
 
-const avisosPainel = computed(() => {
-  const alertasVacina = vacinasAtrasadas.value.map((vacina) => {
-    const animalId = idRelacao(vacina.animal ?? vacina.animal_id);
-    const animal = animaisPorId.value.get(String(animalId));
-    if (!animal) return null;
-    const nomeVacina = vacina.vaccine_name || vacina.vaccine?.name || 'Vacina';
-    return {
-      id: `vacina-${vacina.id}`,
-      animal,
-      tipo: 'health',
-      modulo: 'SANIDADE',
-      critico: true,
-      descricao: `${nomeVacina} · reforço vencido em ${formatarData(vacina.next_vaccination_date)}`,
-      para: { name: 'animal-detail', params: { id: animal.id }, query: { tab: 'vacinas' } },
-      acao: 'Ver ficha',
-    };
-  });
-  const alertasClinicos = atendimentosRecentes.value.map((registro) => {
-    const animalId = idRelacao(registro.animal ?? registro.animal_id);
-    const animal = animaisPorId.value.get(String(animalId));
-    if (!animal) return null;
-    return {
-      id: `clinico-${registro.id}`,
-      animal,
-      tipo: 'clinical',
-      modulo: 'VETERINÁRIO',
-      critico: false,
-      descricao: `${registro.consultation_reason || 'Atendimento registrado'} · ${formatarData(registro.consultation_date)}`,
-      para: { name: 'animal-detail', params: { id: animal.id }, query: { tab: 'veterinario' } },
-      acao: 'Ver ficha',
-    };
-  });
-  const alertasReprodutivos = [
-    ...ultrassonsPendentes.value.map(({ registro, animal, info }) => ({
-      id: `ultrassom-${registro.id}`,
-      animal,
-      tipo: 'health',
-      modulo: 'REPRODUÇÃO',
-      critico: false,
-      descricao: `Ultrassom pendente · inseminada há ${info.dias} dias`,
-      para: '/inseminacoes',
-      acao: 'Ver reprodução',
-    })),
-    ...diagnosticosAtrasados.value.map(({ registro, animal, info }) => ({
-      id: `diagnostico-${registro.id}`,
-      animal,
-      tipo: 'health',
-      modulo: 'REPRODUÇÃO',
-      critico: false,
-      descricao: `Diagnóstico de prenhez pendente · inseminada há ${info.dias} dias`,
-      para: '/inseminacoes',
-      acao: 'Ver reprodução',
-    })),
-  ];
-  return [...alertasVacina, ...alertasReprodutivos, ...alertasClinicos].filter(Boolean).slice(0, 10);
-});
-
-function chartOptions(unit) {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'bottom',
-        labels: { color: chartColor('--text-2'), boxWidth: 10, usePointStyle: true },
-      },
-      tooltip: {
-        callbacks: {
-          label: (context) => ` ${context.raw.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} ${unit}`,
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { color: chartColor('--text-2'), maxRotation: 0 },
-      },
-      y: {
-        beginAtZero: unit === 'L',
-        grid: { color: chartColor('--line') },
-        ticks: { color: chartColor('--text-3') },
-      },
-    },
-  };
-}
-
-const milkChartOptions = computed(() => chartOptions('L'));
-
 const inseminationChartData = computed(() => ({
   labels: inseminacoesPorIntervalo.value.map((item) => item.rotulo),
   datasets: [{
@@ -786,14 +561,14 @@ const inseminationChartOptions = computed(() => ({
 }));
 
 onMounted(async () => {
+  quadranteSelecionado.value = 'todos';
   try {
-    const [animaisRes, quadrantesRes, movimentacoesRes, ordenhasRes, inseminacoesRes, atendimentosRes, vacinacoesRes] = await Promise.all([
+    const [animaisRes, quadrantesRes, movimentacoesRes, ordenhasRes, inseminacoesRes, vacinacoesRes] = await Promise.all([
       consultarTodos('animals/'),
       consultarTodos('quadrants/'),
       consultarTodos('animal_movements/'),
       consultarTodos('milk_production_history/'),
       consultarTodos('inseminations/'),
-      consultarTodos('animal_health/'),
       consultarTodos('vaccinations/'),
     ]);
 
@@ -802,7 +577,6 @@ onMounted(async () => {
     movimentacoes.value = movimentacoesRes;
     ordenhas.value = ordenhasRes;
     inseminacoes.value = inseminacoesRes;
-    atendimentos.value = atendimentosRes;
     vacinacoes.value = vacinacoesRes;
   } catch (error) {
     console.error('Erro ao carregar dados do painel:', error);
@@ -1354,6 +1128,7 @@ onMounted(async () => {
   gap: 16px;
   margin-bottom: 16px;
 }
+.dashboard__chart-grid--single { grid-template-columns: minmax(0, 1fr); }
 
 .dashboard-chart-card { min-width: 0; min-height: 310px; }
 .dashboard-chart-card .card__head { align-items: flex-start; }

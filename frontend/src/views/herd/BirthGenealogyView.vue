@@ -156,14 +156,29 @@
           <header class="card__head">
             <div>
               <h2 class="card__title">Nascimentos vinculados</h2>
-              <p class="card__desc">Ascendência limitada aos dados de inseminação disponíveis.</p>
+              <p class="card__desc">Pesquise pelo nome ou número de registro para consultar um bovino.</p>
             </div>
-            <span class="badge">{{ linkedBirths.length }}</span>
           </header>
+          <div class="card__body stack">
+          <div class="field">
+            <label class="field__label" for="birth-search">Pesquisar bovino</label>
+            <input
+              id="birth-search"
+              v-model.trim="birthSearch"
+              class="input"
+              type="search"
+              placeholder="Nome ou número de registro"
+              :disabled="loading"
+            >
+          </div>
           <div v-if="loading" class="loading"><span class="spinner" aria-hidden="true"></span>Carregando nascimentos...</div>
-          <div v-else-if="!linkedBirths.length" class="empty">
+          <div v-else-if="!birthSearch" class="empty">
+            <AppIcon name="search" :size="28" />
+            <p class="empty__desc">Informe um nome ou número de registro para exibir os resultados.</p>
+          </div>
+          <div v-else-if="!filteredLinkedBirths.length" class="empty">
             <AppIcon name="dna" :size="28" />
-            <p class="empty__desc">Nenhum nascimento está vinculado a um bovino.</p>
+            <p class="empty__desc">Nenhum nascimento vinculado encontrado para essa pesquisa.</p>
           </div>
           <div v-else class="table-wrap">
             <table class="table">
@@ -171,7 +186,7 @@
                 <tr><th>Bovino</th><th>Data</th><th>Peso</th><th>Ocorrência</th><th>Mãe</th><th>Pai</th></tr>
               </thead>
               <tbody>
-                <tr v-for="item in linkedBirths" :key="item.animal.id">
+                <tr v-for="item in filteredLinkedBirths" :key="item.animal.id">
                   <td class="cell-strong">{{ item.animal.name }} <span class="mono">#{{ item.animal.register_number }}</span></td>
                   <td class="mono nowrap">{{ formatDate(item.birth.date) }}</td>
                   <td class="mono">{{ item.birth.weight }} kg</td>
@@ -181,6 +196,7 @@
                 </tr>
               </tbody>
             </table>
+          </div>
           </div>
         </section>
       </div>
@@ -353,6 +369,7 @@ const pendingLink = ref(null);
 const selectedAnimalId = ref('');
 const activeTab = ref('birth');
 const directParents = ref(false);
+const birthSearch = ref('');
 
 function todayIso() {
   const date = new Date();
@@ -492,6 +509,13 @@ const linkedBirths = computed(() => animals.value.flatMap((animal) => {
     insemination: inseminations.value.find((item) => String(item.id) === String(inseminationId)) || null,
   }];
 }));
+const filteredLinkedBirths = computed(() => {
+  const query = birthSearch.value.toLocaleLowerCase('pt-BR');
+  if (!query) return [];
+  return linkedBirths.value.filter(({ animal }) =>
+    `${animal.name || ''} ${animal.register_number || ''}`.toLocaleLowerCase('pt-BR').includes(query)
+  );
+});
 
 function listFromResponse(data) {
   if (Array.isArray(data)) return data;

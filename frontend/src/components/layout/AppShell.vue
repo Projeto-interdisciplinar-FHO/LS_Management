@@ -188,7 +188,6 @@ const secaoRebanho = computed(() => [
     icon: 'move',
     children: [
       { to: '/pesagem', label: 'Pesagem', icon: 'scale' },
-      { to: '/desenvolvimento', label: 'Desenvolvimento', icon: 'chart' },
       { to: '/lancamento-alimentacao', label: 'Alimentação', icon: 'feed' },
       { to: '/veterinario', label: 'Veterinário', icon: 'stethoscope' },
     ],
@@ -256,7 +255,6 @@ const titulosPagina = {
   'saude': 'Saúde & Vacinas',
   'manejo': 'Manejo',
   'pesagem': 'Pesagem',
-  'desenvolvimento': 'Desenvolvimento',
   'relatorios': 'Relatórios',
 };
 const tituloPagina = computed(() => titulosPagina[route.name] || 'Gestão do Rebanho');

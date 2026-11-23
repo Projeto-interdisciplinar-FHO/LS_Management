@@ -3,7 +3,7 @@
     <div class="page page--wide">
       <PageHeader
         :titulo="`Exportar ${tipoLabel.toLowerCase()}`"
-        descricao="Escolha os dados, o estábulo e os campos que deseja incluir no CSV."
+        descricao="Escolha o tipo de dado e o estábulo. Se precisar, ajuste os campos nas opções avançadas."
         voltar-rotulo="Painel"
         voltar-para="/dashboard-adm"
       />
@@ -15,6 +15,12 @@
 
       <section class="card export-panel">
         <div class="card__body stack">
+          <div class="export-section-head">
+            <div>
+              <h2 class="card__title">Filtros básicos</h2>
+              <p class="card__desc">Defina o tipo de dado e o estábulo da exportação.</p>
+            </div>
+          </div>
           <div class="grid grid--2">
             <div class="field">
               <label class="field__label" for="tipo-exportacao">O que deseja exportar?</label>
@@ -35,117 +41,131 @@
             </div>
           </div>
 
-          <div class="export-fields-head">
-            <div>
-              <h2 class="card__title">Campos do arquivo</h2>
-              <p class="card__desc">Marque apenas as informações necessárias.</p>
-            </div>
-            <span class="badge">{{ selectedFields.length }} de {{ fields.length }} selecionados</span>
-          </div>
-
-          <div class="export-tools">
-            <label class="export-search">
-              <AppIcon name="search" :size="15" />
-              <input v-model="fieldSearch" type="search" class="export-search__input" placeholder="Filtrar campos">
-            </label>
-            <div class="row">
-              <button type="button" class="btn btn--sm" :disabled="loading || exporting" @click="selectVisible">Selecionar exibidos</button>
-              <button type="button" class="btn btn--sm" :disabled="loading || exporting" @click="selectedFields = []">Limpar</button>
-            </div>
-          </div>
-
-          <div v-if="loading" class="loading">
-            <span class="spinner" aria-hidden="true"></span>
-            Carregando opções...
-          </div>
-
-          <div v-else-if="!fields.length" class="empty">
-            <p class="empty__desc">Não há campos disponíveis para este tipo de exportação.</p>
-          </div>
-
-          <div v-else class="export-groups">
-            <details v-for="group in visibleGroups" :key="group.name" class="export-group" :open="Boolean(fieldSearch) || group.name === 'Identificação'">
-              <summary class="export-group__summary">
-                <span>{{ group.name }}</span>
-                <span class="text-muted">{{ countSelected(group.fields) }}/{{ group.fields.length }}</span>
-              </summary>
-              <div class="export-group__fields">
-                <label v-for="field in group.fields" :key="field.key" class="export-field">
-                  <input v-model="selectedFields" type="checkbox" :value="field.key" :disabled="exporting">
-                  <span>{{ field.label }}</span>
-                </label>
+          <details class="export-advanced">
+            <summary class="export-advanced__summary">
+              <span>
+                <strong>Opções avançadas</strong>
+                <span class="text-muted"> — campos e personalização do CSV</span>
+              </span>
+              <span class="badge">{{ selectedFields.length }} campo(s)</span>
+            </summary>
+            <div class="export-advanced__content stack">
+              <div class="export-fields-head">
+                <div>
+                  <h2 class="card__title">Campos do arquivo</h2>
+                  <p class="card__desc">Marque apenas as informações necessárias.</p>
+                </div>
+                <span class="badge">{{ selectedFields.length }} de {{ fields.length }} selecionados</span>
               </div>
-            </details>
-            <p v-if="!visibleGroups.length" class="text-muted">Nenhum campo corresponde à busca.</p>
-          </div>
 
-          <section class="export-layout">
-            <header class="export-fields-head">
-              <div>
-                <h2 class="card__title">Ordem e rótulos das colunas</h2>
-                <p class="card__desc">A ordem abaixo será usada no CSV; os rótulos são personalizados neste navegador.</p>
-              </div>
-            </header>
-
-            <div v-if="!selectedFields.length" class="empty">
-              <p class="empty__desc">Selecione campos para organizar as colunas.</p>
-            </div>
-            <ol v-else class="export-layout__fields">
-              <li v-for="(key, index) in selectedFields" :key="key" class="export-layout__field">
-                <span class="export-layout__default">{{ defaultFieldLabel(key) }}</span>
-                <label class="export-layout__label">
-                  <span class="sr-only">Rótulo para {{ defaultFieldLabel(key) }}</span>
-                  <input v-model="customLabels[key]" class="input" type="text" maxlength="80" :placeholder="defaultFieldLabel(key)">
+              <div class="export-tools">
+                <label class="export-search">
+                  <AppIcon name="search" :size="15" />
+                  <input v-model="fieldSearch" type="search" class="export-search__input" placeholder="Filtrar campos">
                 </label>
                 <div class="row">
-                  <button type="button" class="btn btn--sm" :disabled="index === 0" :aria-label="`Mover ${defaultFieldLabel(key)} para cima`" @click="moveField(index, -1)">↑</button>
-                  <button type="button" class="btn btn--sm" :disabled="index === selectedFields.length - 1" :aria-label="`Mover ${defaultFieldLabel(key)} para baixo`" @click="moveField(index, 1)">↓</button>
+                  <button type="button" class="btn btn--sm" :disabled="loading || exporting" @click="selectVisible">Selecionar exibidos</button>
+                  <button type="button" class="btn btn--sm" :disabled="loading || exporting" @click="selectedFields = []">Limpar</button>
                 </div>
-              </li>
-            </ol>
+              </div>
 
-            <div class="grid grid--2 export-layout__saved">
-              <div class="field">
-                <label class="field__label" for="layout-name">Nome do layout</label>
-                <input id="layout-name" v-model="layoutName" class="input" type="text" maxlength="80" placeholder="Ex.: Rebanho mensal">
+              <div v-if="loading" class="loading">
+                <span class="spinner" aria-hidden="true"></span>
+                Carregando opções...
               </div>
-              <div class="field">
-                <label class="field__label" for="saved-layout">Layouts salvos neste navegador</label>
-                <select id="saved-layout" v-model="selectedLayoutId" class="select">
-                  <option value="">Selecione um layout...</option>
-                  <option v-for="layout in layoutsForType" :key="layout.id" :value="layout.id">
-                    {{ layout.name }}
-                  </option>
-                </select>
-              </div>
-            </div>
-            <div class="row export-layout__actions">
-              <button type="button" class="btn btn--sm" :disabled="!layoutName.trim() || !selectedFields.length" @click="saveLayout">
-                {{ selectedLayoutId ? 'Atualizar layout' : 'Salvar layout' }}
-              </button>
-              <button type="button" class="btn btn--sm" :disabled="!selectedLayoutId" @click="applyLayout">Aplicar</button>
-              <button type="button" class="btn btn--sm btn--danger" :disabled="!selectedLayoutId" @click="deleteLayout">Excluir</button>
-            </div>
-            <p v-if="layoutError" class="alert alert--danger" role="alert">
-              <AppIcon name="alert" :size="16" />
-              <span>{{ layoutError }}</span>
-            </p>
 
-            <div class="export-preview" aria-label="Prévia do cabeçalho do CSV">
-              <strong>Prévia do cabeçalho</strong>
-              <div class="table-wrap">
-                <table class="table">
-                  <thead>
-                    <tr><th v-for="key in selectedFields" :key="key">{{ fieldLabel(key) }}</th></tr>
-                  </thead>
-                  <tbody>
-                    <tr><td :colspan="selectedFields.length || 1" class="text-muted">Os registros serão carregados na geração do arquivo.</td></tr>
-                  </tbody>
-                </table>
+              <div v-else-if="!fields.length" class="empty">
+                <p class="empty__desc">Não há campos disponíveis para este tipo de exportação.</p>
               </div>
+
+              <div v-else class="export-groups">
+                <details v-for="group in visibleGroups" :key="group.name" class="export-group" :open="Boolean(fieldSearch) || group.name === 'Identificação'">
+                  <summary class="export-group__summary">
+                    <span>{{ group.name }}</span>
+                    <span class="text-muted">{{ countSelected(group.fields) }}/{{ group.fields.length }}</span>
+                  </summary>
+                  <div class="export-group__fields">
+                    <label v-for="field in group.fields" :key="field.key" class="export-field">
+                      <input v-model="selectedFields" type="checkbox" :value="field.key" :disabled="exporting">
+                      <span>{{ field.label }}</span>
+                    </label>
+                  </div>
+                </details>
+                <p v-if="!visibleGroups.length" class="text-muted">Nenhum campo corresponde à busca.</p>
+              </div>
+
+              <details class="export-layout">
+                <summary class="export-layout__summary">Personalizar ordem, rótulos e layouts salvos</summary>
+                <div class="export-layout__content">
+                  <header class="export-fields-head">
+                    <div>
+                      <h2 class="card__title">Ordem e rótulos das colunas</h2>
+                      <p class="card__desc">A ordem abaixo será usada no CSV; os rótulos são personalizados neste navegador.</p>
+                    </div>
+                  </header>
+
+                  <div v-if="!selectedFields.length" class="empty">
+                    <p class="empty__desc">Selecione campos para organizar as colunas.</p>
+                  </div>
+                  <ol v-else class="export-layout__fields">
+                    <li v-for="(key, index) in selectedFields" :key="key" class="export-layout__field">
+                      <span class="export-layout__default">{{ defaultFieldLabel(key) }}</span>
+                      <label class="export-layout__label">
+                        <span class="sr-only">Rótulo para {{ defaultFieldLabel(key) }}</span>
+                        <input v-model="customLabels[key]" class="input" type="text" maxlength="80" :placeholder="defaultFieldLabel(key)">
+                      </label>
+                      <div class="row">
+                        <button type="button" class="btn btn--sm" :disabled="index === 0" :aria-label="`Mover ${defaultFieldLabel(key)} para cima`" @click="moveField(index, -1)">↑</button>
+                        <button type="button" class="btn btn--sm" :disabled="index === selectedFields.length - 1" :aria-label="`Mover ${defaultFieldLabel(key)} para baixo`" @click="moveField(index, 1)">↓</button>
+                      </div>
+                    </li>
+                  </ol>
+
+                  <div class="grid grid--2 export-layout__saved">
+                    <div class="field">
+                      <label class="field__label" for="layout-name">Nome do layout</label>
+                      <input id="layout-name" v-model="layoutName" class="input" type="text" maxlength="80" placeholder="Ex.: Rebanho mensal">
+                    </div>
+                    <div class="field">
+                      <label class="field__label" for="saved-layout">Layouts salvos neste navegador</label>
+                      <select id="saved-layout" v-model="selectedLayoutId" class="select">
+                        <option value="">Selecione um layout...</option>
+                        <option v-for="layout in layoutsForType" :key="layout.id" :value="layout.id">
+                          {{ layout.name }}
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="row export-layout__actions">
+                    <button type="button" class="btn btn--sm" :disabled="!layoutName.trim() || !selectedFields.length" @click="saveLayout">
+                      {{ selectedLayoutId ? 'Atualizar layout' : 'Salvar layout' }}
+                    </button>
+                    <button type="button" class="btn btn--sm" :disabled="!selectedLayoutId" @click="applyLayout">Aplicar</button>
+                    <button type="button" class="btn btn--sm btn--danger" :disabled="!selectedLayoutId" @click="deleteLayout">Excluir</button>
+                  </div>
+                  <p v-if="layoutError" class="alert alert--danger" role="alert">
+                    <AppIcon name="alert" :size="16" />
+                    <span>{{ layoutError }}</span>
+                  </p>
+
+                  <div class="export-preview" aria-label="Prévia do cabeçalho do CSV">
+                    <strong>Prévia do cabeçalho</strong>
+                    <div class="table-wrap">
+                      <table class="table">
+                        <thead>
+                          <tr><th v-for="key in selectedFields" :key="key">{{ fieldLabel(key) }}</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td :colspan="selectedFields.length || 1" class="text-muted">Os registros serão carregados na geração do arquivo.</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <p class="text-muted">Layouts ficam salvos apenas neste navegador; não são compartilhados nem enviados ao servidor.</p>
+                </div>
+              </details>
             </div>
-            <p class="text-muted">Layouts ficam salvos apenas neste navegador; não são compartilhados nem enviados ao servidor.</p>
-          </section>
+          </details>
         </div>
 
         <footer class="card__foot row--between export-footer">
@@ -506,6 +526,18 @@ onMounted(async () => {
 
 <style scoped>
 .export-panel { max-width: 100%; }
+.export-section-head { padding-bottom: 4px; }
+.export-advanced { border: 1px solid var(--line); border-radius: var(--r); }
+.export-advanced__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px;
+  cursor: pointer;
+  list-style-position: inside;
+}
+.export-advanced__content { padding: 0 13px 13px; }
 .export-fields-head,
 .export-tools {
   display: flex;
@@ -567,7 +599,9 @@ onMounted(async () => {
 }
 
 .export-footer { justify-content: space-between; flex-wrap: wrap; }
-.export-layout { display: grid; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+.export-layout { border-top: 1px solid var(--line); }
+.export-layout__summary { padding: 12px 0; cursor: pointer; font-size: var(--fs-sm); font-weight: 600; }
+.export-layout__content { display: grid; gap: 12px; padding: 0 0 4px; }
 .export-layout__fields { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .export-layout__field { display: grid; grid-template-columns: minmax(120px, 0.8fr) minmax(180px, 1fr) auto; align-items: center; gap: 10px; }
 .export-layout__default { color: var(--text-2); font-size: var(--fs-sm); }
