@@ -1,8 +1,8 @@
-from django.urls import include, path
+from django.urls import path
+
+from apps.health.vaccines.views import VaccineCreateListView, VaccineRetrieveUpdateDestroy
 
 urlpatterns = [
-    path('vaccines/', include('apps.health.vaccines.urls')),
-    path('vaccination_plans/', include('apps.health.vaccination_plans.urls')),
-    path('vaccinations/', include('apps.health.vaccinations.urls')),
-    path('animal_health/', include('apps.health.animal_health.urls')),
+    path('', VaccineCreateListView.as_view(), name="vaccines-create-list"),
+    path('<int:pk>', VaccineRetrieveUpdateDestroy.as_view(), name="vaccines-detail-view"),
 ]
