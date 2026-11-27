@@ -1,5 +1,8 @@
+from django.db import transaction
+from django.db.models.deletion import ProtectedError
 from django.utils import timezone
-from rest_framework import viewsets
+from rest_framework import status, viewsets
+from rest_framework.response import Response
 
 from apps.health.animal_health.models import AnimalHealth, VeterinaryOccurrence
 from apps.health.vaccination_groups.models import VaccinationGroup
@@ -31,14 +34,30 @@ from .serializers import (
 
 
 class QuerysetViewSet(viewsets.ModelViewSet):
+    """ModelViewSet com filtro opcional por `?animal_id=`.
+
+    Compara com `attname` (ex.: `animal_id`), não com `name` (`animal`):
+    antes a comparação usava `name`, o filtro nunca casava e a API devolvia
+    os registros de todos os animais.
+    """
+
     filter_field = "animal_id"
 
     def get_queryset(self):
-        queryset = self.queryset
+        queryset = super().get_queryset()
         value = self.request.query_params.get(self.filter_field)
-        if value and self.filter_field in {field.name for field in queryset.model._meta.fields}:
+        if value and self.filter_field in {field.attname for field in queryset.model._meta.concrete_fields}:
             queryset = queryset.filter(**{self.filter_field: value})
         return queryset
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {"detail": "Não é possível excluir este registro porque existem outros dados vinculados a ele."},
+                status=status.HTTP_409_CONFLICT,
+            )
 
 
 class BreedViewSet(QuerysetViewSet):
@@ -60,10 +79,21 @@ class BullViewSet(QuerysetViewSet):
     queryset = Bull.objects.all()
     serializer_class = BullSerializer
 
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            Insemination.objects.filter(father=instance).delete()
+            instance.delete()
+
 
 class CowViewSet(AnimalExportMixin, QuerysetViewSet):
     queryset = Cow.objects.all()
     serializer_class = CowSerializer
+
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            VaccinationPlan.objects.filter(vaccination_group__animal=instance).delete()
+            Insemination.objects.filter(mother=instance).delete()
+            instance.delete()
 
 
 class MovementTypeViewSet(QuerysetViewSet):

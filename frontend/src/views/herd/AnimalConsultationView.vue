@@ -55,7 +55,7 @@
           </div>
 
           <div v-else class="list">
-            <button
+            <button type="button"
               v-for="animal in filteredAnimals"
               :key="animal.id"
               class="list__item item-animal"
@@ -81,7 +81,7 @@
                 <h2 class="card__title">{{ selectedAnimal.name }}</h2>
                 <p class="card__desc mono">Brinco #{{ selectedAnimal.register_number }}</p>
               </div>
-              <button class="btn btn--icon" aria-label="Fechar ficha" @click="selectedAnimalId = null">
+              <button type="button" class="btn btn--icon" aria-label="Fechar ficha" @click="selectedAnimalId = null">
                 <AppIcon name="close" :size="16" />
               </button>
             </header>
@@ -116,7 +116,7 @@
             </div>
 
             <footer class="card__foot">
-              <button class="btn btn--primary" @click="goToAnimalProfile">
+              <button type="button" class="btn btn--primary" @click="goToAnimalProfile">
                 Ver ficha completa
                 <AppIcon name="arrow-right" :size="15" />
               </button>

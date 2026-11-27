@@ -1,8 +1,13 @@
 from django.contrib.auth.models import User
 from rest_framework import generics
+from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from apps.accounts.authentication.serializers import CustomTokenObtainPairSerializer, UsuarioSerializer
+from apps.accounts.authentication.serializers import (
+    CadastroPublicoSerializer,
+    CustomTokenObtainPairSerializer,
+    UsuarioSerializer,
+)
 from core.permissions import EhAdministrador
 
 
@@ -38,3 +43,14 @@ class UsuarioDetailView(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
     serializer_class = UsuarioSerializer
     permission_classes = [EhAdministrador]
+
+
+class CadastroPublicoView(generics.CreateAPIView):
+    """Permite que um novo usuário crie conta diretamente pela tela de cadastro.
+
+    Cria sempre com perfil Operador (sem permissão de administrador).
+    """
+
+    queryset = User.objects.all()
+    serializer_class = CadastroPublicoSerializer
+    permission_classes = [AllowAny]

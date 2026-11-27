@@ -17,57 +17,53 @@
         <span>{{ notice }}</span>
       </p>
 
-      <nav class="tabs birth-genealogy__tabs" role="tablist" aria-label="Nascimento e genealogia">
-        <button
-          id="tab-birth"
-          type="button"
-          role="tab"
-          class="tabs__item"
-          :class="{ 'is-active': activeTab === 'birth' }"
-          :aria-selected="activeTab === 'birth'"
-          aria-controls="panel-birth"
-          :tabindex="activeTab === 'birth' ? 0 : -1"
-          @keydown.right.prevent="activeTab = 'genealogy'"
-          @click="activeTab = 'birth'"
-        >
-          <AppIcon name="animal" :size="15" />
-          Nascimento
-        </button>
-        <button
-          id="tab-genealogy"
-          type="button"
-          role="tab"
-          class="tabs__item"
-          :class="{ 'is-active': activeTab === 'genealogy' }"
-          :aria-selected="activeTab === 'genealogy'"
-          aria-controls="panel-genealogy"
-          :tabindex="activeTab === 'genealogy' ? 0 : -1"
-          @keydown.left.prevent="activeTab = 'birth'"
-          @click="activeTab = 'genealogy'"
-        >
-          <AppIcon name="dna" :size="15" />
-          Árvore genealógica
-        </button>
-      </nav>
+      <section class="bg-kpis" aria-label="Resumo de nascimentos e genealogia">
+        <article class="bg-kpi">
+          <span class="bg-kpi__icon bg-kpi__icon--accent"><AppIcon name="animal" :size="18" /></span>
+          <div>
+            <small>Nascimentos vinculados</small>
+            <strong>{{ linkedBirths.length }}</strong>
+          </div>
+        </article>
+        <article class="bg-kpi">
+          <span class="bg-kpi__icon bg-kpi__icon--warn"><AppIcon name="clipboard" :size="18" /></span>
+          <div>
+            <small>Sem nascimento vinculado</small>
+            <strong>{{ animalsWithoutBirth.length }}</strong>
+          </div>
+        </article>
+        <article class="bg-kpi">
+          <span class="bg-kpi__icon bg-kpi__icon--info"><AppIcon name="dna" :size="18" /></span>
+          <div>
+            <small>Inseminações registradas</small>
+            <strong>{{ inseminations.length }}</strong>
+          </div>
+        </article>
+      </section>
+
+      <AppTabs
+        v-model="activeTab"
+        :tabs="genealogyTabs"
+        label="Nascimento e genealogia"
+        id-base="birth-gen"
+      />
 
       <div
         v-if="activeTab === 'birth'"
-        id="panel-birth"
+        id="birth-gen-panel-birth"
         class="birth-genealogy__panel"
         role="tabpanel"
-        aria-labelledby="tab-birth"
+        aria-labelledby="birth-gen-tab-birth"
         tabindex="0"
       >
-        <p class="alert alert--info" role="status">
-          <AppIcon name="info" :size="16" />
-          <span>Registre a data, o peso e como foi o nascimento. Os vínculos podem vir de uma inseminação ou ser informados diretamente quando a API oferecer suporte.</span>
-        </p>
-
         <section class="card">
           <header class="card__head">
-            <div>
-              <h2 class="card__title">Registrar nascimento</h2>
-              <p class="card__desc">O registro será associado ao bovino escolhido após ser criado.</p>
+            <div class="list__main">
+              <span class="icon-tile icon-tile--accent"><AppIcon name="animal" :size="17" /></span>
+              <div>
+                <h2 class="card__title">Registrar nascimento</h2>
+                <p class="card__desc">Informe data, peso e ocorrência. O registro será vinculado ao bovino escolhido.</p>
+              </div>
             </div>
           </header>
 
@@ -187,7 +183,7 @@
               </thead>
               <tbody>
                 <tr v-for="item in filteredLinkedBirths" :key="item.animal.id">
-                  <td class="cell-strong">{{ item.animal.name }} <span class="mono">#{{ item.animal.register_number }}</span></td>
+                  <td class="cell-strong truncate">{{ item.animal.name }} <span class="mono">#{{ item.animal.register_number }}</span></td>
                   <td class="mono nowrap">{{ formatDate(item.birth.date) }}</td>
                   <td class="mono">{{ item.birth.weight }} kg</td>
                   <td>{{ occurrenceName(item.birth.occurrence) }}</td>
@@ -335,6 +331,7 @@ import { computed, onMounted, ref } from 'vue';
 import api from '@/services/api';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppTabs from '@/components/ui/AppTabs.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import { painelDoPapel } from '@/services/auth';
 import { idRelacao } from '@/utils/animalMovementUtils';
@@ -368,6 +365,10 @@ const notice = ref('');
 const pendingLink = ref(null);
 const selectedAnimalId = ref('');
 const activeTab = ref('birth');
+const genealogyTabs = [
+  { id: 'birth', label: 'Nascimento', icon: 'animal' },
+  { id: 'genealogy', label: 'Árvore genealógica', icon: 'dna' },
+];
 const directParents = ref(false);
 const birthSearch = ref('');
 
@@ -780,11 +781,57 @@ onMounted(loadData);
 }
 
 @media (max-width: 900px) {
+  .bg-kpis { grid-template-columns: 1fr; }
   .genealogy__layout { grid-template-columns: 1fr; }
   .genealogy__side { order: -1; }
 }
 @media (max-width: 600px) {
   .genealogy-card__head { align-items: stretch; flex-direction: column; }
   .genealogy-card__select { width: 100%; }
+}
+
+.bg-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.bg-kpi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.bg-kpi__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border-radius: 11px;
+}
+
+.bg-kpi__icon--accent { background: var(--accent-soft); color: var(--accent); }
+.bg-kpi__icon--warn { background: var(--warn-soft); color: var(--warn); }
+.bg-kpi__icon--info { background: var(--info-soft); color: var(--info); }
+
+.bg-kpi small {
+  display: block;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.bg-kpi strong {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xl);
+  font-weight: 600;
 }
 </style>

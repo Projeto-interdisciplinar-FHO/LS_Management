@@ -6,7 +6,7 @@
 <template>
   <header class="page__head">
     <div>
-      <button v-if="voltar" class="voltar" @click="aoVoltar">
+      <button type="button" v-if="voltar" class="voltar" @click="aoVoltar">
         <AppIcon name="arrow-left" :size="14" />
         <span>{{ voltarRotulo }}</span>
       </button>

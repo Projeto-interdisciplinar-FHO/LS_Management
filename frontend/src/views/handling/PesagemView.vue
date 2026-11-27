@@ -1,12 +1,22 @@
 <template>
   <AppShell>
     <div class="page page--narrow">
-      <PageHeader
-        titulo="Registro de peso"
-        descricao="Lance o peso medido na balança para acompanhar a evolução do animal."
-        voltar-rotulo="Painel"
-        :voltar-para="painel"
-      />
+      <header class="hero registry-hero">
+        <div class="hero__bg" aria-hidden="true">
+          <img :src="pesagemHero" alt="" class="hero__img">
+          <div class="hero__shade"></div>
+        </div>
+        <div class="hero__content">
+          <div>
+            <div class="registry-hero__meta">
+              <span class="hero__eyebrow">Manejo · Desenvolvimento</span>
+              <span class="registry-hero__pill">{{ animals.length }} animal(is)</span>
+            </div>
+            <h1 class="hero__title">Registro de peso</h1>
+            <p class="hero__desc">Lance o peso medido na balança para acompanhar a evolução do rebanho.</p>
+          </div>
+        </div>
+      </header>
 
       <div id="manejo-peso-panel-pesagem" role="tabpanel" aria-labelledby="manejo-peso-tab-pesagem">
       <section class="card">
@@ -36,7 +46,7 @@
 
             <div class="field">
               <label class="field__label" for="peso">Peso (kg)</label>
-              <input id="peso" v-model="formData.weight" class="input" type="number" inputmode="decimal" step="0.1" placeholder="450.5" required>
+              <input id="peso" v-model="formData.weight" class="input" type="number" min="0" inputmode="decimal" step="0.1" placeholder="450.5" required>
             </div>
 
             <div class="field">
@@ -63,15 +73,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import api from '@/services/api';
-import { painelDoPapel } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import pesagemHero from '@/assets/images/pesagem-hero.jpg';
 import { apiErrorMessage } from '@/utils/apiError';
-
-const painel = computed(() => painelDoPapel());
 
 const loading = ref(false);
 const loadingAnimals = ref(true);

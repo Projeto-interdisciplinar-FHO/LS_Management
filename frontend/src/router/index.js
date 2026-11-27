@@ -1,10 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { estaLogado, ehAdministrador, painelDoPapel } from '@/services/auth'
 
-// public — Início, escolha de perfil, login
+// public — Início, escolha de perfil, login e cadastro
 import HomeView from '@/views/public/HomeView.vue'
 import UserSelectionView from '@/views/public/UserSelectionView.vue'
 import LoginView from '@/views/public/LoginView.vue'
+import RegisterView from '@/views/public/RegisterView.vue'
 
 // herd — Rebanho
 import AnimalListView from '@/views/herd/AnimalListView.vue'
@@ -18,6 +19,7 @@ import ReproductiveAnalysisView from '@/views/herd/ReproductiveAnalysisView.vue'
 
 // handling — Manejo
 import ManejoView from '@/views/handling/ManejoView.vue'
+import DesenvolvimentoView from '@/views/handling/DesenvolvimentoView.vue'
 import PesagemView from '@/views/handling/PesagemView.vue'
 import LancamentoLeiteView from '@/views/handling/LancamentoLeiteView.vue'
 import LancamentoAlimentacaoView from '@/views/handling/LancamentoAlimentacaoView.vue'
@@ -39,10 +41,19 @@ import RelatoriosView from '@/views/reports/RelatoriosView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  // Ao abrir outra tela, volta ao topo; ao voltar no histórico, retorna para
+  // onde a pessoa estava. Mudar só filtros ou abas na mesma tela não rola.
+  scrollBehavior(para, de, salvo) {
+    if (salvo) return salvo
+    if (para.hash) return { el: para.hash, behavior: 'smooth' }
+    if (para.path === de.path) return false
+    return { top: 0 }
+  },
   routes: [
     { path: '/', name: 'home', component: HomeView, meta: { publico: true } },
     { path: '/selection', name: 'selection', component: UserSelectionView, meta: { publico: true } },
     { path: '/login', name: 'login', component: LoginView, meta: { publico: true } },
+    { path: '/cadastro', name: 'register', component: RegisterView, meta: { publico: true } },
     { path: '/dashboard-adm', name: 'dashboard-adm', component: () => import('@/views/dashboards/DashboardAdm.vue'), meta: { requerLogin: true, soAdmin: true } },
     { path: '/dashboard-op', name: 'dashboard-op', component: () => import('@/views/dashboards/DashboardOp.vue'), meta: { requerLogin: true } },
     
@@ -52,7 +63,7 @@ const router = createRouter({
     { path: '/animais/editar/:id', name: 'animal-edit', component: AnimalFormView, meta: { requerLogin: true, soAdmin: true } }, 
     { path: '/animal/:id', name: 'animal-detail', component: AnimalDetailView, meta: { requerLogin: true } },
     { path: '/nascimento-genealogia', name: 'nascimento-genealogia', component: BirthGenealogyView, meta: { requerLogin: true } },
-    { path: '/desenvolvimento', redirect: { name: 'pesagem' } },
+    { path: '/desenvolvimento', name: 'desenvolvimento', component: DesenvolvimentoView, meta: { requerLogin: true } },
     { path: '/inseminacoes', name: 'inseminacoes', component: InseminationView, meta: { requerLogin: true } },
     { path: '/analise-reprodutiva', name: 'analise-reprodutiva', component: ReproductiveAnalysisView, meta: { requerLogin: true } },
     
@@ -75,6 +86,9 @@ const router = createRouter({
     {path: '/dashboard-alimentacao',name: 'dashboard-alimentacao',component: DashboardAlimentacaoView, meta: { requerLogin: true } },
     { path: '/veterinario', name: 'veterinario', component: VeterinaryRecordsView, meta: { requerLogin: true } },
     { path: '/usuarios', name: 'usuarios', component: UsuariosView, meta: { requerLogin: true, soAdmin: true } },
+
+    // Qualquer endereço que não exista cai aqui, em vez de uma tela em branco.
+    { path: '/:pathMatch(.*)*', name: 'nao-encontrada', component: () => import('@/views/public/NotFoundView.vue'), meta: { publico: true } },
   ]
 })
 
@@ -85,19 +99,60 @@ const router = createRouter({
 // Isto e conveniencia de navegacao, NAO seguranca: quem protege o dado e o
 // backend, que confere o usuario do token a cada requisicao. Uma guarda de
 // rota so evita que a pessoa veja uma tela que nao vai conseguir usar.
-router.beforeEach((para, de, segue) => {
-  if (para.meta?.publico) return segue()
+router.beforeEach((para) => {
+  if (para.meta?.publico) return true
 
   if (para.meta?.requerLogin && !estaLogado()) {
-    return segue({ path: '/login', query: { destino: para.fullPath } })
+    return { path: '/login', query: { destino: para.fullPath } }
   }
 
   if (para.meta?.soAdmin && !ehAdministrador()) {
-    return segue(painelDoPapel())
+    return painelDoPapel()
   }
 
-  return segue()
+  return true
 })
 
+
+// Título da aba do navegador acompanha a tela: ajuda a achar a aba certa e
+// aparece no histórico e nos favoritos.
+const TITULOS = {
+  selection: 'Acessar o sistema',
+  login: 'Entrar',
+  register: 'Criar conta',
+  'dashboard-adm': 'Painel',
+  'dashboard-op': 'Painel',
+  'animal-list': 'Animais',
+  'animal-create': 'Novo animal',
+  'animal-edit': 'Editar animal',
+  'animal-detail': 'Ficha do animal',
+  'nascimento-genealogia': 'Nascimento e genealogia',
+  inseminacoes: 'Reprodução',
+  'analise-reprodutiva': 'Análise reprodutiva',
+  'lancamento-leite': 'Ordenha',
+  'exportar-animais': 'Exportação / Importação',
+  desenvolvimento: 'Desenvolvimento',
+  pesagem: 'Pesagem',
+  manejo: 'Manejo',
+  relatorios: 'Relatórios',
+  saude: 'Saúde e vacinas',
+  racas: 'Raças',
+  vacinas: 'Vacinas',
+  'vaccination-operator': 'Vacinação',
+  vacinacao: 'Vacinação',
+  'animal-consultation': 'Rebanho',
+  rebanho: 'Rebanho',
+  estabulos: 'Estábulos',
+  'lancamento-alimentacao': 'Alimentação',
+  'dashboard-alimentacao': 'Alimentos',
+  veterinario: 'Atendimentos veterinários',
+  usuarios: 'Usuários',
+  'nao-encontrada': 'Página não encontrada',
+}
+
+router.afterEach((para) => {
+  const titulo = TITULOS[para.name]
+  document.title = titulo ? `${titulo} · L.S Management` : 'L.S Management'
+})
 
 export default router

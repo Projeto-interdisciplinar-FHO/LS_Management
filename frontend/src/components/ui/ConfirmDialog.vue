@@ -9,10 +9,11 @@
     <p v-else class="texto">Esta ação não pode ser desfeita.</p>
 
     <template #rodape>
-      <button class="btn" @click="responder(false)">Cancelar</button>
-      <button
+      <button type="button" class="btn" :data-autofocus="pedido.destrutivo ? '' : null" @click="responder(false)">Cancelar</button>
+      <button type="button"
         class="btn"
         :class="pedido.destrutivo ? 'btn--danger' : 'btn--primary'"
+        :data-autofocus="pedido.destrutivo ? null : ''"
         @click="responder(true)"
       >
         {{ pedido.acao }}

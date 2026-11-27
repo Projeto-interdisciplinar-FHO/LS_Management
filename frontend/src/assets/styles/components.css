@@ -266,6 +266,42 @@
   line-height: 1.45;
 }
 
+.field__error {
+  font-size: var(--fs-xs);
+  color: var(--danger);
+  line-height: 1.45;
+}
+
+.field--check {
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  align-self: end;
+  min-height: 34px;
+  cursor: pointer;
+}
+
+.field--check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.input--error,
+.select--error,
+.textarea--error {
+  border-color: var(--danger);
+}
+
+.input--error:focus,
+.select--error:focus,
+.textarea--error:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+
 .input,
 .select,
 .textarea {
@@ -1073,4 +1109,166 @@ a.card:hover,
 @media (max-width: 640px) {
   .hero__content { flex-direction: column; padding: 24px 20px; }
   .hero__title { font-size: 1.5rem; }
+}
+
+/* =============================================================
+   Textos longos e cliques (revisão de UX)
+   ============================================================= */
+
+/* Nomes grandes quebram em vez de estourar o cartão ou empurrar a tela. */
+.page__title,
+.card__title,
+.modal__title,
+.list__title,
+.list__sub,
+.kv__val,
+.empty__title,
+.alert { overflow-wrap: anywhere; }
+
+.list__main > div { min-width: 0; }
+.table td { overflow-wrap: anywhere; }
+
+/* Células de nome e descrição: uma linha só, com "…" e dica ao passar o mouse. */
+.table td.truncate { max-width: 260px; }
+
+.select { text-overflow: ellipsis; }
+
+/* Botões e abas não selecionam texto no duplo clique nem piscam no toque. */
+.btn,
+.segmented__item,
+.tabs__item,
+.sidebar__link { user-select: none; -webkit-tap-highlight-color: transparent; }
+
+a, button, [role='button'] { -webkit-tap-highlight-color: transparent; }
+
+/* Elemento desativado explica por que, ao passar o mouse. */
+.btn:disabled[title] { cursor: help; }
+
+/* Nome de animal em tabela: parece texto, mas abre a ficha. */
+.cell-link { color: inherit; text-decoration: none; }
+.cell-link:hover { color: var(--accent); text-decoration: underline; }
+
+/* =============================================================
+   Padrão compartilhado das telas de cadastro (Registry)
+   ============================================================= */
+
+.registry-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.registry-toolbar__count {
+  margin-left: auto;
+  padding-bottom: 8px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+.registry-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.registry-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.registry-item__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.action-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.action-menu__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 210px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.action-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.action-menu__item:hover {
+  background: var(--surface-3);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.action-menu__item svg {
+  flex: none;
+  color: var(--accent);
+}
+
+@media (max-width: 600px) {
+  .registry-toolbar > .search { width: 100%; }
+  .registry-toolbar__count { margin-left: 0; padding-bottom: 0; }
+}
+
+.registry-hero {
+  min-height: 185px;
+  margin-bottom: 20px;
+}
+
+.registry-hero .hero__content {
+  align-items: flex-end;
+}
+
+.registry-hero__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.registry-hero__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 600;
 }

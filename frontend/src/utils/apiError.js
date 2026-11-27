@@ -24,6 +24,13 @@ const fieldLabels = {
   feeding_time: 'Data do trato',
   meal_weight: 'Quantidade de alimento',
   food: 'Alimento',
+  status: 'Situação',
+  score: 'Escore',
+  reproductive_status: 'Status reprodutivo',
+  active: 'Situação',
+  movement_type: 'Tipo de movimentação',
+  movement_date: 'Data da movimentação',
+  movement_reason: 'Motivo da movimentação',
   next_vaccination_date: 'Data da próxima dose',
   vaccination_date: 'Data da vacinação',
 };
@@ -37,6 +44,18 @@ function mensagensDoCampo(valor) {
 
 function rotuloDoCampo(campo) {
   return fieldLabels[campo] || campo.replaceAll('_', ' ');
+}
+
+export function apiFieldErrors(error) {
+  const data = error?.response?.data;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return {};
+  const result = {};
+  for (const [campo, valor] of Object.entries(data)) {
+    if (campo === 'non_field_errors' || campo === 'detail') continue;
+    const detalhes = mensagensDoCampo(valor);
+    if (detalhes.length) result[campo] = detalhes.join(' ');
+  }
+  return result;
 }
 
 export function apiErrorMessage(error, fallback = 'Não foi possível concluir a operação.') {

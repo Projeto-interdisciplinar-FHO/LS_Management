@@ -37,13 +37,13 @@
               <span class="badge__dot"></span>
               {{ rotuloSituacao(animal.status) }}
             </span>
-            <button class="btn btn--icon" :disabled="isEditing" aria-label="Editar ficha" title="Editar ficha" @click="toggleEdit">
+            <button type="button" class="btn btn--icon" :disabled="isEditing" aria-label="Editar ficha" title="Editar ficha" @click="toggleEdit">
               <AppIcon name="edit" :size="16" />
             </button>
-            <button class="btn btn--icon" aria-label="Imprimir ficha" title="Imprimir ficha" @click="imprimirFicha">
+            <button type="button" class="btn btn--icon" aria-label="Imprimir ficha" title="Imprimir ficha" @click="imprimirFicha">
               <AppIcon name="report" :size="16" />
             </button>
-            <button class="btn btn--icon is-danger" :disabled="deleting" aria-label="Excluir animal" title="Excluir animal" @click="deleteAnimal">
+            <button type="button" class="btn btn--icon is-danger" :disabled="deleting" aria-label="Excluir animal" title="Excluir animal" @click="deleteAnimal">
               <AppIcon name="trash" :size="16" />
             </button>
           </div>
@@ -269,7 +269,7 @@
                   <p>{{ formatDate(record.consultation_date) }} · Veterinário: {{ record.veterinarian || 'Não informado' }}</p>
                   <p v-if="record.consultation_solution">{{ record.consultation_solution }}</p>
                 </div>
-                <button class="btn btn--sm" @click="selectHealthRecord(record)">
+                <button type="button" class="btn btn--sm" @click="selectHealthRecord(record)">
                   {{ selectedHealthRecord === record ? 'Fechar' : 'Detalhes' }}
                 </button>
               </article>
@@ -337,8 +337,8 @@
             ou o servidor não respondeu.
           </p>
           <div class="row">
-            <button class="btn" @click="loadCompleteAnimalData">Tentar de novo</button>
-            <button class="btn btn--primary" @click="$router.push('/animais')">Ver lista de animais</button>
+            <button type="button" class="btn" @click="loadCompleteAnimalData">Tentar de novo</button>
+            <button type="button" class="btn btn--primary" @click="$router.push('/animais')">Ver lista de animais</button>
           </div>
         </div>
       </div>
@@ -650,6 +650,7 @@ const criarOpcoesGrafico = (unidade, iniciarEmZero) => ({
   },
   scales: {
     x: {
+      offset: true, // pontos não ficam colados no eixo
       grid: { display: false },
       border: { display: false },
       ticks: { color: chartText(), maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
@@ -658,7 +659,7 @@ const criarOpcoesGrafico = (unidade, iniciarEmZero) => ({
       beginAtZero: iniciarEmZero,
       border: { display: false, dash: [4, 4] },
       grid: { color: chartGrid(), drawTicks: false },
-      ticks: { color: chartText() },
+      ticks: { color: chartText(), padding: 10 },
     },
   },
 });

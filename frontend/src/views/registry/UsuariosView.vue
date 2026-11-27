@@ -1,6 +1,6 @@
 <template>
   <AppShell>
-    <div class="page page--narrow">
+    <div class="page">
       <PageHeader
         titulo="Usuários"
         descricao="Quem acessa a plataforma e o que cada perfil pode fazer."
@@ -8,9 +8,9 @@
         voltar-para="/dashboard-adm"
       >
         <template #acoes>
-          <button class="btn btn--primary" @click="abrirNovo">
+          <button type="button" class="btn btn--primary" @click="abrirNovo">
             <AppIcon name="plus" :size="16" />
-            Adicionar usuário
+            Cadastrar usuário
           </button>
         </template>
       </PageHeader>
@@ -24,69 +24,112 @@
         <span>{{ erro }}</span>
       </p>
 
-      <section class="card">
-        <header class="card__head">
-          <div>
-            <h2 class="card__title">Cadastrados</h2>
-            <p class="card__desc">O perfil define o que cada pessoa enxerga e pode fazer.</p>
-          </div>
-          <span class="badge">{{ usuarios.length }}</span>
-        </header>
-
-        <div v-if="carregando" class="loading">
-          <span class="spinner" aria-hidden="true"></span>
-          Carregando usuários...
-        </div>
-
-        <div v-else-if="usuarios.length === 0" class="empty">
-          <AppIcon name="users" :size="30" />
-          <p class="empty__title">Nenhum usuário cadastrado</p>
-          <p class="empty__desc">Cadastre os operadores de campo e os administradores da fazenda.</p>
-          <button class="btn btn--primary" @click="abrirNovo">Adicionar usuário</button>
-        </div>
-
-        <div v-else class="list">
-          <article
-            v-for="u in usuarios"
-            :key="u.id"
-            class="list__item"
-            :class="{ 'is-muted': !u.is_active }"
+      <section v-if="usuarios.length > 0" class="registry-toolbar" aria-label="Buscar e filtrar usuários">
+        <label class="search">
+          <AppIcon name="search" :size="16" />
+          <input
+            v-model="busca"
+            class="input"
+            type="search"
+            placeholder="Buscar por login, nome ou e-mail"
+            aria-label="Buscar usuário"
           >
-            <div class="list__main">
-              <span class="icon-tile" :class="u.papel === 'Administrador' ? 'icon-tile--accent' : ''">
-                <AppIcon :name="u.papel === 'Administrador' ? 'users' : 'worker'" :size="16" />
-              </span>
-              <div>
-                <span class="list__title">
-                  {{ u.username }}
-                  <span class="badge" :class="u.papel === 'Administrador' ? 'badge--info' : ''">{{ u.papel }}</span>
-                  <span v-if="!u.is_active" class="badge badge--warn">inativo</span>
-                </span>
-                <span class="list__sub">{{ descricao(u) }}</span>
-              </div>
-            </div>
+        </label>
+        <select v-model="filtroPerfil" class="select usuarios__filtro" aria-label="Filtrar por perfil">
+          <option value="">Todos os perfis</option>
+          <option value="Administrador">Administrador</option>
+          <option value="Operador">Operador</option>
+        </select>
+        <span class="registry-toolbar__count">{{ filtrados.length }} resultado(s)</span>
+      </section>
 
-            <div class="row">
-              <button class="btn btn--sm" @click="abrirEdicao(u)">Editar</button>
-              <button class="btn btn--sm" :class="{ 'btn--danger': u.is_active }" @click="alternarAtivo(u)">
-                {{ u.is_active ? 'Desativar' : 'Reativar' }}
-              </button>
-            </div>
-          </article>
+      <RegistryCard
+        titulo="Usuários cadastrados"
+        descricao="O perfil define o que cada pessoa enxerga e pode fazer."
+        :total="usuarios.length"
+        :carregando="carregando"
+        texto-carregando="Carregando usuários..."
+        :vazio="usuarios.length === 0"
+        :vazio-filtrado="usuarios.length > 0 && filtrados.length === 0"
+        icone-vazio="users"
+        titulo-vazio="Nenhum usuário cadastrado"
+        descricao-vazia="Cadastre os operadores de campo e os administradores da fazenda."
+        rotulo-acao-vazio="Cadastrar usuário"
+        descricao-vazio-filtrado="Nenhum usuário corresponde aos filtros atuais."
+        @cadastrar="abrirNovo"
+        @limpar-filtros="limparFiltros"
+      >
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>Nome e e-mail</th>
+                <th>Perfil</th>
+                <th>Situação</th>
+                <th class="cell-actions">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="u in filtrados" :key="u.id" :class="{ 'is-muted': !u.is_active }">
+                <td class="truncate" :title="u.username">
+                  <div class="registry-item">
+                    <span class="icon-tile" :class="u.papel === 'Administrador' ? 'icon-tile--accent' : ''">
+                      <AppIcon :name="u.papel === 'Administrador' ? 'users' : 'worker'" :size="16" />
+                    </span>
+                    <span class="registry-item__name">{{ u.username }}</span>
+                  </div>
+                </td>
+                <td class="text-muted truncate" :title="descricao(u)">{{ descricao(u) }}</td>
+                <td>
+                  <span class="badge" :class="u.papel === 'Administrador' ? 'badge--info' : ''">{{ u.papel }}</span>
+                </td>
+                <td>
+                  <span class="badge" :class="u.is_active ? 'badge--ok' : 'badge--warn'">
+                    <span class="badge__dot"></span>
+                    {{ u.is_active ? 'Ativo' : 'Inativo' }}
+                  </span>
+                </td>
+                <td class="cell-actions">
+                  <div class="registry-actions">
+                    <button
+                      type="button"
+                      class="btn btn--icon"
+                      aria-label="Editar usuário"
+                      title="Editar usuário"
+                      @click="abrirEdicao(u)"
+                    >
+                      <AppIcon name="edit" :size="15" />
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn--sm"
+                      :class="{ 'btn--danger': u.is_active }"
+                      @click="alternarAtivo(u)"
+                    >
+                      {{ u.is_active ? 'Desativar' : 'Reativar' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <footer class="card__foot nota">
-          <AppIcon name="info" :size="15" />
-          <span>
-            Usuário não é excluído: desativar bloqueia o acesso e preserva o histórico
-            de quem lançou cada pesagem e vacinação.
-          </span>
-        </footer>
-      </section>
+        <template #rodape>
+          <div class="nota">
+            <AppIcon name="info" :size="15" />
+            <span>
+              Usuário não é excluído: desativar bloqueia o acesso e preserva o histórico
+              de quem lançou cada pesagem e vacinação.
+            </span>
+          </div>
+        </template>
+      </RegistryCard>
 
       <AppModal
         v-if="modalAberto"
-        :titulo="editando ? 'Editar usuário' : 'Novo usuário'"
+        :titulo="editando ? 'Editar usuário' : 'Cadastrar usuário'"
         @fechar="fechar"
       >
         <form id="form-usuario" class="stack" @submit.prevent="salvar">
@@ -164,29 +207,25 @@
 </template>
 
 <script setup>
-/*
- * Cadastro de usuarios — a tela que faltava.
- *
- * O `authService.js` ja chamava `users/register/`, mas a rota nunca existiu
- * no backend: havia um comentario dizendo "ajuste a URL conforme seu Django".
- * Na pratica so dava para criar gente rodando `manage.py createsuperuser` no
- * terminal do servidor.
- */
-import { onMounted, reactive, ref } from 'vue'
-import authService from '@/services/authService'
-import AppShell from '@/components/layout/AppShell.vue'
-import AppIcon from '@/components/ui/AppIcon.vue'
-import AppModal from '@/components/ui/AppModal.vue'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import { computed, onMounted, reactive, ref } from 'vue';
+import authService from '@/services/authService';
+import { confirmar } from '@/services/confirmService';
+import AppShell from '@/components/layout/AppShell.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
+import AppModal from '@/components/ui/AppModal.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
+import RegistryCard from '@/components/layout/RegistryCard.vue';
 
-const usuarios = ref([])
-const carregando = ref(true)
-const salvando = ref(false)
-const modalAberto = ref(false)
-const editando = ref(null)
-const mensagem = ref('')
-const erro = ref('')
-const erroModal = ref('')
+const usuarios = ref([]);
+const busca = ref('');
+const filtroPerfil = ref('');
+const carregando = ref(true);
+const salvando = ref(false);
+const modalAberto = ref(false);
+const editando = ref(null);
+const mensagem = ref('');
+const erro = ref('');
+const erroModal = ref('');
 
 const vazio = () => ({
   username: '',
@@ -195,54 +234,70 @@ const vazio = () => ({
   email: '',
   papel: 'Operador',
   password: '',
-})
+});
 
-const form = reactive(vazio())
+const form = reactive(vazio());
 
 function descricao(u) {
-  const nome = [u.first_name, u.last_name].filter(Boolean).join(' ')
-  return [nome, u.email].filter(Boolean).join(' · ') || 'sem nome ou e-mail informado'
+  const nome = [u.first_name, u.last_name].filter(Boolean).join(' ');
+  return [nome, u.email].filter(Boolean).join(' · ') || 'Sem nome ou e-mail informado';
+}
+
+const filtrados = computed(() => {
+  const termo = busca.value.trim().toLowerCase();
+  return usuarios.value.filter((u) => {
+    if (filtroPerfil.value && u.papel !== filtroPerfil.value) return false;
+    if (!termo) return true;
+    return (
+      String(u.username || '').toLowerCase().includes(termo)
+      || String(u.first_name || '').toLowerCase().includes(termo)
+      || String(u.last_name || '').toLowerCase().includes(termo)
+      || String(u.email || '').toLowerCase().includes(termo)
+    );
+  });
+});
+
+function limparFiltros() {
+  busca.value = '';
+  filtroPerfil.value = '';
 }
 
 function avisar(texto, ehErro = false) {
-  mensagem.value = ehErro ? '' : texto
-  erro.value = ehErro ? texto : ''
+  mensagem.value = ehErro ? '' : texto;
+  erro.value = ehErro ? texto : '';
   setTimeout(() => {
-    mensagem.value = ''
-    erro.value = ''
-  }, 6000)
+    mensagem.value = '';
+    erro.value = '';
+  }, 6000);
 }
 
-// O backend valida senha e login e devolve o motivo campo a campo. Mostrar
-// isso e o que permite a pessoa corrigir sozinha — "erro ao salvar" obriga
-// a chamar alguem.
 function motivo(err, padrao) {
-  const d = err.response?.data
-  if (!d) return padrao
-  if (typeof d === 'string') return d
+  const d = err.response?.data;
+  if (!d) return padrao;
+  if (typeof d === 'string') return d;
   const partes = Object.entries(d).map(
-    ([campo, msgs]) => campo + ': ' + [].concat(msgs).join(' ')
-  )
-  return partes.join(' · ') || padrao
+    ([campo, msgs]) => `${campo}: ${[].concat(msgs).join(' ')}`
+  );
+  return partes.join(' · ') || padrao;
 }
 
 async function carregar() {
-  carregando.value = true
+  carregando.value = true;
   try {
-    const { data } = await authService.listarUsuarios()
-    usuarios.value = data
+    const { data } = await authService.listarUsuarios();
+    usuarios.value = data;
   } catch (err) {
-    avisar(motivo(err, 'Não foi possível carregar os usuários.'), true)
+    avisar(motivo(err, 'Não foi possível carregar os usuários.'), true);
   } finally {
-    carregando.value = false
+    carregando.value = false;
   }
 }
 
 function abrirNovo() {
-  Object.assign(form, vazio())
-  editando.value = null
-  erroModal.value = ''
-  modalAberto.value = true
+  Object.assign(form, vazio());
+  editando.value = null;
+  erroModal.value = '';
+  modalAberto.value = true;
 }
 
 function abrirEdicao(u) {
@@ -253,57 +308,71 @@ function abrirEdicao(u) {
     email: u.email,
     papel: u.papel,
     password: '',
-  })
-  editando.value = u.id
-  erroModal.value = ''
-  modalAberto.value = true
+  });
+  editando.value = u.id;
+  erroModal.value = '';
+  modalAberto.value = true;
 }
 
 function fechar() {
-  modalAberto.value = false
-  editando.value = null
-  erroModal.value = ''
+  modalAberto.value = false;
+  editando.value = null;
+  erroModal.value = '';
 }
 
 async function salvar() {
-  salvando.value = true
-  erroModal.value = ''
+  salvando.value = true;
+  erroModal.value = '';
   try {
-    const dados = { ...form }
-    if (!dados.password) delete dados.password // editar sem trocar a senha
+    const dados = { ...form };
+    if (!dados.password) delete dados.password;
     if (editando.value) {
-      await authService.atualizarUsuario(editando.value, dados)
-      avisar('Usuário atualizado.')
+      await authService.atualizarUsuario(editando.value, dados);
+      avisar('Usuário atualizado.');
     } else {
-      await authService.cadastrarUsuario(dados)
-      avisar('Usuário ' + dados.username + ' cadastrado.')
+      await authService.cadastrarUsuario(dados);
+      avisar(`Usuário ${dados.username} cadastrado.`);
     }
-    fechar()
-    await carregar()
+    fechar();
+    await carregar();
   } catch (err) {
-    // Erro fica DENTRO do modal: o formulario continua preenchido e a pessoa
-    // corrige o campo apontado sem digitar tudo de novo.
-    erroModal.value = motivo(err, 'Não foi possível salvar.')
+    erroModal.value = motivo(err, 'Não foi possível salvar.');
   } finally {
-    salvando.value = false
+    salvando.value = false;
   }
 }
 
 async function alternarAtivo(u) {
+  if (u.is_active) {
+    const ok = await confirmar({
+      titulo: `Desativar o usuário "${u.username}"?`,
+      texto: 'O acesso será bloqueado, mas todo o histórico de lançamentos será preservado.',
+      acao: 'Desativar usuário',
+    });
+    if (!ok) return;
+  }
   try {
-    await authService.definirAtivo(u.id, !u.is_active)
-    avisar(u.username + (u.is_active ? ' desativado.' : ' reativado.'))
-    await carregar()
+    await authService.definirAtivo(u.id, !u.is_active);
+    avisar(u.username + (u.is_active ? ' desativado.' : ' reativado.'));
+    await carregar();
   } catch (err) {
-    avisar(motivo(err, 'Não foi possível alterar a situação.'), true)
+    avisar(motivo(err, 'Não foi possível alterar a situação.'), true);
   }
 }
 
-onMounted(carregar)
+onMounted(carregar);
 </script>
 
 <style scoped>
+.usuarios__filtro {
+  width: auto;
+  min-width: 170px;
+  flex: none;
+}
+
 .nota {
+  display: flex;
+  width: 100%;
   align-items: flex-start;
   justify-content: flex-start;
   gap: 9px;

@@ -107,3 +107,19 @@ class UsuarioSerializer(serializers.ModelSerializer):
         if papel:
             self._aplicar_papel(usuario, papel)
         return usuario
+
+
+class CadastroPublicoSerializer(UsuarioSerializer):
+    """Cadastro público de conta (cria como Administrador enquanto o perfil de operador está desativado)."""
+
+    password = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password],
+        style={"input_type": "password"},
+    )
+
+    class Meta(UsuarioSerializer.Meta):
+        fields = ["id", "username", "first_name", "last_name", "email", "password"]
+
+    def create(self, dados):
+        dados["papel"] = ADMINISTRADOR
+        return super().create(dados)

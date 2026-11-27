@@ -99,6 +99,9 @@ class VeterinaryOccurrenceSerializer(ModelSerializer):
 
 
 class AnimalHealthSerializer(ModelSerializer):
+    animal_name = serializers.CharField(source="animal.name", read_only=True)
+    animal_register = serializers.IntegerField(source="animal.register_number", read_only=True)
+
     class Meta(ModelSerializer.Meta):
         model = AnimalHealth
 

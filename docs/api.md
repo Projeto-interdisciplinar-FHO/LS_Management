@@ -1,290 +1,128 @@
 # API do LS Management
 
-Documentação prévia da API REST do projeto LS Management.
+API REST em Django REST Framework com autenticação JWT. Todas as rotas exigem token, exceto as de login.
 
-## Visão geral
-
-A API é organizada por apps Django/DRF e usa JWT para autenticação. Por padrão, as rotas exigem token válido no header `Authorization`.
-
-## Base local
-
-Durante o desenvolvimento, a API costuma ficar disponível em:
-
-```text
-http://127.0.0.1:8000/
-```
+Base local: `http://127.0.0.1:8000/`
 
 ## Autenticação
 
-### POST /authentication/token/
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| POST | `/api/token/` (ou `/authentication/token/`) | Gera `access` e `refresh` |
+| POST | `/api/token/refresh/` | Renova o `access` |
+| POST | `/api/token/verify/` | Valida um token |
 
-Gera os tokens `access` e `refresh`.
-
-#### Exemplo de resposta
-
-```json
-{
-  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-  "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
-}
-```
-
-### POST /authentication/token/refresh/
-
-Renova o token de acesso.
-
-#### Exemplo de resposta
+Resposta do login:
 
 ```json
 {
-  "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+  "refresh": "eyJ...",
+  "access": "eyJ...",
+  "is_superuser": true,
+  "papel": "Administrador",
+  "username": "admin",
+  "nome": "Admin"
 }
 ```
 
-### POST /authentication/token/verify/
-
-Valida um token JWT.
-
-#### Exemplo de resposta
-
-```json
-{}
-```
-
-## Cabeçalho de autenticação
-
-Para as rotas protegidas, envie o token assim:
+Nas demais rotas, envie:
 
 ```http
 Authorization: Bearer SEU_TOKEN_AQUI
 ```
 
-## Rotas por recurso
-
-### Admin
+## Usuários (somente Administrador)
 
 | Método | Rota |
 | --- | --- |
-| GET | `/admin/` |
+| GET, POST | `/users/` (POST também em `/users/register/`) |
+| GET, PUT, PATCH | `/users/<id>/` |
 
-### Species
+Não há exclusão: para desativar um usuário use `PATCH {"is_active": false}`.
 
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/species/` |
-| GET, PUT, PATCH, DELETE | `/species/<int:pk>` |
+## Recursos (CRUD)
 
-#### Exemplo de resposta
+Todos ficam em [backend/apps/api/urls.py](../backend/apps/api/urls.py) e seguem o padrão do router do DRF:
+
+- `GET, POST /<recurso>/`
+- `GET, PUT, PATCH, DELETE /<recurso>/<id>/`
+
+| Recurso | Modelo | Observação |
+| --- | --- | --- |
+| `cows/` | `cattle.Cow` | vacas |
+| `animals/` | `cattle.Cow` | apelido de `cows/`, usado pelo frontend |
+| `bulls/` | `cattle.Bull` | touros |
+| `classes/` | `cattle.CattleClass` | categorias do rebanho |
+| `breeds/` | `breeds.Breed` | raças |
+| `quadrants/` | `quadrants.Quadrant` | estábulos / piquetes |
+| `movement_types/` | `movement_types.MovementType` | |
+| `animal_movements/` | `animal_movements.AnimalMovement` | filtra por `?animal_id=` |
+| `inseminations/` | `reproduction.Insemination` | |
+| `births/` | `reproduction.Birth` | |
+| `birth_occurrences/` | `reproduction.BirthOccurrence` | |
+| `vaccines/` | `vaccines.Vaccine` | |
+| `vaccination_groups/` | `vaccination_groups.VaccinationGroup` | filtra por `?animal_id=` |
+| `vaccination_plans/` | `vaccination_plans.VaccinationPlan` | |
+| `vaccinations/` | `vaccinations.Vaccination` | `?animal_id=` e `?upcoming=true` (próxima dose a partir de hoje) |
+| `veterinary_occurrences/` | `animal_health.VeterinaryOccurrence` | |
+| `animal_health/` | `animal_health.AnimalHealth` | filtra por `?animal_id=` |
+| `foods/` | `foods.Food` | |
+| `feedings/` | `feedings.Feeding` | filtra por `?animal_id=` |
+| `feeding_plans/` | `feeding_plans.FeedingPlan` | |
+| `milking/` | `milk_production_history.Milking` | filtra por `?animal_id=` |
+| `milk_production_history/` | `milk_production_history.Milking` | apelido de `milking/` |
+| `weight_history/` | `weight_history.WeightHistory` | filtra por `?animal_id=` |
+
+O filtro `?animal_id=` é ignorado em recursos que não têm o campo `animal`.
+
+Exemplo de vaca (`GET /animals/1/`):
 
 ```json
 {
   "id": 1,
-  "name": "Bovino"
+  "name": "Mimosa",
+  "register_number": 1001,
+  "status": "active",
+  "score": "3.50",
+  "reproductive_status": true,
+  "breed": 2,
+  "birth": null
 }
 ```
 
-### Quadrants
+`status` aceita `active`, `inactive`, `sold` e `deceased`. `register_number` é único.
+
+### Exportação CSV de animais
 
 | Método | Rota |
 | --- | --- |
-| GET, POST | `/quadrants/` |
-| GET, PUT, PATCH, DELETE | `/quadrants/<int:pk>` |
-
-#### Exemplo de resposta
-
-```json
-{
-  "id": 1,
-  "name": "Piquete A",
-  "description": "Área principal de pastejo",
-  "area": "12.50",
-  "max_animals": 40
-}
-```
-
-### Purpose Types
-
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/purpose_types/` |
-| GET, PUT, PATCH, DELETE | `/purpose_types/<int:pk>` |
-
-#### Exemplo de resposta
-
-```json
-{
-  "id": 1,
-  "name": "Leite"
-}
-```
-
-### Animals
-
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/animals/` |
-| GET, PUT, PATCH, DELETE | `/animals/<int:pk>` |
 | GET | `/animals/export-fields/` |
 | GET | `/animals/export/` |
 
-#### Exemplo de resposta
-
-```json
-{
-  "id": 1,
-  "name": "Mimosa 1",
-  "birth_date": "2022-08-15",
-  "register_number": 1001,
-  "weight": "420.50",
-  "active": true,
-  "sex": "F",
-  "specie": 1,
-  "breed": 2,
-  "quadrant": 1,
-  "purpose": 1
-}
-```
-
-#### Exportação CSV de animais
-
-`GET /animals/export/` retorna um arquivo CSV autenticado. Sem parâmetros,
-exporta todos os animais e todos os campos disponíveis. Para exportar somente
-um estábulo, informe `quadrant_id` (ou `estabulo_id`). Para exportar todos os
-estábulos, use `quadrant_id=all` ou omita o parâmetro.
-
-Os campos podem ser escolhidos pela chave retornada em
-`GET /animals/export-fields/`, separados por vírgula:
+Sem parâmetros, exporta todos os animais com todos os campos. Para um estábulo, informe `quadrant_id` (ou `estabulo_id`); `quadrant_id=all` exporta todos. Campos são escolhidos pela chave devolvida em `export-fields`, separados por vírgula:
 
 ```text
 /animals/export/?quadrant_id=3&fields=register_number,name,current_quadrant_name,last_weight
 ```
 
-O filtro considera o último movimento registrado de cada animal como seu
-estábulo atual. Campos históricos são exportados de forma agregada por animal
-(por exemplo, quantidade de vacinações e produção de leite acumulada), evitando
-que um animal apareça repetido no CSV.
+O estábulo atual de cada animal é o do último movimento registrado. Campos históricos saem agregados (ex.: quantidade de vacinações), sem repetir o animal.
 
-### Breeds
+## Importação por planilha (XLSX)
 
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/breeds/` |
-| GET, PUT, PATCH, DELETE | `/breeds/<int:pk>` |
+Disponível em `/api/importacao/` e `/importacao/`:
 
-### Weight History
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| GET | `vacas/` | baixa o modelo (`?exportar=true` exporta os dados) |
+| POST | `vacas/` | importa vacas |
+| GET | `ordenhas/` | baixa o modelo (`?exportar=true` exporta os dados) |
+| POST | `ordenhas/` | importa ordenhas |
 
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/weight_history/` |
-| GET, PUT, PATCH, DELETE | `/weight_history/<int:pk>` |
+## IA: validação genealógica
 
-### Milk Production History
+`GET /api/reproducao/validar-genealogia/?cow_id=2&bull_id=1` ou `POST` com `{"cow_id": 2, "bull_id": 1}`.
+Também responde em `/reproducao/validar-genealogia/`. Depende de `API_KEY` (Gemini) no `backend/.env`.
 
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/milk_production_history/` |
-| GET, PUT, PATCH, DELETE | `/milk_production_history/<int:pk>` |
+## Admin
 
-### Vaccines
-
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/vaccines/` |
-| GET, PUT, PATCH, DELETE | `/vaccines/<int:pk>` |
-
-#### Exemplo de resposta
-
-```json
-{
-  "id": 1,
-  "name": "Clostridial"
-}
-```
-
-### Vaccination Plans
-
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/vaccination_plans/` |
-| GET, PUT, PATCH, DELETE | `/vaccination_plans/<int:pk>` |
-
-### Vaccinations
-
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/vaccinations/` |
-| GET, PUT, PATCH, DELETE | `/vaccinations/<int:pk>` |
-
-### Foods
-
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/foods/` |
-| GET, PUT, PATCH, DELETE | `/foods/<int:pk>` |
-
-### Feedings
-
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/feedings/` |
-| GET, PUT, PATCH, DELETE | `/feedings/<int:pk>` |
-
-### Feeding Plans
-
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/feeding_plans/` |
-| GET, PUT, PATCH, DELETE | `/feeding_plans/<int:pk>` |
-
-### Movement Types
-
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/movement_types/` |
-| GET, PUT, PATCH, DELETE | `/movement_types/<int:pk>` |
-
-### Animal Movements
-
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/animal_movements/` |
-| GET, PUT, PATCH, DELETE | `/animal_movements/<int:pk>` |
-
-### Animal Health
-
-| Método | Rota |
-| --- | --- |
-| GET, POST | `/animal_health/` |
-| GET, PUT, PATCH, DELETE | `/animal_health/<int:pk>` |
-
-## Exemplo de lista
-
-Quando o endpoint retorna uma coleção, a resposta normalmente vem em formato de lista:
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Bovino"
-  },
-  {
-    "id": 2,
-    "name": "Bufalino"
-  }
-]
-```
-
-## Dicas rápidas
-
-- As respostas usam o formato padrão do Django REST Framework.
-- Campos de relacionamento aparecem como IDs, salvo se a view/serializer for alterado para expandir os dados.
-- Como a permissão padrão é `IsAuthenticated`, a maioria das rotas exige token JWT válido.
-
-## Próximo passo recomendado
-
-Se quiser documentar melhor ainda, o ideal é adicionar para cada recurso:
-
-- exemplo de payload de criação
-- exemplo de resposta de detalhe
-- exemplo de erro de validação
-- status HTTP esperados
+`/admin/`: Django Admin.

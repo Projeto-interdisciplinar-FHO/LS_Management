@@ -63,7 +63,8 @@
       </div>
 
       <p class="login__rodape">
-        Não tem acesso? Peça a um administrador para cadastrar seu usuário.
+        Não tem conta ainda?
+        <RouterLink to="/cadastro" class="login__link">Criar conta</RouterLink>
       </p>
     </div>
 
@@ -89,7 +90,7 @@ import backgroundImage from '@/assets/images/background_fazenda.jpeg';
 const router = useRouter();
 const route = useRoute();
 
-const username = ref('');
+const username = ref(typeof route.query.usuario === 'string' ? route.query.usuario : '');
 const password = ref('');
 const loading = ref(false);
 const mostrarSenha = ref(false);
@@ -224,6 +225,14 @@ const handleLogin = async () => {
   font-size: var(--fs-sm);
   text-align: center;
 }
+
+.login__link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login__link:hover { text-decoration: underline; }
 
 /* Lateral com a foto: identidade, sem virar um bloco de cor chapada. */
 .login__lateral {

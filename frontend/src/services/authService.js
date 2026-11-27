@@ -20,6 +20,10 @@ export default {
     return api.post('users/register/', dados);
   },
 
+  cadastrarContaPublica(dados) {
+    return api.post('users/signup/', dados);
+  },
+
   atualizarUsuario(id, dados) {
     return api.patch(`users/${id}/`, dados);
   },

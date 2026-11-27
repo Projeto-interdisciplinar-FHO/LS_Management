@@ -103,6 +103,11 @@ export default {
   createAnimal(animalData) { return apiClient.post('animals/', animalData); },
   updateAnimal(id, animalData) { return apiClient.put(`animals/${id}/`, animalData); },
   deleteAnimal(id) { return apiClient.delete(`animals/${id}/`); },
+  getBulls() { return apiClient.get('bulls/'); },
+  getBullById(id) { return apiClient.get(`bulls/${id}/`); },
+  createBull(bullData) { return apiClient.post('bulls/', bullData); },
+  updateBull(id, bullData) { return apiClient.patch(`bulls/${id}/`, bullData); },
+  deleteBull(id) { return apiClient.delete(`bulls/${id}/`); },
   getFeedings() { return apiClient.get('feedings/'); },
   getFeedingsByAnimal(animalId) { return apiClient.get(`feedings/?animal_id=${animalId}`); },
   createFeeding(feedingData) { return apiClient.post('feedings/', feedingData); },
@@ -135,5 +140,5 @@ export default {
   createVaccination(data) { return apiClient.post('vaccinations/', data); },
   updateVaccination(id, data) { return apiClient.put(`vaccinations/${id}/`, data); },
   getVaccinationPlans() { return apiClient.get('vaccination_plans/'); },
-  getUpcomingVaccinations() { return apiClient.get('vaccinations/upcoming/'); }
+  getUpcomingVaccinations() { return apiClient.get('vaccinations/?upcoming=true'); }
 };
