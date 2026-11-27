@@ -1,12 +1,22 @@
 <template>
   <AppShell>
     <div class="page page--narrow">
-      <PageHeader
-        titulo="Registro de alimentação"
-        descricao="Lance o consumo de ração ou suplemento, por animal ou para todo o rebanho."
-        voltar-rotulo="Painel"
-        :voltar-para="painel"
-      />
+      <header class="hero registry-hero">
+        <div class="hero__bg" aria-hidden="true">
+          <img :src="alimentosHero" alt="" class="hero__img">
+          <div class="hero__shade"></div>
+        </div>
+        <div class="hero__content">
+          <div>
+            <div class="registry-hero__meta">
+              <span class="hero__eyebrow">Manejo · Nutrição</span>
+              <span class="registry-hero__pill">{{ feedTypesList.length }} alimento(s)</span>
+            </div>
+            <h1 class="hero__title">Registro de alimentação</h1>
+            <p class="hero__desc">Lance o consumo de ração ou suplemento, por animal ou para todo o rebanho.</p>
+          </div>
+        </div>
+      </header>
 
       <p v-if="optionsError" class="alert alert--danger" role="alert">
         <AppIcon name="alert" :size="16" />
@@ -52,7 +62,7 @@
 
             <div class="field">
               <label class="field__label" for="quantidade">Quantidade fornecida (kg)</label>
-              <input id="quantidade" v-model="formData.quantity" class="input" type="number" inputmode="decimal" step="0.01" placeholder="4.50" required>
+              <input id="quantidade" v-model="formData.quantity" class="input" type="number" min="0" inputmode="decimal" step="0.01" placeholder="4.50" required>
             </div>
 
             <div class="field">
@@ -78,15 +88,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import api from '@/services/api';
-import { painelDoPapel } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import alimentosHero from '@/assets/images/alimentos-hero.jpg';
 import { apiErrorMessage } from '@/utils/apiError';
-
-const painel = computed(() => painelDoPapel());
 
 const loading = ref(false);
 const loadingOptions = ref(true);

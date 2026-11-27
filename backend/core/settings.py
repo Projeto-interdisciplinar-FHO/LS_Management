@@ -24,16 +24,33 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 
-# Quick-start development settings - unsuitable for production
+def env_bool(nome, padrao=False):
+    valor = os.getenv(nome)
+    if valor is None:
+        return padrao
+    return valor.strip().lower() in {"1", "true", "yes", "sim", "on"}
+
+
+def env_list(nome, padrao=""):
+    return [item.strip() for item in os.getenv(nome, padrao).split(",") if item.strip()]
+
+
+# Segurança: tudo vem do .env (veja backend/.env.example).
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-b-#1jb-x&#fr%5kk4lh$k9_yv#q=m-pl=c4(g3vgdad_#7+ml!'
+# DEBUG fica ligado por padrão só para não travar quem roda localmente sem
+# .env; em qualquer servidor, defina DJANGO_DEBUG=False.
+DEBUG = env_bool("DJANGO_DEBUG", True)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Em desenvolvimento, sem chave no .env, usa uma chave descartável. Fora do
+# modo DEBUG a chave é obrigatória: subir sem ela é erro, não um padrão inseguro.
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if not DEBUG:
+        raise RuntimeError("Defina DJANGO_SECRET_KEY no .env quando DJANGO_DEBUG=False.")
+    SECRET_KEY = "django-insecure-somente-desenvolvimento-local"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 
 
 # Application definition
@@ -140,9 +157,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'pt-br'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Sao_Paulo'
 
 USE_I18N = True
 
@@ -178,14 +195,14 @@ REST_FRAMEWORK = {
 
 # CORS (django-cors-headers)
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://124.0.0.1:5173",
-    "http://localhost:8080",
-]
+CORS_ALLOWED_ORIGINS = env_list(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080",
+)
 
 # Com True, qualquer origem é aceita e a lista acima deixa de ter efeito.
-CORS_ALLOW_ALL_ORIGINS = True
+# Desligado por padrão; ligue no .env só se realmente precisar.
+CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
 
 CORS_ALLOW_HEADERS = [
     'accept',

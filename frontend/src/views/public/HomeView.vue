@@ -17,7 +17,7 @@
 
         <ul class="home__capacidades">
           <li v-for="item in capacidades" :key="item.titulo">
-            <span class="icon-tile icon-tile--accent"><AppIcon :name="item.icone" :size="17" /></span>
+            <span class="icon-tile icon-tile--accent home__icone"><AppIcon :name="item.icone" :size="22" /></span>
             <div>
               <strong>{{ item.titulo }}</strong>
               <span>{{ item.descricao }}</span>
@@ -26,15 +26,15 @@
         </ul>
 
         <div class="home__acoes">
-          <RouterLink to="/login" class="btn btn--primary btn--lg">
-            Entrar no sistema
-            <AppIcon name="arrow-right" :size="16" />
-          </RouterLink>
-          <!-- O painel não é escolhido aqui: ele vem do perfil da conta. As
-               duas portas que existiam antes levavam ao mesmo login. -->
-          <p class="home__nota">
-            O painel exibido depende do perfil da sua conta — administrador ou operador.
-          </p>
+          <div class="home__botoes">
+            <RouterLink to="/login" class="btn btn--primary home__cta">
+              Entrar no sistema
+              <AppIcon name="arrow-right" :size="18" />
+            </RouterLink>
+            <RouterLink to="/cadastro" class="btn home__cta-sec">
+              Criar conta
+            </RouterLink>
+          </div>
         </div>
       </div>
 
@@ -76,24 +76,25 @@ const capacidades = [
 .home__conteudo {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  gap: 36px;
-  padding: 48px clamp(32px, 6vw, 88px);
-  max-width: 720px;
+  gap: 32px;
+  padding: 44px clamp(36px, 6vw, 96px);
+  max-width: 840px;
 }
 
 .home__miolo {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 32px;
+  gap: 36px;
   min-width: 0;
+  padding: 16px 0;
 }
 
 .home__marca {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: var(--fs-md);
+  gap: 12px;
+  font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -101,7 +102,7 @@ const capacidades = [
 /* A arte da marca é branca sobre transparente: no tema claro ela some.
    Invertida, o mesmo arquivo vira traço escuro sobre o fundo claro. */
 .home__logo {
-  height: 34px;
+  height: 42px;
   width: auto;
   filter: invert(1);
 }
@@ -109,53 +110,66 @@ const capacidades = [
 :root[data-theme='dark'] .home__logo { filter: none; }
 
 .home__texto h1 {
-  font-size: clamp(1.9rem, 3.6vw, 2.75rem);
-  font-weight: 600;
-  line-height: 1.12;
+  font-size: clamp(2.25rem, 4.1vw, 3.35rem);
+  font-weight: 700;
+  line-height: 1.1;
   letter-spacing: -0.03em;
   text-wrap: balance;
 }
 
 .home__texto p {
-  margin-top: 14px;
-  max-width: 50ch;
+  margin-top: 18px;
+  max-width: 52ch;
   color: var(--text-2);
-  font-size: var(--fs-lg);
-  line-height: 1.6;
+  font-size: 1.125rem;
+  line-height: 1.65;
 }
 
 .home__capacidades {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
   list-style: none;
-  padding-top: 28px;
+  padding-top: 32px;
   border-top: 1px solid var(--line);
 }
 
 .home__capacidades li {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
+}
+
+.home__icone {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-md);
 }
 
 .home__capacidades div {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
 }
 
-.home__capacidades strong { font-size: var(--fs-md); font-weight: 600; }
-.home__capacidades span { color: var(--text-2); font-size: var(--fs-sm); }
+.home__capacidades strong { font-size: 1.05rem; font-weight: 600; }
+.home__capacidades span { color: var(--text-2); font-size: 0.96rem; line-height: 1.45; }
 
-.home__acoes { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.home__acoes { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; padding-top: 6px; }
 
-.home__acoes .btn { text-decoration: none; }
+.home__botoes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
 
-.home__nota {
-  max-width: 46ch;
-  color: var(--text-3);
-  font-size: var(--fs-sm);
+.home__cta,
+.home__cta-sec {
+  height: 48px;
+  padding: 0 24px;
+  font-size: 1rem;
+  text-decoration: none;
 }
 
 .home__rodape {

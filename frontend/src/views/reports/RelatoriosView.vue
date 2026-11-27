@@ -80,36 +80,13 @@
           </div>
 
           <div v-else class="card__body">
-            <svg class="grafico" :viewBox="`0 0 ${LARGURA} ${ALTURA}`" role="img" :aria-label="descricaoGrafico">
-              <!-- Grade horizontal, para o olho medir a altura sem contar pixel -->
-              <line
-                v-for="(linha, i) in linhasDeGrade"
-                :key="`g${i}`"
-                :x1="MARGEM.esq" :x2="LARGURA - MARGEM.dir"
-                :y1="linha.y" :y2="linha.y"
-                class="grafico__grade"
+            <div class="relatorio-chart-wrap">
+              <Line
+                :key="`relatorio-peso-${selectedAnimalId}-${serieDePeso.length}`"
+                :data="chartData"
+                :options="chartOptions"
+                :aria-label="descricaoGrafico"
               />
-              <text
-                v-for="(linha, i) in linhasDeGrade"
-                :key="`t${i}`"
-                :x="MARGEM.esq - 8" :y="linha.y + 4"
-                class="grafico__rotulo" text-anchor="end"
-              >{{ linha.valor }}</text>
-
-              <polyline class="grafico__linha" :points="pontosDaLinha" />
-              <circle
-                v-for="(p, i) in pontos"
-                :key="`p${i}`"
-                :cx="p.x" :cy="p.y" r="3"
-                class="grafico__ponto"
-              >
-                <title>{{ p.rotuloData }}: {{ p.peso }} kg</title>
-              </circle>
-            </svg>
-
-            <div class="grafico__eixo">
-              <span class="mono">{{ pontos[0]?.rotuloData }}</span>
-              <span class="mono">{{ pontos[pontos.length - 1]?.rotuloData }}</span>
             </div>
           </div>
         </section>
@@ -137,8 +114,8 @@
               <tbody>
                 <tr v-for="(registro, i) in vacinasRecentes" :key="registro.id || i">
                   <td class="mono nowrap">{{ formatarData(normalizeDate(registro)) }}</td>
-                  <td class="cell-strong">{{ registro.vaccine_name || registro.name || '—' }}</td>
-                  <td class="mono">{{ registro.animal_name || (registro.animal_id ? `#${registro.animal_id}` : '—') }}</td>
+                  <td class="cell-strong truncate" :title="registro.vaccine_name || registro.name || '—'">{{ registro.vaccine_name || registro.name || '—' }}</td>
+                  <td class="mono truncate" :title="registro.animal_name || (registro.animal_id ? `#${registro.animal_id}` : '—')">{{ registro.animal_name || (registro.animal_id ? `#${registro.animal_id}` : '—') }}</td>
                 </tr>
               </tbody>
             </table>
@@ -151,10 +128,24 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import {
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LineController,
+  LineElement,
+  LinearScale,
+  PointElement,
+  Tooltip,
+} from 'chart.js'
+import { Line } from 'vue-chartjs'
 import api from '@/services/api'
 import AppShell from '@/components/layout/AppShell.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
+
+ChartJS.register(CategoryScale, LinearScale, LineController, LineElement, PointElement, Filler, Legend, Tooltip)
 
 const selectedAnimalId = ref('')
 const animalsList = ref([])
@@ -195,13 +186,7 @@ const vacinasRecentes = computed(() =>
     .slice(0, 10)
 )
 
-/* ---------- Gráfico de evolução de peso ----------
-   SVG desenhado à mão a partir das pesagens reais: sem biblioteca, sem
-   número inventado. Cada ponto é um registro que existe no banco. */
-const LARGURA = 720
-const ALTURA = 220
-const MARGEM = { topo: 16, dir: 12, base: 24, esq: 46 }
-
+/* ---------- Gráfico de evolução de peso (Chart.js) ---------- */
 const serieDePeso = computed(() =>
   weightHistory.value
     .map((registro) => ({ data: dataDaPesagem(registro), peso: numericWeight(registro) }))
@@ -209,43 +194,104 @@ const serieDePeso = computed(() =>
     .sort((a, b) => a.data - b.data)
 )
 
-const escala = computed(() => {
-  const pesos = serieDePeso.value.map((p) => p.peso)
-  const min = Math.min(...pesos)
-  const max = Math.max(...pesos)
-  // Uma folga evita a linha colar no topo e no fundo da área do gráfico.
-  const folga = (max - min) * 0.15 || Math.max(max * 0.05, 1)
-  return { min: min - folga, max: max + folga }
+function chartColor(token) {
+  return getComputedStyle(document.documentElement).getPropertyValue(token).trim()
+}
+
+function gradientArea(context) {
+  const { ctx, chartArea } = context.chart
+  const accent = chartColor('--accent') || '#2f6b46'
+  if (!chartArea) return accent
+  const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
+  gradient.addColorStop(0, `${accent}42`)
+  gradient.addColorStop(0.65, `${accent}14`)
+  gradient.addColorStop(1, `${accent}00`)
+  return gradient
+}
+
+const chartData = computed(() => {
+  const accent = chartColor('--accent') || '#2f6b46'
+  const surface = chartColor('--surface') || '#ffffff'
+  return {
+    labels: serieDePeso.value.map((p) => formatarData(p.data)),
+    datasets: [
+      {
+        label: 'Peso registrado (kg)',
+        data: serieDePeso.value.map((p) => Number(p.peso.toFixed(2))),
+        borderColor: accent,
+        backgroundColor: gradientArea,
+        pointBackgroundColor: accent,
+        pointBorderColor: surface,
+        pointBorderWidth: 2.5,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        borderWidth: 3,
+        tension: 0.34,
+        fill: true,
+      },
+    ],
+  }
 })
 
-const pontos = computed(() => {
-  const serie = serieDePeso.value
-  if (serie.length < 2) return []
-
-  const { min, max } = escala.value
-  const largura = LARGURA - MARGEM.esq - MARGEM.dir
-  const altura = ALTURA - MARGEM.topo - MARGEM.base
-  const amplitude = max - min || 1
-
-  return serie.map((ponto, i) => ({
-    x: MARGEM.esq + (i / (serie.length - 1)) * largura,
-    y: MARGEM.topo + (1 - (ponto.peso - min) / amplitude) * altura,
-    peso: ponto.peso.toFixed(1),
-    rotuloData: ponto.data.toLocaleDateString('pt-BR'),
-  }))
-})
-
-const pontosDaLinha = computed(() => pontos.value.map((p) => `${p.x},${p.y}`).join(' '))
-
-const linhasDeGrade = computed(() => {
-  if (pontos.value.length < 2) return []
-  const { min, max } = escala.value
-  const altura = ALTURA - MARGEM.topo - MARGEM.base
-  return [0, 0.25, 0.5, 0.75, 1].map((fracao) => ({
-    y: MARGEM.topo + fracao * altura,
-    valor: Math.round(max - fracao * (max - min)),
-  }))
-})
+const chartOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  layout: { padding: { left: 2, right: 12 } },
+  interaction: { intersect: false, mode: 'index' },
+  plugins: {
+    legend: {
+      display: true,
+      position: 'top',
+      align: 'end',
+      labels: {
+        usePointStyle: true,
+        pointStyle: 'circle',
+        boxWidth: 8,
+        boxHeight: 8,
+        padding: 14,
+        color: chartColor('--text-2') || '#525b53',
+        font: { size: 12, weight: '500' },
+      },
+    },
+    tooltip: {
+      backgroundColor: 'rgba(20, 26, 22, 0.92)',
+      titleColor: '#ffffff',
+      bodyColor: '#e9eee9',
+      cornerRadius: 10,
+      padding: 12,
+      callbacks: {
+        label: (ctx) => ` Peso: ${Number(ctx.raw).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} kg`,
+      },
+    },
+  },
+  scales: {
+    x: {
+      offset: false,
+      border: { display: false },
+      grid: { display: false },
+      ticks: {
+        padding: 8,
+        color: chartColor('--text-3'),
+        font: { size: 11 },
+        maxRotation: 0,
+        autoSkip: true,
+        maxTicksLimit: 8,
+      },
+    },
+    y: {
+      beginAtZero: false,
+      grace: '12%',
+      border: { display: false, dash: [4, 4] },
+      grid: { color: chartColor('--line'), tickLength: 0 },
+      ticks: {
+        padding: 10,
+        color: chartColor('--text-3'),
+        font: { size: 11 },
+        callback: (value) => `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`,
+      },
+    },
+  },
+}))
 
 const descricaoGrafico = computed(() => {
   const serie = serieDePeso.value
@@ -339,43 +385,9 @@ const handleSelectionChange = async () => {
 <style scoped>
 .seletor { min-width: 340px; max-width: 460px; }
 
-.grafico {
-  width: 100%;
-  height: auto;
-  overflow: visible;
-}
-
-.grafico__grade {
-  stroke: var(--line);
-  stroke-width: 1;
-}
-
-.grafico__rotulo {
-  fill: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: 10px;
-}
-
-.grafico__linha {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 2;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-.grafico__ponto {
-  fill: var(--surface);
-  stroke: var(--accent);
-  stroke-width: 2;
-}
-
-.grafico__eixo {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 6px;
-  padding: 0 12px 0 46px;
-  color: var(--text-3);
-  font-size: var(--fs-xs);
+.relatorio-chart-wrap {
+  position: relative;
+  height: 290px;
+  padding: 6px 0;
 }
 </style>

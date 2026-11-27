@@ -2,10 +2,17 @@
   <AppShell>
     <div class="page page--wide">
       <PageHeader
-        :titulo="`Exportar ${tipoLabel.toLowerCase()}`"
-        descricao="Escolha o tipo de dado e o estábulo. Se precisar, ajuste os campos nas opções avançadas."
+        titulo="Exportação / Importação"
+        descricao="Exporte relatórios em CSV ou importe planilhas de vacas e ordenhas em um só lugar."
         voltar-rotulo="Painel"
         voltar-para="/dashboard-adm"
+      />
+
+      <AppTabs
+        v-model="abaAtiva"
+        :tabs="abas"
+        label="Exportação e importação"
+        id-base="export-import"
       />
 
       <p v-if="error" class="alert alert--danger" role="alert">
@@ -13,7 +20,13 @@
         <span>{{ error }}</span>
       </p>
 
-      <section class="card export-panel">
+      <section
+        v-if="abaAtiva === 'exportar'"
+        id="export-import-panel-exportar"
+        role="tabpanel"
+        aria-labelledby="export-import-tab-exportar"
+        class="card export-panel"
+      >
         <div class="card__body stack">
           <div class="export-section-head">
             <div>
@@ -61,7 +74,7 @@
               <div class="export-tools">
                 <label class="export-search">
                   <AppIcon name="search" :size="15" />
-                  <input v-model="fieldSearch" type="search" class="export-search__input" placeholder="Filtrar campos">
+                  <input v-model="fieldSearch" type="search" class="export-search__input" placeholder="Filtrar campos" aria-label="Filtrar campos">
                 </label>
                 <div class="row">
                   <button type="button" class="btn btn--sm" :disabled="loading || exporting" @click="selectVisible">Selecionar exibidos</button>
@@ -176,6 +189,78 @@
           </button>
         </footer>
       </section>
+
+      <section
+        v-else
+        id="export-import-panel-importar"
+        role="tabpanel"
+        aria-labelledby="export-import-tab-importar"
+        class="card export-panel"
+      >
+        <div class="card__body stack">
+          <div class="export-section-head">
+            <div>
+              <h2 class="card__title">Importar planilha Excel (.xlsx)</h2>
+              <p class="card__desc">Baixe o modelo padrão, preencha os dados e envie o arquivo para importar em lote.</p>
+            </div>
+          </div>
+
+          <div class="grid grid--2">
+            <div class="field">
+              <label class="field__label" for="tipo-importacao">O que deseja importar?</label>
+              <select id="tipo-importacao" v-model="importType" class="select" :disabled="importing">
+                <option value="vacas">Animais (vacas)</option>
+                <option value="ordenhas">Ordenhas (produção de leite)</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label class="field__label">Planilha modelo</label>
+              <div>
+                <button type="button" class="btn" :disabled="downloadingTemplate || importing" @click="downloadTemplate">
+                  <AppIcon name="download" :size="15" />
+                  {{ downloadingTemplate ? 'Baixando modelo...' : `Baixar modelo de ${importType === 'vacas' ? 'animais' : 'ordenhas'} (.xlsx)` }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <label class="import-dropzone" :class="{ 'import-dropzone--loaded': importFileName }">
+            <input
+              ref="importFileInput"
+              type="file"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              :disabled="importing"
+              @change="onSelectImportFile"
+            >
+            <AppIcon :name="importFileName ? 'check-circle' : 'upload'" :size="24" />
+            <strong>{{ importFileName || 'Escolha uma planilha .xlsx' }}</strong>
+            <span>Clique para selecionar o arquivo no computador</span>
+          </label>
+
+          <p v-if="importError" class="alert alert--danger" role="alert">
+            <AppIcon name="alert" :size="16" />
+            <span>{{ importError }}</span>
+          </p>
+          <p v-if="importSuccess" class="alert alert--ok" role="status">
+            <AppIcon name="check-circle" :size="16" />
+            <span>{{ importSuccess }}</span>
+          </p>
+        </div>
+
+        <footer class="card__foot row--between export-footer">
+          <span class="text-muted">Formato aceito: planilha Excel (.xlsx) no modelo do sistema.</span>
+          <button
+            type="button"
+            class="btn btn--primary"
+            :disabled="importing || !importFile"
+            @click="submitImport"
+          >
+            <AppIcon name="upload" :size="15" />
+            {{ importing ? 'Importando...' : 'Importar planilha' }}
+          </button>
+        </footer>
+      </section>
     </div>
   </AppShell>
 </template>
@@ -187,12 +272,26 @@ import api from '@/services/api';
 import { confirmar } from '@/services/confirmService';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppTabs from '@/components/ui/AppTabs.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import { apiErrorMessage } from '@/utils/apiError';
 import { idRelacao, ultimaMovimentacaoPorAnimal } from '@/utils/animalMovementUtils';
 
 const route = useRoute();
 const router = useRouter();
+const abaAtiva = ref(route.query.aba === 'importar' ? 'importar' : 'exportar');
+const abas = [
+  { id: 'exportar', label: 'Exportar', icon: 'download' },
+  { id: 'importar', label: 'Importar', icon: 'upload' },
+];
+const importType = ref('vacas');
+const importFile = ref(null);
+const importFileName = ref('');
+const importFileInput = ref(null);
+const importing = ref(false);
+const downloadingTemplate = ref(false);
+const importError = ref('');
+const importSuccess = ref('');
 const quadrants = ref([]);
 const quadrantId = ref('all');
 const loading = ref(true);
@@ -518,6 +617,61 @@ async function exportErrorMessage(requestError) {
   return apiErrorMessage(requestError, 'Não foi possível gerar o CSV.');
 }
 
+function onSelectImportFile(event) {
+  const file = event.target?.files?.[0] || null;
+  importFile.value = file;
+  importFileName.value = file ? file.name : '';
+  importError.value = '';
+  importSuccess.value = '';
+}
+
+async function downloadTemplate() {
+  downloadingTemplate.value = true;
+  importError.value = '';
+  try {
+    const endpoint = importType.value === 'vacas' ? 'api/importacao/vacas/' : 'api/importacao/ordenhas/';
+    const response = await api.get(endpoint, { responseType: 'blob' });
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `modelo_importacao_${importType.value}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Erro ao baixar modelo:', err);
+    importError.value = apiErrorMessage(err, 'Não foi possível baixar a planilha modelo.');
+  } finally {
+    downloadingTemplate.value = false;
+  }
+}
+
+async function submitImport() {
+  if (!importFile.value || importing.value) return;
+  importing.value = true;
+  importError.value = '';
+  importSuccess.value = '';
+  try {
+    const formData = new FormData();
+    formData.append('arquivo', importFile.value);
+    const endpoint = importType.value === 'vacas' ? 'api/importacao/vacas/' : 'api/importacao/ordenhas/';
+    const response = await api.post(endpoint, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const data = response.data || {};
+    importSuccess.value = data.mensagem || data.detail || 'Planilha importada com sucesso.';
+    importFile.value = null;
+    importFileName.value = '';
+    if (importFileInput.value) importFileInput.value.value = '';
+  } catch (err) {
+    console.error('Erro ao importar planilha:', err);
+    importError.value = apiErrorMessage(err, 'Não foi possível importar a planilha. Verifique o formato e tente novamente.');
+  } finally {
+    importing.value = false;
+  }
+}
+
 onMounted(async () => {
   await loadOptions();
   loadLayouts();
@@ -609,6 +763,43 @@ onMounted(async () => {
 .export-layout__actions { flex-wrap: wrap; }
 .export-preview { display: grid; gap: 8px; min-width: 0; }
 .export-preview .table-wrap { max-width: 100%; }
+
+.import-dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 28px 20px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text-2);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.import-dropzone:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.import-dropzone--loaded {
+  border-color: var(--ok-line);
+  background: var(--ok-soft);
+}
+
+.import-dropzone input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.import-dropzone strong { color: var(--text); font-size: var(--fs-md); }
+.import-dropzone span { font-size: var(--fs-xs); color: var(--text-3); }
 
 @media (max-width: 720px) {
   .export-group__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }

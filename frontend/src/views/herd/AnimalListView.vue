@@ -3,7 +3,7 @@
     <div class="page page--wide animal-list-page">
       <PageHeader
         titulo="Animais"
-        :descricao="alertaProducao ? 'Animais com produção abaixo da média no mês atual.' : 'Consulte e filtre os bovinos do rebanho.'"
+        :descricao="headerDescription"
         voltar-rotulo="Painel"
         voltar-para="/dashboard-adm"
       >
@@ -15,136 +15,274 @@
         </template>
       </PageHeader>
 
-      <p v-if="alertaProducao" class="alert alert--warn" role="status">
+      <AppTabs
+        v-model="abaAtiva"
+        :tabs="abas"
+        label="Seções de animais"
+        id-base="animais"
+      />
+
+      <p v-if="erroAcao" class="alert alert--danger" role="alert">
         <AppIcon name="alert" :size="16" />
-        <span>A média considera as ordenhas do mês atual. Selecione o alerta ao lado da situação para abrir o gráfico e o histórico.</span>
-      </p>
-      <p v-if="erroProducaoLeite" class="alert alert--danger" role="alert">
-        <AppIcon name="alert" :size="16" />
-        <span>{{ erroProducaoLeite }}</span>
-        <button type="button" class="btn btn--sm" @click="loadMilkHistory">Tentar novamente</button>
+        <span>{{ erroAcao }}</span>
       </p>
 
-      <section class="animal-filters card" aria-label="Filtros do rebanho">
-        <div class="animal-filters__heading">
-          <div>
-            <h2 class="card__title">Rebanho</h2>
-            <p class="card__desc">Escolha uma situação para filtrar os animais.</p>
+      <!-- ABA REBANHO (VACAS / BOVINOS) -->
+      <div
+        v-if="abaAtiva === 'rebanho'"
+        id="animais-panel-rebanho"
+        role="tabpanel"
+        aria-labelledby="animais-tab-rebanho"
+      >
+        <p v-if="alertaProducao" class="alert alert--warn" role="status">
+          <AppIcon name="alert" :size="16" />
+          <span>A média considera as ordenhas do mês atual. Selecione o alerta ao lado da situação para abrir o gráfico e o histórico.</span>
+        </p>
+        <p v-if="erroProducaoLeite" class="alert alert--danger" role="alert">
+          <AppIcon name="alert" :size="16" />
+          <span>{{ erroProducaoLeite }}</span>
+          <button type="button" class="btn btn--sm" @click="loadMilkHistory">Tentar novamente</button>
+        </p>
+
+        <section class="animal-filters card" aria-label="Filtros do rebanho">
+          <div class="animal-filters__heading">
+            <div>
+              <h2 class="card__title">Rebanho</h2>
+              <p class="card__desc">Escolha uma situação para filtrar os animais.</p>
+            </div>
+            <span class="badge">{{ animals.length }} bovinos</span>
           </div>
-          <span class="badge">{{ animals.length }} bovinos</span>
-        </div>
 
-        <nav class="animal-filter-tabs" aria-label="Filtrar animais por situação">
-          <RouterLink
-            v-for="opcao in filtros"
-            :key="opcao.valor"
-            :to="linkFiltro(opcao.valor)"
-            class="animal-filter-tab"
-            :class="{ 'is-active': filtro === opcao.valor }"
-            :aria-current="filtro === opcao.valor ? 'page' : undefined"
-          >
-            <span>{{ opcao.rotulo }}</span>
-            <span class="count">{{ contar(opcao.valor) }}</span>
-          </RouterLink>
-        </nav>
-      </section>
+          <nav class="animal-filter-tabs" aria-label="Filtrar animais por situação">
+            <RouterLink
+              v-for="opcao in filtros"
+              :key="opcao.valor"
+              :to="linkFiltro(opcao.valor)"
+              class="animal-filter-tab"
+              :class="{ 'is-active': filtro === opcao.valor }"
+              :aria-current="filtro === opcao.valor ? 'page' : undefined"
+            >
+              <span>{{ opcao.rotulo }}</span>
+              <span class="count">{{ contar(opcao.valor) }}</span>
+            </RouterLink>
+          </nav>
+        </section>
 
-      <section class="toolbar animal-list-toolbar" aria-label="Busca e filtros adicionais">
-        <label class="search">
-          <AppIcon name="search" :size="16" />
-          <input
-            v-model="busca"
-            class="input"
-            type="search"
-            placeholder="Buscar por brinco ou nome"
-            aria-label="Buscar animal"
-          >
-        </label>
+        <section class="registry-toolbar" aria-label="Busca e filtros adicionais">
+          <label class="search">
+            <AppIcon name="search" :size="16" />
+            <input
+              v-model="busca"
+              class="input"
+              type="search"
+              placeholder="Buscar por brinco ou nome"
+              aria-label="Buscar animal"
+            >
+          </label>
 
-        <div class="field animal-list__quadrant">
-          <label class="field__label" for="filtro-quadrante">Estábulo</label>
-          <select id="filtro-quadrante" v-model="quadrante" class="select">
-            <option value="todos">Todos os estábulos</option>
-            <option v-for="item in quadrantes" :key="item.id" :value="String(item.id)">
-              {{ item.name || item.tipo || `Estábulo ${item.id}` }}
-            </option>
-          </select>
-        </div>
-
-        <span class="animal-list-toolbar__count">{{ visiveis.length }} resultado(s)</span>
-      </section>
-
-      <div class="card">
-        <div v-if="loading || (alertaProducao && carregandoProducaoLeite)" class="loading">
-          <span class="spinner" aria-hidden="true"></span>
-          Buscando registros...
-        </div>
-
-        <div v-else-if="animals.length === 0" class="empty">
-          <AppIcon name="animal" :size="30" />
-          <p class="empty__title">Nenhum bovino cadastrado</p>
-          <p class="empty__desc">Cadastre um bovino para começar a organizar o rebanho.</p>
-          <div class="row">
-            <RouterLink to="/animais/novo" class="btn btn--primary">Cadastrar bovino</RouterLink>
+          <div class="field animal-list__quadrant">
+            <label class="field__label" for="filtro-quadrante">Estábulo</label>
+            <select id="filtro-quadrante" v-model="quadrante" class="select">
+              <option value="todos">Todos os estábulos</option>
+              <option v-for="item in quadrantes" :key="item.id" :value="String(item.id)">
+                {{ item.name || item.tipo || `Estábulo ${item.id}` }}
+              </option>
+            </select>
           </div>
-        </div>
 
-        <div v-else-if="visiveis.length === 0" class="empty">
-          <AppIcon name="search" :size="30" />
-          <p class="empty__title">Nada encontrado</p>
-          <p class="empty__desc">
-            {{ alertaProducao ? 'Nenhum animal abaixo da média corresponde aos filtros atuais.' : 'Nenhum animal corresponde a esta busca ou filtro.' }}
-          </p>
-          <button class="btn" @click="limparFiltros">Limpar filtros</button>
-        </div>
+          <span class="registry-toolbar__count">{{ visiveis.length }} resultado(s)</span>
+        </section>
 
-        <div v-else class="table-wrap">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Brinco</th>
-                <th>Nome</th>
-                <th>Estábulo atual</th>
-                <th>Situação</th>
-                <th class="cell-actions">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="animal in visiveis" :key="animal.id">
-                <td class="mono">#{{ animal.register_number }}</td>
-                <td class="cell-strong">{{ animal.name || '—' }}</td>
-                <td>{{ estabuloAtual(animal.id) }}</td>
-                <td>
-                  <div class="animal-list__status">
-                    <span class="badge" :class="badgeSituacao(animal.status)">
-                      <span class="badge__dot"></span>
-                      {{ rotuloSituacao(animal.status) }}
-                    </span>
-                    <button
-                      v-if="abaixoDaMedia(animal)"
-                      type="button"
-                      class="badge badge--warn animal-list__production-alert"
-                      :aria-label="`Produção abaixo da média para ${animal.name || 'animal'} #${animal.register_number}. Abrir histórico de ordenha.`"
-                      title="Ver gráfico e histórico de ordenha"
-                      @click="viewMilkDetails(animal.id)"
-                    >
-                      <AppIcon name="alert" :size="13" />
-                      Abaixo da média
-                    </button>
-                  </div>
-                </td>
-                <td class="cell-actions">
-                  <button class="btn btn--sm" @click="viewDetails(animal.id)">Ver ficha</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <RegistryCard
+          :carregando="loading || (alertaProducao && carregandoProducaoLeite)"
+          texto-carregando="Buscando registros..."
+          :vazio="animals.length === 0"
+          :vazio-filtrado="animals.length > 0 && visiveis.length === 0"
+          icone-vazio="animal"
+          titulo-vazio="Nenhum bovino cadastrado"
+          descricao-vazia="Cadastre um bovino para começar a organizar o rebanho."
+          :descricao-vazio-filtrado="alertaProducao ? 'Nenhum animal abaixo da média corresponde aos filtros atuais.' : 'Nenhum animal corresponde a esta busca ou filtro.'"
+          @limpar-filtros="limparFiltros"
+        >
+          <template #acao-vazio>
+            <RouterLink to="/animais/novo" class="btn btn--primary">
+              <AppIcon name="plus" :size="15" />
+              Cadastrar bovino
+            </RouterLink>
+          </template>
+
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Brinco</th>
+                  <th>Nome</th>
+                  <th>Estábulo atual</th>
+                  <th>Situação</th>
+                  <th class="cell-actions">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="animal in visiveis" :key="animal.id">
+                  <td class="mono">#{{ animal.register_number }}</td>
+                  <td class="cell-strong truncate" :title="animal.name || '—'">
+                    <RouterLink :to="{ name: 'animal-detail', params: { id: animal.id } }" class="cell-link">{{ animal.name || '—' }}</RouterLink>
+                  </td>
+                  <td class="truncate" :title="estabuloAtual(animal.id)">{{ estabuloAtual(animal.id) }}</td>
+                  <td>
+                    <div class="animal-list__status">
+                      <span class="badge" :class="badgeSituacao(animal.status)">
+                        <span class="badge__dot"></span>
+                        {{ rotuloSituacao(animal.status) }}
+                      </span>
+                      <button
+                        v-if="abaixoDaMedia(animal)"
+                        type="button"
+                        class="badge badge--warn animal-list__production-alert"
+                        :aria-label="`Produção abaixo da média para ${animal.name || 'animal'} #${animal.register_number}. Abrir histórico de ordenha.`"
+                        title="Ver gráfico e histórico de ordenha"
+                        @click="viewMilkDetails(animal.id)"
+                      >
+                        <AppIcon name="alert" :size="13" />
+                        Abaixo da média
+                      </button>
+                    </div>
+                  </td>
+                  <td class="cell-actions">
+                    <div class="registry-actions">
+                      <button type="button" class="btn btn--sm" @click="viewDetails(animal.id)">Ver ficha</button>
+                      <button
+                        type="button"
+                        class="btn btn--icon"
+                        aria-label="Editar bovino"
+                        title="Editar bovino"
+                        @click="router.push(`/animais/editar/${animal.id}`)"
+                      >
+                        <AppIcon name="edit" :size="15" />
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn--icon is-danger"
+                        aria-label="Excluir bovino"
+                        title="Excluir bovino"
+                        @click="excluirAnimal(animal)"
+                      >
+                        <AppIcon name="trash" :size="15" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </RegistryCard>
+
+        <p v-if="visiveis.length" class="rodape-tabela">
+          {{ visiveis.length }} de {{ animals.length }} animais
+        </p>
       </div>
 
-      <p v-if="visiveis.length" class="rodape-tabela">
-        {{ visiveis.length }} de {{ animals.length }} animais
-      </p>
+      <!-- ABA TOUROS -->
+      <div
+        v-else
+        id="animais-panel-touros"
+        role="tabpanel"
+        aria-labelledby="animais-tab-touros"
+      >
+        <section class="registry-toolbar" aria-label="Busca e filtro de touros">
+          <label class="search">
+            <AppIcon name="search" :size="16" />
+            <input
+              v-model="buscaTouro"
+              class="input"
+              type="search"
+              placeholder="Buscar touro por brinco, nome ou raça"
+              aria-label="Buscar touro"
+            >
+          </label>
+
+          <div class="field animal-list__quadrant">
+            <label class="field__label" for="filtro-touro-ativo">Situação</label>
+            <select id="filtro-touro-ativo" v-model="filtroTouroAtivo" class="select">
+              <option value="todos">Todos os touros</option>
+              <option value="ativos">Ativos</option>
+              <option value="inativos">Inativos</option>
+            </select>
+          </div>
+
+          <span class="registry-toolbar__count">{{ tourosVisiveis.length }} resultado(s)</span>
+        </section>
+
+        <RegistryCard
+          titulo="Touros cadastrados"
+          descricao="Reprodutores disponíveis para inseminações e acompanhamento genealógico."
+          :total="bulls.length"
+          :carregando="loadingBulls"
+          texto-carregando="Carregando touros..."
+          :vazio="bulls.length === 0"
+          :vazio-filtrado="bulls.length > 0 && tourosVisiveis.length === 0"
+          icone-vazio="dna"
+          titulo-vazio="Nenhum touro cadastrado"
+          descricao-vazia="Cadastre os touros reprodutores da fazenda."
+          rotulo-acao-vazio="Cadastrar touro"
+          descricao-vazio-filtrado="Nenhum touro corresponde à busca ou ao filtro selecionado."
+          @cadastrar="router.push({ path: '/animais/novo', query: { tipo: 'touro' } })"
+          @limpar-filtros="limparFiltrosTouro"
+        >
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Brinco</th>
+                  <th>Nome</th>
+                  <th>Raça</th>
+                  <th>Situação</th>
+                  <th class="cell-actions">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="bull in tourosVisiveis" :key="bull.id">
+                  <td class="mono">#{{ bull.register_number }}</td>
+                  <td class="cell-strong truncate" :title="bull.name || '—'">{{ bull.name || '—' }}</td>
+                  <td class="truncate" :title="nomeRaca(bull.breed)">{{ nomeRaca(bull.breed) }}</td>
+                  <td>
+                    <span class="badge" :class="bull.active ? 'badge--ok' : ''">
+                      <span class="badge__dot"></span>
+                      {{ bull.active ? 'Ativo' : 'Inativo' }}
+                    </span>
+                  </td>
+                  <td class="cell-actions">
+                    <div class="registry-actions">
+                      <button
+                        type="button"
+                        class="btn btn--icon"
+                        aria-label="Editar touro"
+                        title="Editar touro"
+                        @click="router.push({ path: '/animais/novo', query: { tipo: 'touro', bullId: String(bull.id) } })"
+                      >
+                        <AppIcon name="edit" :size="15" />
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn--icon is-danger"
+                        aria-label="Excluir touro"
+                        title="Excluir touro"
+                        @click="excluirTouro(bull)"
+                      >
+                        <AppIcon name="trash" :size="15" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </RegistryCard>
+
+        <p v-if="tourosVisiveis.length" class="rodape-tabela">
+          {{ tourosVisiveis.length }} de {{ bulls.length }} touros
+        </p>
+      </div>
     </div>
   </AppShell>
 </template>
@@ -153,9 +291,12 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
+import { confirmar } from '@/services/confirmService';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppTabs from '@/components/ui/AppTabs.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import RegistryCard from '@/components/layout/RegistryCard.vue';
 import { badgeSituacao, rotuloSituacao, situacao } from '@/utils/statusUtils';
 import { idRelacao, ultimaMovimentacaoPorAnimal, nomeEstabulo } from '@/utils/animalMovementUtils';
 import { apiErrorMessage } from '@/utils/apiError';
@@ -164,13 +305,31 @@ import { metricasProducaoPorAnimal, ordenhasDoMesAtual } from '@/utils/milkProdu
 const router = useRouter();
 const route = useRoute();
 const animals = ref([]);
+const bulls = ref([]);
+const breeds = ref([]);
 const quadrantes = ref([]);
 const movimentacoes = ref([]);
 const ordenhas = ref([]);
 const erroProducaoLeite = ref('');
+const erroAcao = ref('');
 const carregandoProducaoLeite = ref(true);
 const loading = ref(true);
+const loadingBulls = ref(true);
 
+const abaAtiva = ref(route.query.aba === 'touros' ? 'touros' : 'rebanho');
+const abas = computed(() => [
+  { id: 'rebanho', label: 'Rebanho', icon: 'animal', count: animals.value.length },
+  { id: 'touros', label: 'Touros', icon: 'dna', count: bulls.value.length },
+]);
+
+const headerDescription = computed(() => {
+  if (abaAtiva.value === 'touros') return 'Consulte, filtre e gerencie os touros reprodutores.';
+  return alertaProducao.value
+    ? 'Animais com produção abaixo da média no mês atual.'
+    : 'Consulte e filtre os bovinos do rebanho.';
+});
+
+// Filtros Rebanho
 const busca = ref('');
 const filtrosValidos = ['todos', 'active', 'inactive', 'sold', 'deceased', 'fora', 'rebanho'];
 const filtro = computed(() => {
@@ -185,6 +344,10 @@ const filtroReprodutivo = computed(() => (
 ));
 const filtroNascimento = computed(() => route.query.with_birth === 'true');
 const alertaProducao = computed(() => route.query.alert === 'below-average');
+
+// Filtros Touros
+const buscaTouro = ref('');
+const filtroTouroAtivo = ref('todos');
 
 const filtros = [
   { valor: 'todos', rotulo: 'Todos' },
@@ -201,6 +364,11 @@ const estabuloAtual = (animalId) => nomeEstabulo(
   quadrantes.value,
   ultimaMovimentacao.value.get(String(animalId))?.quadrant
 );
+
+const nomeRaca = (breedId) => {
+  const id = idRelacao(breedId);
+  return breeds.value.find((item) => String(item.id) === String(id))?.name || '—';
+};
 
 const porSituacao = (lista, valor) => {
   if (valor === 'todos') return lista;
@@ -258,11 +426,40 @@ const visiveis = computed(() => {
   return alertaProducao.value ? lista.filter(abaixoDaMedia) : lista;
 });
 
+const tourosVisiveis = computed(() => {
+  const termo = buscaTouro.value.trim().toLowerCase();
+  return bulls.value.filter((bull) => {
+    if (filtroTouroAtivo.value === 'ativos' && !bull.active) return false;
+    if (filtroTouroAtivo.value === 'inativos' && bull.active) return false;
+    if (!termo) return true;
+    return (
+      String(bull.register_number ?? '').includes(termo) ||
+      String(bull.name ?? '').toLowerCase().includes(termo) ||
+      nomeRaca(bull.breed).toLowerCase().includes(termo)
+    );
+  });
+});
+
 const limparFiltros = () => {
   busca.value = '';
   quadrante.value = 'todos';
   router.replace({ name: 'animal-list', query: {} });
 };
+
+const limparFiltrosTouro = () => {
+  buscaTouro.value = '';
+  filtroTouroAtivo.value = 'todos';
+};
+
+watch(() => route.query.aba, (value) => {
+  if (value === 'touros' || value === 'rebanho') abaAtiva.value = value;
+});
+
+watch(abaAtiva, (value) => {
+  const nextAba = value === 'touros' ? 'touros' : undefined;
+  if (route.query.aba === nextAba) return;
+  router.replace({ query: { ...route.query, aba: nextAba } });
+});
 
 watch(() => route.query.quadrant, (value) => {
   quadrante.value = typeof value === 'string' ? value : 'todos';
@@ -279,26 +476,44 @@ watch(quadrante, (value) => {
   });
 });
 
+const normalizeList = (data) => (Array.isArray(data) ? data : data?.results || []);
+
 const loadAnimals = async () => {
   try {
     const response = await api.get('animals/');
-    if (Array.isArray(response.data)) {
-      animals.value = response.data;
-    } else if (response.data && response.data.results) {
-      animals.value = response.data.results;
-    }
+    animals.value = normalizeList(response.data);
   } catch (error) {
-    console.error("Erro ao carregar animais:", error);
+    console.error('Erro ao carregar animais:', error);
   } finally {
     loading.value = false;
+  }
+};
+
+const loadBulls = async () => {
+  loadingBulls.value = true;
+  try {
+    const response = await api.getBulls();
+    bulls.value = normalizeList(response.data);
+  } catch (error) {
+    console.error('Erro ao carregar touros:', error);
+  } finally {
+    loadingBulls.value = false;
+  }
+};
+
+const loadBreeds = async () => {
+  try {
+    const response = await api.get('breeds/');
+    breeds.value = normalizeList(response.data);
+  } catch (error) {
+    console.error('Erro ao carregar raças:', error);
   }
 };
 
 const loadQuadrants = async () => {
   try {
     const response = await api.getQuadrants();
-    const data = response.data;
-    quadrantes.value = Array.isArray(data) ? data : data?.results || [];
+    quadrantes.value = normalizeList(response.data);
   } catch (error) {
     console.error('Erro ao carregar estábulos para filtrar o rebanho:', error);
   }
@@ -307,8 +522,7 @@ const loadQuadrants = async () => {
 const loadMovements = async () => {
   try {
     const response = await api.get('animal_movements/');
-    const data = response.data;
-    movimentacoes.value = Array.isArray(data) ? data : data?.results || [];
+    movimentacoes.value = normalizeList(response.data);
   } catch (error) {
     console.error('Erro ao carregar movimentações do rebanho:', error);
   }
@@ -340,8 +554,44 @@ const loadMilkHistory = async () => {
   }
 };
 
+const excluirAnimal = async (animal) => {
+  const ok = await confirmar({
+    titulo: `Excluir ${animal.name || `#${animal.register_number}`}?`,
+    texto: 'O cadastro e os históricos vinculados a este bovino serão removidos permanentemente.',
+    acao: 'Excluir bovino',
+  });
+  if (!ok) return;
+  erroAcao.value = '';
+  try {
+    await api.deleteAnimal(animal.id);
+    await loadAnimals();
+  } catch (error) {
+    console.error('Erro ao excluir bovino:', error);
+    erroAcao.value = apiErrorMessage(error, 'Não foi possível excluir o bovino.');
+  }
+};
+
+const excluirTouro = async (bull) => {
+  const ok = await confirmar({
+    titulo: `Excluir o touro ${bull.name || `#${bull.register_number}`}?`,
+    texto: 'Esta ação remove o cadastro do reprodutor.',
+    acao: 'Excluir touro',
+  });
+  if (!ok) return;
+  erroAcao.value = '';
+  try {
+    await api.deleteBull(bull.id);
+    await loadBulls();
+  } catch (error) {
+    console.error('Erro ao excluir touro:', error);
+    erroAcao.value = apiErrorMessage(error, 'Não foi possível excluir o touro.');
+  }
+};
+
 onMounted(() => {
   loadAnimals();
+  loadBulls();
+  loadBreeds();
   loadQuadrants();
   loadMovements();
   loadMilkHistory();
@@ -428,11 +678,6 @@ const viewMilkDetails = (id) => {
   color: var(--accent);
 }
 
-.animal-list-toolbar {
-  align-items: flex-end;
-  margin-bottom: 12px;
-}
-
 .animal-list__quadrant { width: min(250px, 100%); }
 
 .animal-list__status {
@@ -451,14 +696,6 @@ const viewMilkDetails = (id) => {
   white-space: nowrap;
 }
 
-.animal-list-toolbar__count {
-  margin-left: auto;
-  padding-bottom: 9px;
-  color: var(--text-3);
-  font-size: var(--fs-sm);
-  white-space: nowrap;
-}
-
 .rodape-tabela {
   margin-top: 12px;
   color: var(--text-3);
@@ -468,8 +705,6 @@ const viewMilkDetails = (id) => {
 @media (max-width: 600px) {
   .animal-filters__heading { padding-inline: 14px; }
   .animal-filter-tab { padding-inline: 12px; }
-  .animal-list-toolbar > .search,
   .animal-list__quadrant { width: 100%; }
-  .animal-list-toolbar__count { margin-left: 0; padding-bottom: 0; }
 }
 </style>

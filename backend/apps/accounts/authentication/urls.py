@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 
 from apps.accounts.authentication.views import (
+    CadastroPublicoView,
     CustomTokenObtainPairView,
     UsuarioDetailView,
     UsuarioListCreateView,
@@ -9,6 +10,9 @@ from apps.accounts.authentication.views import (
 
 # Incluído na raiz (core/urls.py) porque atende dois prefixos: users/ e as rotas de token.
 urlpatterns = [
+    # Cadastro público (cria conta como Operador)
+    path('users/signup/', CadastroPublicoView.as_view(), name='usuarios-cadastro-publico'),
+
     # Cadastro de usuarios (so Administrador). O 'users/register/' existe
     # com esse nome porque e o que o authService.js do front ja chamava.
     path('users/', UsuarioListCreateView.as_view(), name='usuarios-lista'),

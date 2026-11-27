@@ -32,7 +32,7 @@
             </div>
             <div class="date-item">
               <span class="date-label">Próxima Dose:</span>
-              <span class="date-value" :style="{ color: isOverdue(vacc) ? '#f85149' : '#3fb950' }">
+              <span class="date-value" :style="{ color: isOverdue(vacc) ? 'var(--danger)' : 'var(--ok)' }">
                 {{ formatDate(vacc.next_vaccination_date) }}
                 <span v-if="getDaysRemaining(vacc)" class="days-remaining">
                   ({{ getDaysRemaining(vacc) }} dias)
@@ -111,8 +111,8 @@ onMounted(async () => {
 
 <style scoped>
 .vaccine-card {
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;
@@ -124,13 +124,13 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 15px;
-  border-bottom: 1px solid #30363d;
+  border-bottom: 1px solid var(--line);
 }
 
 .card-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #e6edf3;
+  color: var(--text);
   margin: 0;
 }
 
@@ -143,28 +143,28 @@ onMounted(async () => {
 
 .status-badge.status-success {
   background: rgba(63, 185, 80, 0.1);
-  color: #3fb950;
-  border: 1px solid #3fb950;
+  color: var(--ok);
+  border: 1px solid var(--ok);
 }
 
 .status-badge.status-danger {
   background: rgba(248, 81, 73, 0.1);
-  color: #f85149;
-  border: 1px solid #f85149;
+  color: var(--danger);
+  border: 1px solid var(--danger);
 }
 
 .loading-state {
   text-align: center;
   padding: 20px;
-  color: #8b949e;
+  color: var(--text-2);
 }
 
 .spinner-mini {
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid #30363d;
-  border-top-color: #58a6ff;
+  border: 2px solid var(--line);
+  border-top-color: var(--info);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
   margin-bottom: 10px;
@@ -177,7 +177,7 @@ onMounted(async () => {
 .empty-state {
   text-align: center;
   padding: 20px;
-  color: #8b949e;
+  color: var(--text-2);
 }
 
 .vaccine-timeline {
@@ -191,20 +191,20 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
   border-radius: 8px;
-  border-left: 4px solid #3fb950;
+  border-left: 4px solid var(--ok);
   transition: all 0.3s;
 }
 
 .vaccine-entry.overdue {
-  border-left-color: #f85149;
+  border-left-color: var(--danger);
   background: rgba(248, 81, 73, 0.05);
 }
 
 .vaccine-entry:hover {
-  border-color: #58a6ff;
+  border-color: var(--info);
 }
 
 .vaccine-info {
@@ -221,7 +221,7 @@ onMounted(async () => {
 .vaccine-name {
   font-weight: 600;
   font-size: 1rem;
-  color: #e6edf3;
+  color: var(--text);
 }
 
 .vaccine-status {
@@ -233,12 +233,12 @@ onMounted(async () => {
 
 .vaccine-status.status-ok {
   background: rgba(63, 185, 80, 0.1);
-  color: #3fb950;
+  color: var(--ok);
 }
 
 .vaccine-status.status-alert {
   background: rgba(248, 81, 73, 0.1);
-  color: #f85149;
+  color: var(--danger);
 }
 
 .vaccine-dates {
@@ -256,20 +256,20 @@ onMounted(async () => {
 
 .date-label {
   font-size: 0.75rem;
-  color: #8b949e;
+  color: var(--text-2);
   text-transform: uppercase;
 }
 
 .date-value {
   font-size: 0.9rem;
-  color: #e6edf3;
+  color: var(--text);
   font-weight: 500;
 }
 
 .days-remaining {
   display: inline-block;
   font-size: 0.8rem;
-  color: #8b949e;
+  color: var(--text-2);
   margin-left: 4px;
 }
 
@@ -277,7 +277,7 @@ onMounted(async () => {
   display: flex;
   gap: 15px;
   font-size: 0.85rem;
-  color: #8b949e;
+  color: var(--text-2);
 }
 
 .detail-item {
@@ -293,11 +293,11 @@ onMounted(async () => {
 }
 
 .vaccine-indicator.ok {
-  color: #3fb950;
+  color: var(--ok);
 }
 
 .vaccine-indicator.alert {
-  color: #f85149;
+  color: var(--danger);
   animation: pulse-alert 1.5s ease-in-out infinite;
 }
 

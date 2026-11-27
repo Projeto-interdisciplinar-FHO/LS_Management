@@ -22,10 +22,11 @@ if os.path.exists(_env_path):
 class GeminiReproductionAdapter:
     """Adapta o cliente Gemini ao contrato de validação genealógica e reprodutiva."""
 
-    MODEL = "gemini-2.5-flash"
+    MODEL = "gemini-3.5-flash"
+    FALLBACK_MODELS = ("gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite")
 
     def __init__(self, client=None):
-        api_key = os.getenv("API_KEY")
+        api_key = (os.getenv("API_KEY") or "").strip()
         self.client = client or (genai.Client(api_key=api_key) if api_key else None)
 
     def validar_reproducao(
@@ -81,10 +82,20 @@ class GeminiReproductionAdapter:
         )
 
         try:
-            response = self.client.models.generate_content(
-                model=self.MODEL,
-                contents=prompt,
-            )
+            response = None
+            last_error = None
+            modelos = (self.MODEL, *[m for m in self.FALLBACK_MODELS if m != self.MODEL])
+            for modelo in modelos:
+                try:
+                    response = self.client.models.generate_content(
+                        model=modelo,
+                        contents=prompt,
+                    )
+                    break
+                except Exception as exc:
+                    last_error = exc
+            if response is None:
+                raise last_error or RuntimeError("Nenhum modelo Gemini respondeu.")
 
             raw_text = response.text or ""
             resultado = self._parse_json_response(raw_text)

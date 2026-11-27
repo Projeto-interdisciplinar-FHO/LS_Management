@@ -44,7 +44,7 @@
 
         <div class="toolbar toolbar--filtros">
           <div class="segmented" role="group" aria-label="Filtrar vacinações">
-            <button
+            <button type="button"
               v-for="filter in vaccineFilters"
               :key="filter.value"
               class="segmented__item"
@@ -84,9 +84,9 @@
               </thead>
               <tbody>
                 <tr v-for="vac in filteredVaccinations" :key="vac.id">
-                  <td class="cell-strong">{{ vac.animal_name || '—' }}</td>
+                  <td class="cell-strong truncate" :title="vac.animal_name || '—'">{{ vac.animal_name || '—' }}</td>
                   <td class="mono">{{ brinco(vac) }}</td>
-                  <td>{{ vac.vaccine_name }}</td>
+                  <td class="truncate" :title="vac.vaccine_name">{{ vac.vaccine_name }}</td>
                   <td class="mono nowrap">{{ formatDate(vac.vaccination_date) }}</td>
                   <td class="nowrap">
                     <span class="mono">{{ formatDate(vac.next_vaccination_date) }}</span>

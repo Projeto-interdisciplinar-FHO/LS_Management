@@ -3,10 +3,41 @@
     <div class="page page--wide insemination-page">
       <PageHeader
         titulo="Inseminações"
-        descricao="Registre o acasalamento e acompanhe o histórico reprodutivo do rebanho."
+        descricao="Registre o acasalamento e acompanhe ultrassons e o histórico reprodutivo do rebanho."
         voltar-rotulo="Painel"
         :voltar-para="painel"
       />
+
+      <section class="insem-kpis" aria-label="Indicadores de inseminação">
+        <button type="button" class="insem-kpi" @click="aba = 'registro'">
+          <span class="insem-kpi__icon insem-kpi__icon--info"><AppIcon name="dna" :size="18" /></span>
+          <span>
+            <small>Total de inseminações</small>
+            <strong>{{ inseminations.length }}</strong>
+          </span>
+        </button>
+        <button type="button" class="insem-kpi" :class="{ 'is-warn': resumo.ultrassom > 0 }" @click="aba = 'ultrassons'">
+          <span class="insem-kpi__icon insem-kpi__icon--warn"><AppIcon name="stethoscope" :size="18" /></span>
+          <span>
+            <small>Ultrassons pendentes</small>
+            <strong>{{ resumo.ultrassom }}</strong>
+          </span>
+        </button>
+        <button type="button" class="insem-kpi" @click="aba = 'ultrassons'">
+          <span class="insem-kpi__icon insem-kpi__icon--accent"><AppIcon name="clock" :size="18" /></span>
+          <span>
+            <small>Aguardando prazo</small>
+            <strong>{{ resumo.aguardando }}</strong>
+          </span>
+        </button>
+        <button type="button" class="insem-kpi" :class="{ 'is-warn': resumo.diagnosticoAtrasado > 0 }" @click="aba = 'diagnostico'">
+          <span class="insem-kpi__icon insem-kpi__icon--danger"><AppIcon name="clipboard" :size="18" /></span>
+          <span>
+            <small>Diagnósticos em atraso</small>
+            <strong>{{ resumo.diagnosticoAtrasado }}</strong>
+          </span>
+        </button>
+      </section>
 
       <p v-if="error" class="alert alert--danger" role="alert">
         <AppIcon name="alert" :size="16" />
@@ -99,15 +130,13 @@
             </div>
           </div>
 
-          <p class="alert alert--info" role="status">
-            <AppIcon name="info" :size="16" />
-            <span>A idade mínima de 13 meses e o parentesco são validados pelo servidor. Rejeições da API serão exibidas nesta tela; não há aprovação local.</span>
-          </p>
-
-          <footer class="row row--between">
-            <span v-if="loading" class="text-muted" role="status">Carregando dados reprodutivos...</span>
-            <span v-else class="text-muted">{{ animals.length }} matrizes · {{ bulls.length }} touros disponíveis</span>
+          <footer class="insem-form__foot">
+            <span class="insem-form__hint">
+              <AppIcon name="info" :size="15" />
+              <span>{{ loading ? 'Carregando dados reprodutivos...' : `${animals.length} matrizes · ${bulls.length} touros · Idade mínima e parentesco validados pelo servidor.` }}</span>
+            </span>
             <button type="submit" class="btn btn--primary" :disabled="loading || saving || procedureType !== 'insemination' || !animals.length || !bulls.length">
+              <AppIcon name="plus" :size="15" />
               {{ saving ? 'Salvando...' : 'Registrar inseminação' }}
             </button>
           </footer>
@@ -300,7 +329,8 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import api from '@/services/api';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -314,11 +344,18 @@ import {
   ultimaInseminacaoPorMatriz,
 } from '@/utils/reproducaoUtils';
 
+const route = useRoute();
 const painel = computed(() => painelDoPapel());
 const animals = ref([]);
 const bulls = ref([]);
 const inseminations = ref([]);
-const aba = ref('registro');
+const abasValidas = ['registro', 'diagnostico', 'ultrassons', 'secagem'];
+const abaInicial = abasValidas.includes(route.query.aba) ? route.query.aba : 'registro';
+const aba = ref(abaInicial);
+
+watch(() => route.query.aba, (novaAba) => {
+  if (abasValidas.includes(novaAba)) aba.value = novaAba;
+});
 const loading = ref(true);
 const saving = ref(false);
 const error = ref('');
@@ -456,6 +493,93 @@ onMounted(loadData);
 </script>
 
 <style scoped>
+.insem-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.insem-kpi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.insem-kpi:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-line);
+  box-shadow: var(--shadow-hover);
+}
+
+.insem-kpi.is-warn {
+  border-color: var(--warn-line);
+  background: var(--warn-soft);
+}
+
+.insem-kpi__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border-radius: 11px;
+}
+
+.insem-kpi__icon--info { background: var(--info-soft); color: var(--info); }
+.insem-kpi__icon--warn { background: var(--warn-soft); color: var(--warn); }
+.insem-kpi__icon--accent { background: var(--accent-soft); color: var(--accent); }
+.insem-kpi__icon--danger { background: var(--danger-soft); color: var(--danger); }
+
+.insem-kpi small {
+  display: block;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.insem-kpi strong {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xl);
+  font-weight: 600;
+}
+
+.insem-form__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.insem-form__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+@media (max-width: 900px) {
+  .insem-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+  .insem-kpis { grid-template-columns: 1fr; }
+}
 .insemination__heading { display: flex; align-items: center; gap: 12px; }
 .insemination__history { margin-top: 20px; }
 .insemination__summary { margin-top: 20px; }

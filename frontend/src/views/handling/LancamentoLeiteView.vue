@@ -9,43 +9,14 @@
         </div>
 
         <div class="milk-page__header-actions">
-          <RouterLink
-            v-if="ehAdmin"
-            to="/exportar-animais?tipo=ordenha"
-            class="btn milk-page__export-button"
+          <button
+            type="button"
+            class="btn btn--primary milk-page__register-button"
+            @click="abrirModal('register')"
           >
-            <AppIcon name="download" :size="15" />
-            Exportar ordenhas
-          </RouterLink>
-          <div ref="registerMenuElement" class="milk-page__register">
-            <button
-              type="button"
-              class="btn btn--primary milk-page__register-button"
-              aria-haspopup="menu"
-              :aria-expanded="menuAberto"
-              @click="menuAberto = !menuAberto"
-            >
-              <AppIcon name="plus" :size="16" />
-              Registrar
-              <AppIcon name="chevron-down" :size="15" />
-            </button>
-            <div v-if="menuAberto" class="milk-page__register-menu" role="menu">
-              <button type="button" role="menuitem" @click="abrirModal('register')">
-                <AppIcon name="milk" :size="16" />
-                <span>
-                  <strong>Registrar uma ordenha</strong>
-                  <small>Lançar a produção de um animal</small>
-                </span>
-              </button>
-              <button type="button" role="menuitem" @click="abrirModal('import')">
-                <AppIcon name="upload" :size="16" />
-                <span>
-                  <strong>Importar uma ordenha</strong>
-                  <small>Carregar vários registros por CSV</small>
-                </span>
-              </button>
-            </div>
-          </div>
+            <AppIcon name="plus" :size="16" />
+            Registrar ordenha
+          </button>
         </div>
       </header>
 
@@ -223,100 +194,16 @@
         </footer>
       </form>
     </AppModal>
-
-    <AppModal
-      v-if="modal === 'import'"
-      titulo="Importar ordenhas por CSV"
-      largo
-      @fechar="fecharModal"
-    >
-      <div class="milk-import">
-        <div class="milk-import__instructions">
-          <div>
-            <strong>Prepare seu arquivo CSV</strong>
-            <p>Use as colunas <code>numero_do_brinco</code>, <code>litros</code> e <code>data</code>. A data pode estar em DD/MM/AAAA ou AAAA-MM-DD.</p>
-          </div>
-          <button type="button" class="btn btn--sm" @click="baixarModelo">
-            <AppIcon name="download" :size="14" />
-            Baixar modelo
-          </button>
-        </div>
-
-        <label class="milk-import__dropzone" :class="{ 'milk-import__dropzone--loaded': csvFileName }">
-          <input type="file" accept=".csv,text/csv" :disabled="importing" @change="selecionarArquivo">
-          <AppIcon :name="csvFileName ? 'check-circle' : 'upload'" :size="24" />
-          <strong>{{ csvFileName || 'Escolha um arquivo CSV' }}</strong>
-          <span>Clique para procurar no computador</span>
-        </label>
-
-        <p v-if="csvError" class="alert alert--danger" role="alert">
-          <AppIcon name="alert" :size="16" />
-          <span>{{ csvError }}</span>
-        </p>
-
-        <template v-if="csvRows.length">
-          <div class="milk-import__summary">
-            <strong>{{ csvRows.length }} linhas encontradas</strong>
-            <span v-if="csvInvalidRows.length" class="milk-import__invalid">
-              {{ csvInvalidRows.length }} {{ csvInvalidRows.length === 1 ? 'linha precisa' : 'linhas precisam' }} de correção
-            </span>
-            <span v-else class="milk-import__valid">Arquivo pronto para importar</span>
-          </div>
-          <div class="milk-import__preview">
-            <table class="table">
-              <thead>
-                <tr><th>Linha</th><th>Brinco</th><th>Animal</th><th>Data</th><th>Litros</th><th>Validação</th></tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in csvRows.slice(0, 8)" :key="row.line">
-                  <td>{{ row.line }}</td>
-                  <td>#{{ row.registerNumber }}</td>
-                  <td>{{ row.animal?.name || '—' }}</td>
-                  <td>{{ row.displayDate || '—' }}</td>
-                  <td>{{ row.displayQuantity || '—' }}</td>
-                  <td :class="row.error ? 'milk-import__row-error' : 'milk-import__row-valid'">
-                    {{ row.error || 'Pronta' }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <ul v-if="csvInvalidRows.length" class="milk-import__errors" aria-label="Linhas com erro">
-            <li v-for="row in csvInvalidRows.slice(0, 10)" :key="`erro-${row.line}`">
-              Linha {{ row.line }}: {{ row.error }}
-            </li>
-          </ul>
-          <p v-if="csvRows.length > 8" class="milk-import__more">
-            Mostrando 8 de {{ csvRows.length }} linhas. Todas serão validadas antes da importação.
-          </p>
-        </template>
-
-        <p v-if="importMessage" class="alert" :class="importSuccess ? 'alert--ok' : 'alert--danger'" :role="importSuccess ? 'status' : 'alert'">
-          <AppIcon :name="importSuccess ? 'check-circle' : 'alert'" :size="16" />
-          <span>{{ importMessage }}</span>
-        </p>
-
-        <footer class="milk-form__actions">
-          <button type="button" class="btn" :disabled="importing" @click="fecharModal">Fechar</button>
-          <button
-            type="button"
-            class="btn btn--primary"
-            :disabled="importing || !csvRows.length || csvInvalidRows.length > 0"
-            @click="importarOrdenhas"
-          >
-            {{ importing ? `Importando ${importProgress}/${csvRows.length}...` : `Importar ${csvRows.length || ''} ordenhas` }}
-          </button>
-        </footer>
-      </div>
-    </AppModal>
   </AppShell>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import {
   CategoryScale,
   Chart as ChartJS,
+  Filler,
+  Legend,
   LineController,
   LineElement,
   LinearScale,
@@ -325,38 +212,27 @@ import {
 } from 'chart.js';
 import { Line } from 'vue-chartjs';
 import api from '@/services/api';
-import { ehAdministrador } from '@/services/auth';
 import AppShell from '@/components/layout/AppShell.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppModal from '@/components/ui/AppModal.vue';
 import { apiErrorMessage } from '@/utils/apiError';
 
-ChartJS.register(CategoryScale, LinearScale, LineController, LineElement, PointElement, Tooltip);
+ChartJS.register(CategoryScale, LinearScale, LineController, LineElement, PointElement, Filler, Legend, Tooltip);
 
-const ehAdmin = computed(() => ehAdministrador());
-const menuAberto = ref(false);
-const registerMenuElement = ref(null);
 const modal = ref('');
 const loading = ref(true);
 const loadingAnimals = ref(true);
 const loadingQuadrants = ref(true);
 const submitting = ref(false);
-const importing = ref(false);
 const loadError = ref('');
 const animalLoadError = ref('');
 const animals = ref([]);
 const quadrants = ref([]);
 const quadrantLoadError = ref('');
 const registros = ref([]);
-const periodo = ref('30');
+const periodo = ref('todos');
 const formMessage = ref('');
 const formSuccess = ref(false);
-const importMessage = ref('');
-const importSuccess = ref(false);
-const csvFileName = ref('');
-const csvError = ref('');
-const csvRows = ref([]);
-const importProgress = ref(0);
 
 const form = ref({
   animal: '',
@@ -524,23 +400,66 @@ const producaoPorDia = computed(() => {
     .map(([data, litros]) => ({ data, litros }));
 });
 
-const chartData = computed(() => ({
-  labels: producaoPorDia.value.map(({ data }) => formatarData(data)),
-  datasets: [{
-    label: 'Produção total (L)',
-    data: producaoPorDia.value.map(({ litros }) => litros),
-    borderColor: chartColor('--accent'),
-    backgroundColor: chartColor('--accent-soft'),
-    pointBackgroundColor: chartColor('--accent'),
-    pointBorderColor: chartColor('--surface'),
-    pointBorderWidth: 2,
-    pointRadius: producaoPorDia.value.length > 60 ? 1 : 4,
-    pointHoverRadius: 6,
-    borderWidth: 3,
-    tension: 0.3,
-    fill: true,
-  }],
-}));
+const mediaDiariaPeriodo = computed(() => {
+  if (!producaoPorDia.value.length) return 0;
+  const soma = producaoPorDia.value.reduce((acc, item) => acc + item.litros, 0);
+  return soma / producaoPorDia.value.length;
+});
+
+function gradientArea(context) {
+  const { ctx, chartArea } = context.chart;
+  const accent = chartColor('--accent') || '#2f6b46';
+  if (!chartArea) return accent;
+  const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+  gradient.addColorStop(0, `${accent}42`);
+  gradient.addColorStop(0.65, `${accent}14`);
+  gradient.addColorStop(1, `${accent}00`);
+  return gradient;
+}
+
+const chartData = computed(() => {
+  const accent = chartColor('--accent') || '#2f6b46';
+  const surface = chartColor('--surface') || '#ffffff';
+  const warn = chartColor('--warn') || '#b47418';
+  const valores = producaoPorDia.value.map(({ litros }) => litros);
+  const media = Number(mediaDiariaPeriodo.value.toFixed(2));
+
+  return {
+    labels: producaoPorDia.value.map(({ data }) => formatarData(data)),
+    datasets: [
+      {
+        label: 'Produção diária (L)',
+        data: valores,
+        borderColor: accent,
+        backgroundColor: gradientArea,
+        pointBackgroundColor: accent,
+        pointBorderColor: surface,
+        pointBorderWidth: 2.5,
+        pointHoverBackgroundColor: surface,
+        pointHoverBorderColor: accent,
+        pointHoverBorderWidth: 3,
+        pointRadius: producaoPorDia.value.length > 60 ? 2 : 5,
+        pointHoverRadius: 7,
+        borderWidth: 3,
+        tension: 0.36,
+        fill: true,
+      },
+      ...(valores.length > 1
+        ? [{
+            label: `Média do período (${formatarNumero(media)} L)`,
+            data: valores.map(() => media),
+            borderColor: warn,
+            borderWidth: 1.75,
+            borderDash: [6, 5],
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            fill: false,
+            tension: 0,
+          }]
+        : []),
+    ],
+  };
+});
 
 function chartColor(token) {
   return getComputedStyle(document.documentElement).getPropertyValue(token).trim();
@@ -549,20 +468,46 @@ function chartColor(token) {
 const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  layout: { padding: { left: 2, right: 12 } },
   interaction: { intersect: false, mode: 'index' },
   plugins: {
-    legend: { display: false },
+    legend: {
+      display: true,
+      position: 'top',
+      align: 'end',
+      labels: {
+        usePointStyle: true,
+        pointStyle: 'circle',
+        boxWidth: 8,
+        boxHeight: 8,
+        padding: 16,
+        color: chartColor('--text-2') || '#525b53',
+        font: { size: 12, weight: '500' },
+      },
+    },
     tooltip: {
+      backgroundColor: 'rgba(20, 26, 22, 0.92)',
+      titleColor: '#ffffff',
+      bodyColor: '#e9eee9',
+      borderColor: 'rgba(255, 255, 255, 0.12)',
+      borderWidth: 1,
+      cornerRadius: 10,
+      padding: 12,
+      displayColors: true,
       callbacks: {
-        label: (context) => ` ${formatarNumero(context.raw)} L`,
+        label: (context) => ` ${context.dataset.label.split(' (')[0]}: ${formatarNumero(context.raw)} L`,
       },
     },
   },
   scales: {
     x: {
+      offset: false,
+      border: { display: false },
       grid: { display: false },
       ticks: {
+        padding: 8,
         color: chartColor('--text-3'),
+        font: { size: 11 },
         maxRotation: 0,
         autoSkip: true,
         maxTicksLimit: 10,
@@ -570,9 +515,16 @@ const chartOptions = computed(() => ({
     },
     y: {
       beginAtZero: true,
-      grid: { color: chartColor('--line') },
+      grace: '12%',
+      border: { display: false, dash: [4, 4] },
+      grid: {
+        color: chartColor('--line'),
+        tickLength: 0,
+      },
       ticks: {
+        padding: 10,
         color: chartColor('--text-3'),
+        font: { size: 11 },
         callback: (value) => `${formatarNumero(value)} L`,
       },
     },
@@ -580,23 +532,14 @@ const chartOptions = computed(() => ({
 }));
 
 function abrirModal(tipo) {
-  menuAberto.value = false;
   modal.value = tipo;
-  if (tipo === 'register') {
-    formMessage.value = '';
-    formSuccess.value = false;
-  } else {
-    limparImportacao();
-  }
+  formMessage.value = '';
+  formSuccess.value = false;
 }
 
 function fecharModal() {
-  if (submitting.value || importing.value) return;
+  if (submitting.value) return;
   modal.value = '';
-}
-
-function aoClicarFora(event) {
-  if (!registerMenuElement.value?.contains(event.target)) menuAberto.value = false;
 }
 
 async function registrarOrdenha() {
@@ -631,213 +574,9 @@ async function registrarOrdenha() {
   }
 }
 
-function parseCsv(text) {
-  const primeiraLinha = text.split(/\r?\n/, 1)[0] || '';
-  const delimitador = (primeiraLinha.match(/;/g) || []).length > (primeiraLinha.match(/,/g) || []).length
-    ? ';'
-    : ',';
-  const rows = [];
-  let row = [];
-  let cell = '';
-  let quoted = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    if (char === '"') {
-      if (quoted && text[index + 1] === '"') {
-        cell += '"';
-        index += 1;
-      } else {
-        quoted = !quoted;
-      }
-    } else if (char === delimitador && !quoted) {
-      row.push(cell);
-      cell = '';
-    } else if ((char === '\n' || char === '\r') && !quoted) {
-      row.push(cell);
-      if (row.some((value) => value.trim())) rows.push(row);
-      row = [];
-      cell = '';
-      if (char === '\r' && text[index + 1] === '\n') index += 1;
-    } else {
-      cell += char;
-    }
-  }
-
-  if (quoted) throw new Error('O CSV tem aspas sem fechamento.');
-  row.push(cell);
-  if (row.some((value) => value.trim())) rows.push(row);
-  return rows;
-}
-
-function normalizarCabecalho(value) {
-  return value
-    .replace(/^\uFEFF/, '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[_\s-]+/g, ' ')
-    .trim();
-}
-
-function dataCsv(value) {
-  const entrada = value.trim();
-  let ano;
-  let mes;
-  let dia;
-  let partes = entrada.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if (partes) {
-    [, ano, mes, dia] = partes;
-  } else {
-    partes = entrada.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (!partes) return null;
-    [, dia, mes, ano] = partes;
-  }
-
-  const iso = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
-  const date = new Date(`${iso}T00:00:00`);
-  const dataValida = !Number.isNaN(date.getTime())
-    && date.getFullYear() === Number(ano)
-    && date.getMonth() + 1 === Number(mes)
-    && date.getDate() === Number(dia);
-  return dataValida ? iso : null;
-}
-
-function quantidadeCsv(value) {
-  const entrada = value.trim().replace(/\s/g, '');
-  const temVirgula = entrada.includes(',');
-  const temPonto = entrada.includes('.');
-  let normalizada = entrada;
-  if (temVirgula && temPonto) {
-    normalizada = entrada.lastIndexOf(',') > entrada.lastIndexOf('.')
-      ? entrada.replace(/\./g, '').replace(',', '.')
-      : entrada.replace(/,/g, '');
-  } else if (temVirgula) {
-    normalizada = entrada.replace(',', '.');
-  }
-  const quantidade = Number(normalizada);
-  return Number.isFinite(quantidade) && quantidade > 0 ? quantidade : null;
-}
-
-function validarCsv(text) {
-  const rows = parseCsv(text);
-  if (rows.length < 2) throw new Error('O arquivo precisa ter cabeçalho e pelo menos uma ordenha.');
-  const headers = rows[0].map(normalizarCabecalho);
-  const indexOfHeader = (names) => headers.findIndex((header) => names.includes(header));
-  const brincoIndex = indexOfHeader(['numero do brinco', 'brinco', 'register number']);
-  const litrosIndex = indexOfHeader(['litros', 'quantidade', 'milk production']);
-  const dataIndex = indexOfHeader(['data', 'date', 'production date']);
-
-  if ([brincoIndex, litrosIndex, dataIndex].some((index) => index < 0)) {
-    throw new Error('Cabeçalhos obrigatórios: numero_do_brinco, litros e data.');
-  }
-
-  return rows.slice(1).map((cells, index) => {
-    const line = index + 2;
-    const registerNumber = cells[brincoIndex]?.trim() || '';
-    const quantity = quantidadeCsv(cells[litrosIndex] || '');
-    const date = dataCsv(cells[dataIndex] || '');
-    const animal = animals.value.find((item) => String(item.register_number) === registerNumber);
-    const issues = [];
-
-    if (!registerNumber) issues.push('Brinco ausente');
-    else if (!animal) issues.push('Animal não encontrado');
-    if (!quantity) issues.push('Litros inválidos');
-    if (!date) issues.push('Data inválida');
-
-    return {
-      line,
-      registerNumber,
-      animal,
-      quantity,
-      date,
-      displayDate: date ? formatarData(date) : cells[dataIndex]?.trim(),
-      displayQuantity: quantity ? `${formatarNumero(quantity)} L` : cells[litrosIndex]?.trim(),
-      error: issues.join(' · '),
-    };
-  });
-}
-
-async function selecionarArquivo(event) {
-  const input = event.currentTarget;
-  const file = input.files?.[0];
-  limparImportacao();
-  if (!file) return;
-  input.value = '';
-  csvFileName.value = file.name;
-  if (!/\.csv$/i.test(file.name)) {
-    csvError.value = 'Selecione um arquivo com extensão .csv.';
-    return;
-  }
-
-  try {
-    csvRows.value = validarCsv(await file.text());
-  } catch (error) {
-    csvError.value = error instanceof Error ? error.message : 'Não foi possível ler o arquivo CSV.';
-  }
-}
-
-function limparImportacao() {
-  csvFileName.value = '';
-  csvError.value = '';
-  csvRows.value = [];
-  importMessage.value = '';
-  importSuccess.value = false;
-  importProgress.value = 0;
-}
-
-const csvInvalidRows = computed(() => csvRows.value.filter((row) => row.error));
-
-async function importarOrdenhas() {
-  if (!csvRows.value.length || csvInvalidRows.value.length) return;
-  importing.value = true;
-  importProgress.value = 0;
-  let importadas = 0;
-  const falhas = [];
-
-  for (const row of csvRows.value) {
-    try {
-      await api.post('milk_production_history/', {
-        animal: row.animal.id,
-        milk_production: row.quantity,
-        production_date: row.date,
-      });
-      importadas += 1;
-    } catch (error) {
-      console.error(`Erro ao importar ordenha da linha ${row.line}:`, error);
-      falhas.push(row.line);
-    } finally {
-      importProgress.value += 1;
-    }
-  }
-
-  importSuccess.value = falhas.length === 0;
-  importMessage.value = falhas.length
-    ? `${importadas} de ${csvRows.value.length} registros importados. Falha nas linhas ${falhas.join(', ')}.`
-    : `${importadas} ordenhas importadas com sucesso.`;
-
-  if (importadas) await carregarDados();
-  importing.value = false;
-}
-
-function baixarModelo() {
-  const csv = `\uFEFFnumero_do_brinco,litros,data\r\n1090,15.5,${dataLocalHoje()}\r\n`;
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'modelo-ordenhas.csv';
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 onMounted(() => {
-  document.addEventListener('pointerdown', aoClicarFora);
   carregarDados();
   carregarEstabulos();
-});
-
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', aoClicarFora);
 });
 </script>
 
@@ -853,38 +592,7 @@ onBeforeUnmount(() => {
   text-transform: uppercase;
 }
 .milk-page__header-actions { display: flex; align-items: center; gap: 9px; }
-.milk-page__register { position: relative; z-index: 3; }
 .milk-page__register-button { gap: 8px; }
-.milk-page__register-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 10;
-  width: min(290px, calc(100vw - 32px));
-  padding: 6px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--shadow-md);
-}
-.milk-page__register-menu button {
-  display: flex;
-  width: 100%;
-  align-items: flex-start;
-  gap: 11px;
-  padding: 10px;
-  border: 0;
-  border-radius: var(--r);
-  background: transparent;
-  color: var(--text-2);
-  text-align: left;
-  cursor: pointer;
-}
-.milk-page__register-menu button:hover { background: var(--surface-2); color: var(--accent); }
-.milk-page__register-menu button > svg { flex: none; margin-top: 2px; }
-.milk-page__register-menu span { display: grid; gap: 3px; }
-.milk-page__register-menu strong { color: var(--text); font-size: var(--fs-sm); }
-.milk-page__register-menu small { color: var(--text-3); font-size: var(--fs-xs); }
 .milk-page__alert { margin: 0; }
 .milk-page__alert .btn { margin-left: auto; }
 
@@ -930,48 +638,6 @@ onBeforeUnmount(() => {
 .milk-form { display: grid; gap: 18px; }
 .milk-form__row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .milk-form__actions { display: flex; justify-content: flex-end; gap: 9px; }
-.milk-import { display: grid; gap: 16px; }
-.milk-import__instructions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-}
-.milk-import__instructions strong { color: var(--text); font-size: var(--fs-sm); }
-.milk-import__instructions p { margin-top: 5px; color: var(--text-2); font-size: var(--fs-xs); line-height: 1.6; }
-.milk-import__instructions code { color: var(--accent); }
-.milk-import__dropzone {
-  position: relative;
-  display: grid;
-  min-height: 145px;
-  place-content: center;
-  justify-items: center;
-  gap: 7px;
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--r-md);
-  color: var(--text-3);
-  cursor: pointer;
-  transition: border-color .15s, background .15s;
-}
-.milk-import__dropzone:hover,
-.milk-import__dropzone--loaded { border-color: var(--accent); background: var(--accent-soft); }
-.milk-import__dropzone svg { color: var(--accent); }
-.milk-import__dropzone strong { max-width: 90%; overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
-.milk-import__dropzone span { font-size: var(--fs-xs); }
-.milk-import__dropzone input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.milk-import__summary { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; color: var(--text); font-size: var(--fs-sm); }
-.milk-import__valid { color: var(--ok); font-size: var(--fs-xs); }
-.milk-import__invalid { color: var(--danger); font-size: var(--fs-xs); }
-.milk-import__preview { max-height: 270px; overflow: auto; border: 1px solid var(--line); border-radius: var(--r-md); }
-.milk-import__preview .table { min-width: 650px; }
-.milk-import__row-error { color: var(--danger); }
-.milk-import__row-valid { color: var(--ok); }
-.milk-import__more { color: var(--text-3); font-size: var(--fs-xs); }
-.milk-import__errors { display: grid; gap: 4px; padding-left: 18px; color: var(--danger); font-size: var(--fs-xs); }
 .sr-only {
   position: absolute;
   width: 1px;
@@ -990,7 +656,6 @@ onBeforeUnmount(() => {
   .milk-metric { padding: 13px; }
   .milk-chart-card__plot { height: 260px; padding: 8px 10px 14px; }
   .milk-form__row { grid-template-columns: 1fr; }
-  .milk-import__instructions { align-items: flex-start; flex-direction: column; }
 }
 
 @media (max-width: 480px) {

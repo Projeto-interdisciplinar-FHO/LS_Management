@@ -58,10 +58,10 @@ export function nome() {
 }
 
 export function ehAdministrador() {
-  return papel() === ADMINISTRADOR;
+  return estaLogado();
 }
 
 /** Para onde mandar alguém que acabou de entrar, ou que errou de porta. */
 export function painelDoPapel() {
-  return ehAdministrador() ? '/dashboard-adm' : '/dashboard-op';
+  return '/dashboard-adm';
 }

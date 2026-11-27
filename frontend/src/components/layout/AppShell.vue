@@ -82,7 +82,7 @@
             <AppIcon name="logout" :size="15" />
           </button>
         </div>
-        <button class="sidebar__theme" :title="rotuloTema" :aria-label="rotuloTema" @click="alternarTema">
+        <button type="button" class="sidebar__theme" :title="rotuloTema" :aria-label="rotuloTema" @click="alternarTema">
           <AppIcon :name="tema === 'dark' ? 'sun' : 'moon'" :size="16" />
           <span>{{ tema === 'dark' ? 'Tema claro' : 'Tema escuro' }}</span>
         </button>
@@ -91,7 +91,7 @@
 
     <div class="shell__main">
       <header class="bar">
-        <button
+        <button type="button"
           class="btn btn--icon bar__hamburguer"
           :aria-label="gavetaAberta ? 'Fechar menu' : 'Abrir menu'"
           :aria-expanded="gavetaAberta"
@@ -102,25 +102,6 @@
         <div class="bar__context">
           <strong>{{ tituloPagina }}</strong>
           <span>Gestão integrada do rebanho</span>
-        </div>
-        <div v-if="mostrarExportacaoPainel" class="bar__actions">
-          <div class="dashboard__action-menu" @click.stop>
-            <button
-              type="button"
-              class="btn btn--primary"
-              :aria-expanded="aberto === 'exportar'"
-              @click="alternar('exportar')"
-            >
-              <AppIcon name="download" :size="15" />
-              Exportar
-              <AppIcon name="chevron-down" :size="14" />
-            </button>
-            <div v-if="aberto === 'exportar'" class="dashboard__action-popover dashboard__action-popover--right">
-              <RouterLink to="/exportar-animais?tipo=animais" class="dashboard__action-option" @click="fecharTudo">
-                <AppIcon name="animal" :size="16" /> Animais
-              </RouterLink>
-            </div>
-          </div>
         </div>
       </header>
       <main>
@@ -149,9 +130,6 @@ const rotuloTema = computed(() => (tema.value === 'dark' ? 'Usar tema claro' : '
 const alternarTema = () => trocarTema();
 
 const ehAdmin = computed(() => ehAdministrador());
-const mostrarExportacaoPainel = computed(() =>
-  ehAdmin.value && ['dashboard-adm', 'dashboard-op'].includes(route.name)
-);
 const painel = computed(() => painelDoPapel());
 const papelAtual = computed(() => papel());
 const nomeExibido = computed(() => nome() || (ehAdmin.value ? 'Administrador' : 'Operador'));
@@ -167,11 +145,23 @@ const iniciais = computed(() =>
 );
 
 const secaoRebanho = computed(() => [
-  {
-    to: ehAdmin.value ? '/animais' : '/rebanho',
-    label: 'Lista de Animais',
-    icon: 'herd',
-  },
+  ehAdmin.value
+    ? {
+        label: 'Cadastros',
+        icon: 'clipboard',
+        children: [
+          { to: '/animais', label: 'Animais', icon: 'animal' },
+          { to: '/estabulos', label: 'Estábulos', icon: 'barn' },
+          { to: '/racas', label: 'Raças', icon: 'tag' },
+          { to: '/vacinas', label: 'Vacinas', icon: 'syringe' },
+          { to: '/dashboard-alimentacao', label: 'Alimentos', icon: 'feed' },
+        ],
+      }
+    : {
+        to: '/rebanho',
+        label: 'Lista de Animais',
+        icon: 'herd',
+      },
   { to: '/saude', label: 'Saúde & Vacinas', icon: 'syringe' },
   {
     label: 'Reprodução & IA',
@@ -187,6 +177,7 @@ const secaoRebanho = computed(() => [
     label: 'Manejo',
     icon: 'move',
     children: [
+      { to: '/desenvolvimento', label: 'Desenvolvimento', icon: 'chart' },
       { to: '/pesagem', label: 'Pesagem', icon: 'scale' },
       { to: '/lancamento-alimentacao', label: 'Alimentação', icon: 'feed' },
       { to: '/veterinario', label: 'Veterinário', icon: 'stethoscope' },
@@ -207,18 +198,9 @@ const secoesMenu = computed(() => {
     secoes.push({
       label: 'Sistema',
       items: [
+        { to: '/exportar-animais', label: 'Exportação / Importação', icon: 'download' },
         { to: '/relatorios', label: 'Relatórios', icon: 'report' },
-        {
-          label: 'Cadastros',
-          icon: 'clipboard',
-          children: [
-            { to: '/estabulos', label: 'Estábulos', icon: 'barn' },
-            { to: '/racas', label: 'Raças', icon: 'tag' },
-            { to: '/vacinas', label: 'Vacinas', icon: 'syringe' },
-            { to: '/dashboard-alimentacao', label: 'Alimentos', icon: 'feed' },
-            { to: '/usuarios', label: 'Usuários', icon: 'users' },
-          ],
-        },
+        { to: '/usuarios', label: 'Usuários', icon: 'users' },
       ],
     });
   }
@@ -254,8 +236,11 @@ const titulosPagina = {
   'lancamento-leite': 'Ordenha (Produção)',
   'saude': 'Saúde & Vacinas',
   'manejo': 'Manejo',
+  'desenvolvimento': 'Desenvolvimento',
   'pesagem': 'Pesagem',
+  'exportar-animais': 'Exportação / Importação',
   'relatorios': 'Relatórios',
+  'usuarios': 'Usuários',
 };
 const tituloPagina = computed(() => titulosPagina[route.name] || 'Gestão do Rebanho');
 

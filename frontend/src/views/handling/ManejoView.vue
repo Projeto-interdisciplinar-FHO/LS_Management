@@ -37,11 +37,11 @@
             <div class="card__body stack">
               <div class="field">
                 <label class="field__label" for="peso-animal">ID do animal (brinco)</label>
-                <input id="peso-animal" v-model="weightData.animal" class="input" type="number" inputmode="numeric" placeholder="142" required>
+                <input id="peso-animal" v-model="weightData.animal" class="input" type="number" min="0" inputmode="numeric" placeholder="142" required>
               </div>
               <div class="field">
                 <label class="field__label" for="peso-valor">Peso (kg)</label>
-                <input id="peso-valor" v-model="weightData.weight" class="input" type="number" inputmode="decimal" step="0.01" placeholder="450.00" required>
+                <input id="peso-valor" v-model="weightData.weight" class="input" type="number" min="0" inputmode="decimal" step="0.01" placeholder="450.00" required>
               </div>
             </div>
             <footer class="card__foot">
@@ -67,7 +67,7 @@
             <div class="card__body stack">
               <div class="field">
                 <label class="field__label" for="vac-animal">ID do animal (brinco)</label>
-                <input id="vac-animal" v-model="vaccineData.animal" class="input" type="number" inputmode="numeric" placeholder="142" required>
+                <input id="vac-animal" v-model="vaccineData.animal" class="input" type="number" min="0" inputmode="numeric" placeholder="142" required>
               </div>
               <div class="field">
                 <label class="field__label" for="vac-vacina">Vacina aplicada</label>

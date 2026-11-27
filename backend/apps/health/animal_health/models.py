@@ -19,6 +19,8 @@ class AnimalHealth(models.Model):
     medication_taken = models.IntegerField(default=0)
     consultation_date = models.DateField()
     consultation_reason = models.TextField()
+    consultation_solution = models.TextField(blank=True, default="")
+    veterinarian = models.CharField(max_length=150, blank=True, default="")
     occurrence = models.ForeignKey(
         VeterinaryOccurrence,
         on_delete=models.PROTECT,
